@@ -1,3 +1,23 @@
+library(RTriangle)
+library(Matrix)
+library(ggplot2)
+library(cowplot)
+library(patchwork)
+library(Rcpp)
+library(RcppArmadillo)
+library(stats)
+
+# get the file dir of the current script
+filr.dir <- "/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/master_pipelines/codes"
+
+sourceCpp(paste0(filr.dir, "/utils_velo.cpp"))
+sourceCpp(paste0(filr.dir, "/mat_exp.cpp"))
+
+source(paste0(filr.dir, "/utility.r"))
+source(paste0(filr.dir, "/analysis.r"))
+source(paste0(filr.dir, "/plotting.r"))
+
+
 #' The CytoSignal Class
 #'
 #' The CytoSignal object is created from one ST dataset. To construct a
@@ -24,8 +44,6 @@
 #' @useDynLib rCytoSignal
 #' 
 #' 
-
-source("/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/master_pipelines/sub_utils.r")
 
 # CytoSignal <- setClass(
 #   Class = "CytoSignal",
@@ -73,6 +91,7 @@ ImpData <- setClass(
 		imp.data = "dgCMatrix",
 		imp.norm.data = "dgCMatrix",
 		intr.data = "dgCMatrix",
+		intr.data.null = "dgCMatrix",
 		nn.id = "factor",
 		nn.dist = "factor",
 		log = "list"
@@ -85,6 +104,8 @@ lrScores <- setClass(
 	slots = c(
 		lig.slot = "character",
 		recep.slot = "character",
+		intr.slot = "character",
+		intr.list = "list",
 		score = "matrix",
 		score.null = "matrix",
 		res.list = "list",
@@ -120,6 +141,83 @@ setMethod(
   }
 )
 
+# convenience functions for showing default slots
+showImp <- function(object, slot.use = NULL) {
+	 if (is.null(slot.use)){
+		 slot.use <- object@imputation[["default"]]
+	 }
+
+	 cat(
+		 "Default: imputed data using: \n",
+		 slot.use, "\n",
+		 "Processing Log: \n"
+	 )
+
+	 print(object@imputation[[slot.use]]@log)
+
+	 if (ncol(object@imputation[[slot.use]]@imp.data) > 0){
+		 print(object@imputation[[slot.use]]@imp.data[1:5,1:5])
+	 } else {
+		 cat("No imputed data available.\n")
+	 }
+}
+
+showUnpt <- function(object, slot.use = NULL){
+	 if (is.null(slot.use)){
+		 slot.use <- object@imputation[["default"]]
+	 }
+
+	 symbols = object@intr.valid[["symbols"]][[slot.use]]
+
+	 cat(
+		 "Default: Filtered data using: \n",
+		 slot.use, "\n",
+		 "Number of genes in the database: ", length(symbols), "\n"
+	 )
+
+	 if (ncol(object@imputation[[slot.use]]@intr.data) > 0){
+		 print(object@imputation[[slot.use]]@intr.data[1:5,1:5])
+	 } else {
+		 cat("No imputed data available.\n")
+	 }
+}
+
+showScore <- function(object, slot.use = NULL){
+	 if (is.null(slot.use)){
+		 slot.use <- object@lrscore[["default"]]
+	 }
+
+	 cat(
+		 "Default: Score data using: \n",
+		 slot.use, "\n",
+		 "Number of intrs in the mtx:", ncol(object@lrscore[[slot.use]]@score), "\n",
+		 "Processing Log: \n"
+	 )
+
+	 print(object@lrscore[[slot.use]]@log)
+
+	 if (ncol(object@lrscore[[slot.use]]@score) > 0){
+		 print(object@lrscore[[slot.use]]@score[1:5,1:5])
+	 } else {
+		 cat("No score data available.\n")
+	 }
+}
+
+
+showLog <- function(object){
+	cat("Pre-processing Log: \n")
+	print(object@log)
+
+	cat("Ligand imputation Log: \n")
+	print(object@imputation[[1]]@log)
+
+	cat("Receptor imputation Log: \n")
+	print(object@imputation[[3]]@log)
+
+	cat("Score Log: \n")
+	print(object@lrscore[[2]]@log)
+}
+
 
 setMethod(
   f = "show",
@@ -142,7 +240,7 @@ setMethod(
 
 createCytoSignal <- function(
 	raw.data, 
-	cells.loc, 
+	cells.loc,
 	clusters = NULL, 
 	name = NULL, 
 	parameters = NULL, 
@@ -193,16 +291,34 @@ createCytoSignal <- function(
 }
 
 
-removeLowQuality <- function(object, intr.df, counts.thresh = 300, gene.thresh = 50) {
+addIntrDB <- function(
+	object,
+	gene_to_uniprot,
+	intr.db.diff_dep,
+	intr.db.cont_dep,
+	inter.index
+) {
+	object@intr.valid <- list(
+		"gene_to_uniprot" = gene_to_uniprot,
+		"diff_dep" = intr.db.diff_dep,
+		"cont_dep" = intr.db.cont_dep,
+		"intr.index" = inter.index
+	)
+
+	return(object)
+}
+
+
+removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 	dge.raw.filter <- object@counts
 	cells.loc <- object@cells.loc
 
-	del.genes = filterGene(dge.raw.filter, intr.df, gene.thresh)
+	del.genes = filterGene(dge.raw.filter, object@intr.valid[["gene_to_uniprot"]], gene.thresh)
 	del.cells = which(colSums(dge.raw.filter) < counts.thresh)
 
 	# Removed  13017 / 33611  low quality cells.
 	if (length(del.cells) == 0 & length(del.genes) != 0){
-		test1 = "No cells removed."
+		text1 = "No cells removed."
 		text2 = paste0("Removed ", length(del.genes), "/", nrow(dge.raw.filter), " low quality genes.")
 		dge.raw.filter = dge.raw.filter[-del.genes, ]
 
@@ -247,4 +363,32 @@ removeLowQuality <- function(object, intr.df, counts.thresh = 300, gene.thresh =
 	cat(log_text, sep = "\n")
 
 	return(object)
+}
+
+
+purgeBeforeSave <- function(object) {
+	# get slot names
+	imp.names = setdiff(names(object@imputation), "default")
+
+	for (i in 1:length(imp.names)) {
+		object@imputation[[imp.names[i]]]@imp.data <- new("dgCMatrix")
+		object@imputation[[imp.names[i]]]@imp.norm.data <- new("dgCMatrix")
+	}
+
+	return(object)
+}
+
+# this function is used to estimate the actual cell intervel in cells.loc after scaling
+# returns the top 5 least intervels, users can choose to which to use
+suggestInterval <- function(object) {
+	nn = RANN::nn2(object@cells.loc, object@cells.loc, k = 6, searchtype = "priority")
+	# nn.idx <- t(nn[["nn.idx"]]) # k X N
+	nn.dist <- t(nn[["nn.dists"]]) # k X N
+	nn.dist <- nn.dist[-1, ] # remove the first row (self) 
+
+	# find the minimum within each row
+	nn.dist.min <- apply(nn.dist, 1, min)
+	nn.dist.min <- nn.dist.min[order(nn.dist.min)]
+
+	return(nn.dist.min)
 }
