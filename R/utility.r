@@ -269,19 +269,79 @@ filterRes <- function(dge.raw, res.list, intr.db, gene_to_uniprot, reads.thresh 
 }
 
 
-# Normal Moran's I test is not applicable here since the total number of the cell is too large, causing 
-# unnacceptable computation cost. Here we use a modified version of Moran's I test, which is to take only 
-# the top KNNs to compute the Moran's I test.
+# impute data using KNN
+dataImpKNN <- function(
+    data, 
+    cells.loc, 
+    # density = 0.05, 
+    k = NULL, 
+    weight = 2
+) {
+    # standard version 1: if alpha% of cells < 500, use 500; otherwise use alpha = 5%
+    # standard version 2: if alpha% of cells < 500, use 500; if alpha% of cells > 2000, use 2000; otherwise use alpha = 5%
 
-moranI <- function (lr.mtx, cells.loc, sigma=0.15, mu=0, density = 0.05, k = NULL) {
-	lt.mtx.imp = dataImpGauss(lr.mtx, cells.loc, sigma, mu, density, k); gc()
-    lt.mtx.imp = as.matrix(t(lt.mtx.imp))
-	res = as.double(pearson_col_cpp(lt.mtx.imp, lr.mtx)) * as.double(stdMat_cpp(lt.mtx.imp)) / as.double(stdMat_cpp(lr.mtx))
-    names(res) = colnames(lr.mtx)
-    res = res[order(res, decreasing=T)]
-    return(res)
+    # den.thresh = round(nrow(cells.loc)*density)
+    # if (is.null(k)){
+    #     if (den.thresh < 500){
+    #         k = 500
+    #     } else if (den.thresh > 2000){
+    #         k = 2000
+    #     } else {
+    #         k = den.thresh
+    #     }
+    # } else {k = round(k)}
+
+    message(paste0("Using ", k, " neighbors for imputation..."))
+    # attention that the cells.loc is already scaled but not centered!!!!!!
+    nn <- RANN::nn2(cells.loc, cells.loc, k = k, searchtype = "priority")
+    # cat("Finished!\n")
+
+    # cat("Gaussian transforming...")
+    nn.idx <- t(nn[["nn.idx"]]) # k X N
+    # nn.dist <- t(nn[["nn.dists"]]) # k X N
+
+    if (weight == 2){
+        nn.dist <- matrix(1/(k-1), nrow = k, ncol = ncol(nn.idx)) # k X N
+        nn.dist[1,] <- 1
+    } else if (weight == 1) {
+        nn.dist <- matrix(1/(k), nrow = k, ncol = ncol(nn.idx)) # k X N
+    }
+    
+    rm(nn); gc()
+    # cat("Finished!\n")
+    
+    # cat("Creating weight matrix...")
+    # construct the weight matrix direcly
+    i <- c(nn.idx) # join each column and convert to int vector
+    j <- as.integer(rep_each_cpp(ncol(nn.idx), k)) # rep (1,2,3,...,n), each k times
+    x <- c(nn.dist)
+    dist.graph <- sparseMatrix(i, j, x = x) # every COLUMN represents a cell's distances to its k nearest neighbors
+    # all.equal(which(dist.graph[,1] != 0), sort(nn.idx[,1]))
+
+    # dist.graph <- quickNorm(dist.graph)
+
+    #### this matrix is NOT symmetric!!!!!
+    # cat("Finished!\n")
+    rm(i, j, x, nn.idx, nn.dist); gc()
+
+    cat("Imputing...")
+
+    # dge.intr.imp <- dge.intr %*% dist.graph
+    # dge.mix.imp <- rbind(dge.intr.imp, dge.other)
+
+    data.imp <- crossprod(data, dist.graph)
+    data.imp <- as(data.imp, "CsparseMatrix")
+
+    cat("Finished!\n")
+
+    dimnames(data.imp) <- list(
+        colnames(data), 
+        rownames(data)
+    )
+
+    # sum(dge.raw!=0)/length(dge.raw) # density 98%
+
+    return(data.imp)
 }
-
-
 
 

@@ -8,10 +8,10 @@ library(RcppArmadillo)
 library(stats)
 
 # get the file dir of the current script
-filr.dir <- "/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/master_pipelines/codes"
+filr.dir <- "/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/R"
 
-sourceCpp(paste0(filr.dir, "/utils_velo.cpp"))
-sourceCpp(paste0(filr.dir, "/mat_exp.cpp"))
+sourceCpp("/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/src/mat_exp.cpp")
+sourceCpp("/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/src/utils_velo.cpp")
 
 source(paste0(filr.dir, "/utility.r"))
 source(paste0(filr.dir, "/analysis.r"))

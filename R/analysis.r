@@ -200,7 +200,7 @@ findNNDT.CytoSignal <- function(
 		nn.id = nn$id,
 		nn.dist = nn$dist,
 		log = list(
-			"Parameters" = "None",
+			"Parameters" = "Delauany Triangulation",
 			"Num of neighbors" = paste0("Mean: ", mean(table(nn$id)), ", Median: ", median(table(nn$id)))
 		)
 	)
@@ -233,7 +233,7 @@ findNNRaw <- function(
 		nn.id = nn$id,
 		nn.dist = nn$dist,
 		log = list(
-			"Parameters" = "None",
+			"Parameters" = "Raw data without imputation",
 			"Num of neighbors" = paste0("Mean: ", mean(table(nn$id)), ", Median: ", median(table(nn$id)))
 		)
 	)
@@ -502,7 +502,7 @@ changeUniprot.dgCMatrix <- function(
 changeUniprot.CytoSignal <- function(
 	object,
 	slot.use = NULL, 
-	mode = "unpt",
+	# mode = "unpt",
 	verbose = T
 ){
 	if (is.null(slot.use)){
@@ -517,7 +517,7 @@ changeUniprot.CytoSignal <- function(
 	dge.raw <- object@imputation[[slot.use]]@imp.norm.data
 	# check duplicate items exists in database
 
-	unpt.list <- changeUniprot.dgCMatrix(dge.raw, gene_to_uniprot, mode = mode, verbose = verbose)
+	unpt.list <- changeUniprot.dgCMatrix(dge.raw, gene_to_uniprot, verbose = verbose)
 	
 	object@imputation[[slot.use]]@intr.data <- unpt.list[[1]]
 	object@intr.valid[["symbols"]][[slot.use]] <- unpt.list[[2]]
@@ -704,7 +704,7 @@ permuteImpLR <- function(
 	# Null imputations
 	null.dge.list <- lapply(1:times, function(i){
 		## MUST shuffule raw dge!!
-		null.dge.raw = dge.raw[, sample(seq_len(ncol(dge.raw)), ncol(dge.raw), replace = F)]
+		null.dge.raw <- dge.raw[, sample(seq_len(ncol(dge.raw)), ncol(dge.raw), replace = F)]
 
 		if (use.gau) {
 			eps.params <- object@parameters
@@ -721,7 +721,7 @@ permuteImpLR <- function(
 
 		null.dge.eps = normCounts.dgCMatrix(null.dge.eps, "default"); gc()
 		null.dge.eps.unpt = changeUniprot.dgCMatrix(null.dge.eps, object@intr.valid[["gene_to_uniprot"]])[[1]]
-		rm(null.dge.eps); gc()
+		rm(null.dge.eps, null.dge.raw); gc()
 
 		return(null.dge.eps.unpt)
 	})
@@ -887,5 +887,48 @@ inferSignif.CytoSignal <- function(
 
     return(object)
 
+}
+
+
+
+# Normal Moran's I test is not applicable here since the total number of the cell is too large, causing 
+# unnacceptable computation cost. Here we use a modified version of Moran's I test, which is to take only 
+# the top KNNs to compute the Moran's I test.
+runPears.std <- function(
+    object,
+    k = 10,
+    weight = 2,
+	score.slot = NULL
+) {
+    if (is.null(score.slot)){
+		score.slot = object@lrscore[["default"]]
+    }
+
+	if (!score.slot %in% names(object@lrscore)) {
+		stop("LRscore obj not found. ")
+	}
+
+	message("Inferring spatial significant intrs on Score slot ", score.slot, "... ")
+
+	# if (length(method) > 1 | !method %in% c("pear.var", "moranI")) {
+	# 	stop("Method not supported. ")
+	# }
+
+	intr.hq <- names(object@lrscore[[score.slot]]@res.list[["result.hq"]])
+
+    lr.mtx <- object@lrscore[[score.slot]]@score[, intr.hq]
+	lt.mtx.imp <- dataImpKNN(lr.mtx, object@cells.loc, k = k, weight = weight)
+	lt.mtx.imp <- as.matrix(t(lt.mtx.imp))
+
+	intr.order <- as.double(pearson_col_cpp(lt.mtx.imp, lr.mtx)) * as.double(stdMat_cpp(lt.mtx.imp)) / as.double(stdMat_cpp(lr.mtx))
+    names(intr.order) <- colnames(lr.mtx)
+	intr.order <- intr.order[order(intr.order, decreasing = T)]
+
+	cat("Reordering significant interactions... \n")
+		
+	res.list.pear <- object@lrscore[[score.slot]]@res.list[["result.hq"]][names(intr.order)]
+	object@lrscore[[score.slot]]@res.list[["result.hq.pear"]] <- res.list.pear
+
+	return(object)
 }
 
