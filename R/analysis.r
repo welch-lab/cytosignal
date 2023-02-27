@@ -142,7 +142,8 @@ findNNDT <- function(
 
 
 findNNDT.matrix <- function(
-	cells.loc
+	cells.loc,
+	weight.sum = 2
 ){
 	cat("Finding DT neighbors...\n")
 	# cells.loc <- pslg(P=cells.loc)
@@ -156,17 +157,31 @@ findNNDT.matrix <- function(
 	
 	index.loc = cells.loc[as.integer(nn.fac),]
 	nb.loc = cells.loc[as.integer(names(nn.fac)),]
+	
+	# set distance for each niche, based on the cell number of each niche
+	nb.size <- table(nn.fac)
+	dist.list = lapply(levels(nn.fac), function(x){
+		use.size <- unname(nb.size[x])
+		if (weight.sum == 1){
+			# norm the sum to 1
+			y = rep(1/(use.size+1), use.size)
+			return(y)
+		} else if (weight.sum == 2) {
+			# norm the sum except the index cell to 1
+			y = rep(1/use.size, use.size)
+			return(c(y, 1))
+		} 
+	})
+	dist.list <- unlist(dist.list)
 
-	dist.list <- as.double(euclidean_cpp(index.loc, nb.loc))
+	# add index bead it self to the neighbor list
+	nn.fac <- addIndex(nn.fac)
 
-	nn.dist.fac = nn.fac
-	names(nn.dist.fac) = dist.list
+	nn.dist.fac <- nn.fac
+	names(nn.dist.fac) <- dist.list
 
-	nn.fac = addIndex(nn.fac) # add index bead it self to the neighbor list
-	nn.dist.fac = addIndexZero(nn.dist.fac)
-
-	cat(paste0("Mean num of neighbors: ", mean(table(nn.fac)), "\n"))
-	cat(paste0("Median num of neighbors: ", median(table(nn.dist.fac)), "\n"))
+	cat(paste0("Mean num of neighbors: ", mean(nb.size), "\n"))
+	cat(paste0("Median num of neighbors: ", median(nb.size), "\n"))
 
 	# return(nn.fac)
 	return(list(
@@ -178,7 +193,8 @@ findNNDT.matrix <- function(
 
 
 findNNDT.CytoSignal <- function(
-	object
+	object,
+	weight = 2
 ){
 	tag <- "DT"
 
@@ -189,7 +205,7 @@ findNNDT.CytoSignal <- function(
 	message("Finding neighbors using DT with tag: ", tag, "...")
 
 	cells.loc <- object@cells.loc
-	nn <- findNNDT.matrix(cells.loc)
+	nn <- findNNDT.matrix(cells.loc, weight.sum = weight)
 
 	nn.obj <- methods::new(
 		"ImpData",
@@ -258,21 +274,25 @@ imputeNiche.dgCMatrix <- function(
 	dge.raw, 
 	nb.id.fac,
 	nb.dist.fac,
-	weights = c("mean", "counts", "dist", "gaussian")
+	weights = c("mean", "counts", "dist", "none")
 ){
 	cat("Imputing...\n")
 
 	i.list = as.integer(names(nb.id.fac)) # x coords, row number
 	j.list = as.numeric(as.character(nb.id.fac)) # y coords, col number, hq beads
 
-	if (weights == "avg"){ # just do the mean
+	if (weights == "avg") { # just do the mean
 		x.list = rep(1, length(i.list))
-	} else if (weights == "counts"){ # use total counts in each bead as weights
+		do.norm <- T
+	} else if (weights == "counts") { # use total counts in each bead as weights
 		x.list = colSums(dge.raw)[i.list]
-	} else if (weights == "dist"){
+		do.norm <- T
+	} else if (weights == "dist") {
 		x.list = exp(-as.numeric(names(nb.dist.fac))) # exp(-dist) as similarities
-	} else if (weights == "gaussian"){
+		do.norm <- T
+	} else if (weights == "none") {
 		x.list = as.numeric(names(nb.dist.fac)) # gaussian distances has been calculated
+		do.norm <- F
 	} else{
 		stop("Incorret weighting method!\n")
 	}
@@ -281,7 +301,10 @@ imputeNiche.dgCMatrix <- function(
 		dims = c(ncol(dge.raw), ncol(dge.raw)), dimnames = list(NULL, colnames(dge.raw)))
 
 	# re-weight the weight mtx across each niche (column)
-	weights.mtx@x = weights.mtx@x / rep.int(colSums(weights.mtx), diff(weights.mtx@p))
+	if (do.norm) {
+		weights.mtx@x = weights.mtx@x / rep.int(colSums(weights.mtx), diff(weights.mtx@p))
+	}
+
 	dge.raw.imputed = dge.raw %*% weights.mtx
 
 	return(dge.raw.imputed)
@@ -709,10 +732,10 @@ permuteImpLR <- function(
 		if (use.gau) {
 			eps.params <- object@parameters
 			null.eps.nb <- findNNGauEB.matrix(null.cells.loc.list[[i]], eps = eps.params[[1]], sigma = eps.params[[2]], weight.sum = 2)
-			null.dge.eps <- imputeNiche.dgCMatrix(null.dge.raw, null.eps.nb$id, null.eps.nb$dist, weights = "gaussian"); gc()
+			null.dge.eps <- imputeNiche.dgCMatrix(null.dge.raw, null.eps.nb$id, null.eps.nb$dist, weights = "none"); gc()
 		} else if (use.dt) {
 			null.nb.fac <- findNNDT.matrix(null.cells.loc.list[[i]])
-        	null.dge.eps <- imputeNiche.dgCMatrix(null.dge.raw, null.nb.fac$id, null.nb.fac$dist, weights = "dist"); gc() # den: 31%
+        	null.dge.eps <- imputeNiche.dgCMatrix(null.dge.raw, null.nb.fac$id, null.nb.fac$dist, weights = "none"); gc() # den: 31%
 		} else if (use.raw) {
 			null.dge.eps <- null.dge.raw
 		} else {
