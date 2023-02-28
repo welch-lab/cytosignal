@@ -867,7 +867,8 @@ inferSignif.CytoSignal <- function(
 	p.value = 0.05, 
 	reads.thresh = 100,
 	sig.thresh = 100,
-    slot.use = NULL
+    slot.use = NULL,
+	nn.use = NULL
 ){
     if (is.null(slot.use)){
         slot.use = object@lrscore[["default"]]
@@ -877,14 +878,33 @@ inferSignif.CytoSignal <- function(
         stop("LRscores not found. ")
     }
 
+	if (is.null(nn.use)) {
+		nn.use <- object@lrscore[[slot.use]]@recep.slot
+	}
+
+	if (is.character(nn.use)) {
+		if (!nn.use %in% names(object@imputation)){
+			stop("Imputation slot not found.")
+		}
+		nb.id.fac <- object@imputation[[nn.use]]@nn.id
+	} 
+	# else if (is.factor(nn.use)) {
+	# 	if (length(nn.use) != ncol(object@imputation[[nn.use]]@intr.data))
+	# 		stop("nn.use must have the same length as the number of cells.")
+	# 	nb.id.fac <- nn.use
+	# } 
+	else {
+		stop("nn.use must be either a factor or a character.")
+	}
+
 	message("Inferring significant beads on Score slot ", slot.use, "... ")
 
     # lrscore.mtx = object@lrscore[[slot.use]]@score
     # null.lrscore.mtx = object@lrscore[[slot.use]]@score.null
 
     nb.fac = list(
-        id = object@imputation[["DT"]]@nn.id,
-        dist = object@imputation[["DT"]]@nn.dist
+        id = object@imputation[[nn.use]]@nn.id,
+        dist = object@imputation[[nn.use]]@nn.dist
     )
 
 	use.intr.slot.name <- object@lrscore[[slot.use]]@intr.slot
