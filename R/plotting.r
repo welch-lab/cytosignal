@@ -1,9 +1,4 @@
-library(ggplot2)
-library(patchwork)
-library(cowplot)
-
-
-plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = NULL, signif.use = NULL, plot.clusters = T, 
+plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = NULL, signif.use = NULL, plot.clusters = T,
                     plot.velo = F, colors.list = NULL, pt.size=0.5, pt.stroke = 0.2, u_width = 6, u_hgt = 5, set.res = 200,
                     return.plot = F
 ){
@@ -45,7 +40,7 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
 
     if (is.null(colors.list)){
         levels.use <- levels(clusters)
-        colors.list = as.character(paletteer::paletteer_d("ggsci::default_igv", 
+        colors.list = as.character(paletteer::paletteer_d("ggsci::default_igv",
                         n = length(levels.use)))
         names(colors.list) = levels.use
     }
@@ -85,7 +80,7 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
         ligands = dge.lig[names( intr.db[[2]][intr.db[[2]] == res.intr.list[i]] ), ]
         ligands.ori = dge.raw[names(intr.db[[2]][intr.db[[2]] == res.intr.list[i]]), ]
         ligands.null = null.dge.gau[names(intr.db[[2]][intr.db[[2]] == res.intr.list[i]]), ]
-        
+
         receps = dge.recep[names(intr.db[[3]][intr.db[[3]] == res.intr.list[i]]), ]
         receps.ori = dge.raw[names(intr.db[[3]][intr.db[[3]] == res.intr.list[i]]), ]
         receps.null = null.dge.dt[names(intr.db[[3]][intr.db[[3]] == res.intr.list[i]]), ]
@@ -179,7 +174,7 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
         sub.df$group = "beads"
         # sub.df$group[res.list[[i]]] = "significant"
         sub.df[res.list[[i]], "group"] = "significant"
-        
+
         p.sig = ggplot(sub.df, aes(x, y, color = group))+
             geom_point(size = pt.size, stroke = pt.stroke)+
             # geom_segment(aes(xend = xend, yend = yend), data = edges.df, color = "red", size = 0.2)+
@@ -194,7 +189,7 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
             sub.df$clusters = as.character(clusters)
 
             sig.sub.df = sub.df[sub.df$group == "significant", ]
-            
+
             p.clust = ggplot(sub.df, aes(x, y, color = clusters))+
                 geom_point(size = pt.size, stroke = pt.stroke)+
                 # scale_colour_viridis_d(direction = -1)+
@@ -205,7 +200,7 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
                 theme_cowplot(12)+
                 guides(color = guide_legend(override.aes = list(size = 4)))+
                 labs(x = NULL, y = NULL)
-                
+
             p.list[["clust"]] = p.clust
         }
 
@@ -226,17 +221,17 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
         plot.len = length(p.list)
         # cat(paste0("Length of plot list: ", plot.len, "\n"))
         intr.name = paste0(intr.name, "-n_", length(res.list[[i]]))
-        
+
         if (plot.details){
             p.list <- p.list[c(1, 4, 7, 9, 3, 2, 5, 8, 10, 6)]
-            png(paste0(res_dir, "/Rank_", i, "_", intr.name, ".png"), 
+            png(paste0(res_dir, "/Rank_", i, "_", intr.name, ".png"),
                         res = set.res, width = u_width*4, height = u_hgt*2, unit="in")
             print(cowplot::plot_grid(plotlist = p.list, nrow = 2))
             dev.off()
-            
+
         } else{
             p.list <- p.list[c(1, 4, 7, 9, 2, 5, 8, 10)]
-            png(paste0(res_dir, "/Rank_", i, "_", intr.name, ".png"), 
+            png(paste0(res_dir, "/Rank_", i, "_", intr.name, ".png"),
                         res = set.res, width = u_width*4, height = u_hgt*2, unit="in")
             print(cowplot::plot_grid(plotlist = p.list, nrow = 2))
             dev.off()
