@@ -1,3 +1,25 @@
+#' Plot significant interactions ranked by the user-specified metric
+#' 
+#' @param object A cytosignal object
+#' @param num.plot Number of interactions to plot
+#' @param res_dir Directory to save the plots
+#' @param plot.details Whether to plot NULL imputed values and scores
+#' @param slot.use The LRscore slot to use for plotting
+#' @param signif.use The metric used to rank the interactions, by default "result.hq.pear"
+#' @param plot.clusters Whether to plot the clusters
+#' @param plot.velo Whether to plot the velocity
+#' @param colors.list A list of colors to use for plotting
+#' @param pt.size Size of the points
+#' @param pt.stroke Stroke of the points
+#' @param u_width Width of the plot
+#' @param u_hgt Height of the plot
+#' @param set.res Resolution of the plot
+#' @param return.plot Whether to return the plot
+#' 
+#' @return A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.
+#' 
+#' @export
+
 plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = NULL, signif.use = NULL, plot.clusters = T,
                     plot.velo = F, colors.list = NULL, pt.size=0.5, pt.stroke = 0.2, u_width = 6, u_hgt = 5, set.res = 200,
                     return.plot = F

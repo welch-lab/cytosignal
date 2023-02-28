@@ -138,12 +138,7 @@ getPvalues <- function(
 }
 
 
-#' @export
-#' @importFrom igraph induced_subgraph
-#' @importFrom Matrix rowMeans tril crossprod rowSums
-#' @importFrom stats dist
-#' @importFrom BiocNeighbors findKNN
-#' @importFrom BiocGenerics which
+
 graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT',
                             k=NULL, reciprocal=T){
 

@@ -1,3 +1,15 @@
+#' Infer the parameters of the Gaussian kernel
+#' 
+#' @param object A Cytosignal object
+#' @param tech.res The resolution of the technology
+#' @param bin_size The size of the bin
+#' @param loc.d The scaled distance between two cells
+#' @param r.eps.real The radius of the epsilon ball in tech resolution in um, default 200 um
+#' @param thresh The total signal out of the epsilon ball
+#' 
+#' @return A Cytosignal object
+#' @export
+
 inferEpsParams <- function(object, tech.res, bin_size, loc.d, r.eps.real = 200, thresh = 0.001){
 	# tech.res: distance between two cells, ori res * number of bins
 	# loc.d: SCALED distance between two cells
@@ -13,6 +25,16 @@ inferEpsParams <- function(object, tech.res, bin_size, loc.d, r.eps.real = 200, 
 }
 
 
+#' Find the neighbors of each cell in the epsilon ball
+#' 
+#' @param object A Cytosignal object
+#' @param eps The radius of the epsilon ball
+#' @param sigma The sigma of the Gaussian kernel
+#' @param weight.sum The sum of the weights
+#' 
+#' @return A list of neighbors and their distances
+#' @export
+#' 
 findNNGauEB <- function(
   object,
   ...
@@ -21,7 +43,15 @@ findNNGauEB <- function(
 }
 
 
-### Epsilon Circle
+#' Sub function for findNNGauEB, input a sparse matrix
+#' 
+#' @param object A Cytosignal object
+#' @param eps The radius of the epsilon ball
+#' @param sigma The sigma of the Gaussian kernel
+#' @param weight.sum The sum of the weights
+#' 
+#' @return A Cytosignal object
+#' @export
 findNNGauEB.matrix <- function(
 	cells.loc,
 	eps,
@@ -84,8 +114,15 @@ findNNGauEB.matrix <- function(
 }
 
 
-
-### Epsilon Circle
+#' Sub function for findNNGauEB, input a Cytosignal object
+#' 
+#' @param object A Cytosignal object
+#' @param eps The radius of the epsilon ball
+#' @param sigma The sigma of the Gaussian kernel
+#' @param weight.sum The sum of the weights
+#' 
+#' @return A Cytosignal object
+#' @export
 findNNGauEB.CytoSignal <- function(
 	object,
 	eps = NULL,
@@ -133,6 +170,13 @@ findNNGauEB.CytoSignal <- function(
 }
 
 
+#' Find the direct connected neighbor of each cell, using Delaunay triangulation
+#' 
+#' @param object A Cytosignal object
+#' @param weight.sum The sum of the weights
+#' 
+#' @return A Cytosignal object
+#' @export
 findNNDT <- function(
   object,
   ...
@@ -140,7 +184,13 @@ findNNDT <- function(
   UseMethod(generic = 'findNNDT', object = object)
 }
 
-
+#' Sub function for findNNDT, input a matrix
+#' 
+#' @param cells.loc A matrix of cells location
+#' @param weight.sum The sum of the weights
+#' 
+#' @return A list of neighbors
+#' @export
 findNNDT.matrix <- function(
 	cells.loc,
 	weight.sum = 2
@@ -191,7 +241,13 @@ findNNDT.matrix <- function(
 }
 
 
-
+#' Sub function for findNNDT, input a Cytosignal object
+#' 
+#' @param object A Cytosignal object
+#' @param weight The weight of the Delaunay triangulation
+#' 
+#' @return A Cytosignal object
+#' @export
 findNNDT.CytoSignal <- function(
 	object,
 	weight = 2
@@ -228,8 +284,12 @@ findNNDT.CytoSignal <- function(
 }
 
 
-# This function is used to norm and filter by UNPT only
-# Corresponding to the situation that user does not want to do imputation
+#' Create a ImpData object using raw data without imputation
+#' 
+#' @param object A Cytosignal object
+#' 
+#' @return A Cytosignal object
+#' @export
 findNNRaw <- function(
 	object
 ) {
@@ -261,7 +321,14 @@ findNNRaw <- function(
 }
 
 
-
+#' Impute the data using the specified method
+#' 
+#' @param object A Cytosignal object
+#' @param method The method to use for imputation
+#' @param ... Other parameters
+#' 
+#' @return A Cytosignal object
+#' @export
 imputeNiche <- function(
   object,
   ...
@@ -270,6 +337,15 @@ imputeNiche <- function(
 }
 
 
+#' Sub function for imputeNiche, input a sparse matrix
+#' 
+#' @param dge.raw A sparse matrix
+#' @param nb.id.fac A factor of neighbors
+#' @param nb.dist.fac A factor of weights
+#' @param weights The weight of the Delaunay triangulation
+#' 
+#' @return A sparse matrix
+#' @export
 imputeNiche.dgCMatrix <- function(
 	dge.raw, 
 	nb.id.fac,
@@ -310,7 +386,15 @@ imputeNiche.dgCMatrix <- function(
 	return(dge.raw.imputed)
 }
 
-
+#' Sub function for imputeNiche, input a Cytosignal object
+#' 
+#' @param object A Cytosignal object
+#' @param nn.type The type of neighbors
+#' @param weights The weight of the Delaunay triangulation
+#' @param save.obj Whether to save the imputed data in the object
+#' 
+#' @return A Cytosignal object
+#' @export
 imputeNiche.CytoSignal <- function(object, 
 	nn.type = NULL, 
 	weights = c("mean", "counts", "dist", "gaussian"),
@@ -357,7 +441,15 @@ imputeNiche.CytoSignal <- function(object,
 	return(object)
 }
 
-
+#' Normalize the data using the specified method
+#' 
+#' @param object A Cytosignal object
+#' @param method The method to use for normalization
+#' @param ... Other parameters
+#' 
+#' @return A Cytosignal object
+#' @export
+#' 
 normCounts <- function(
   object,
   ...
@@ -366,7 +458,13 @@ normCounts <- function(
 }
 
 
-
+#' Sub function for normCounts, input a sparse matrix
+#' 
+#' @param mat A sparse matrix
+#' @param method The method to use for normalization
+#' 
+#' @return A sparse matrix
+#' @export
 normCounts.dgCMatrix <- function(
 	mat, 
 	method = c("default", "cpm")
@@ -385,7 +483,15 @@ normCounts.dgCMatrix <- function(
 }
 
 
-
+#' Sub function for normCounts, input a Cytosignal object
+#' 
+#' @param object A Cytosignal object
+#' @param method The method to use for normalization
+#' @param slot.use The slot to use for normalization
+#' @param save.obj Whether to save the normalized data in the object
+#' 
+#' @return A Cytosignal object
+#' @export
 normCounts.CytoSignal <- function(
 	object, 
 	method = c("default", "cpm"),
@@ -453,7 +559,15 @@ normCounts.CytoSignal <- function(
 # 	return(object)
 # }
 
-
+#' Subset the imputed data (intr.data) by the specified intr index
+#' 
+#' @param object A Cytosignal object
+#' @param intr.index The intr index to use for subsetting
+#' @param slot.use The slot to use for subsetting
+#' 
+#' @return A Cytosignal object
+#' @export
+#' 
 changeUniprot <- function(
   object,
   ...
@@ -461,7 +575,15 @@ changeUniprot <- function(
   UseMethod(generic = 'changeUniprot', object = object)
 }
 
-
+#' Sub function for changeUniprot, input a sparse matrix
+#' 
+#' @param dge.raw A sparse matrix
+#' @param gene_to_uniprot A data frame with gene name and uniprot id
+#' @param verbose Whether to print out the progress
+#' 
+#' @return A sparse matrix
+#' @export
+#' 
 changeUniprot.dgCMatrix <- function(
     dge.raw, 
     gene_to_uniprot,
@@ -521,7 +643,14 @@ changeUniprot.dgCMatrix <- function(
 	))
 }
 
-
+#' Sub function for changeUniprot, input a cytosignal object
+#' 
+#' @param object A Cytosignal object
+#' @param slot.use The slot to use for subsetting
+#' @param verbose Whether to print out the progress
+#' 
+#' @return A Cytosignal object
+#' @export
 changeUniprot.CytoSignal <- function(
 	object,
 	slot.use = NULL, 
@@ -553,7 +682,17 @@ changeUniprot.CytoSignal <- function(
 }
 
 
-
+#' Compute the LR score for specific ligand-receptor imputation obj pairs
+#' 
+#' @param object A Cytosignal object
+#' @param lig.slot The ligand slot to use
+#' @param recep.slot The receptor slot to use
+#' @param intr.db.name The intr database name to use
+#' @param nn.use The neighbor index as niche
+#' 
+#' @return A Cytosignal object
+#' @export
+#' 
 graphNicheLR <- function(
   object,
   ...
@@ -561,7 +700,17 @@ graphNicheLR <- function(
   UseMethod(generic = 'graphNicheLR', object = object)
 }
 
-
+#' Sub function for graphNicheLR, input a sparse matrix
+#' 
+#' @param dge.lig A sparse matrix for ligand
+#' @param dge.recep A sparse matrix for receptor
+#' @param nb.id.fac A factor of neighbor indices
+#' @param lig.fac A factor of ligand indices
+#' @param recep.fac A factor of receptor indices
+#' 
+#' @return A sparse matrix
+#' @export
+#' 
 graphNicheLR.dgCMatrix <- function(
 	dge.lig,
     dge.recep,
@@ -601,9 +750,18 @@ graphNicheLR.dgCMatrix <- function(
 	return(res.mtx)
 }
 
-# nn.use: slot that the neighbor index should be taken from, by default is the same as
-# the recep.slot. For example, if score.obj = GauEps-DT, then nn.use = "DT".
-# nn.use could also be a user-defind factor.
+#' Sub function for graphNicheLR, input a CytoSignal object
+#' 
+#' @param object A Cytosignal object
+#' @param lig.slot The ligand slot to use
+#' @param recep.slot The receptor slot to use
+#' @param intr.db.name The intr database name to use
+#' @param nn.use slot that the neighbor index should be taken from, by default is the same as
+#' 			the recep.slot. For example, if score.obj = GauEps-DT, then nn.use = "DT".
+#' 			nn.use could also be a user-defind factor.
+#' 
+#' @return A Cytosignal object
+#' @export
 graphNicheLR.CytoSignal <- function(
 	object,
 	lig.slot,
@@ -688,7 +846,17 @@ graphNicheLR.CytoSignal <- function(
 }
 
 
-
+#' Permute Imputation Results of specific imputation method
+#' 
+#' This function is a follow-up function of imputeNiche, which permutes the default or user-defined
+#' imputation method and stored the results in the ImpData object.
+#' 
+#' @param object A Cytosignal object
+#' @param nn.type The imputation method to use
+#' @param times Number of permutations
+#' 
+#' @return A Cytosignal object
+#' @export
 permuteImpLR <- function(
 	object,
 	nn.type = NULL,
@@ -759,7 +927,17 @@ permuteImpLR <- function(
 
 }
 
-
+#' Permute LR score for specific ligand-receptor imputation obj pairs
+#' 
+#' This function is a follow-up function of graphNicheLR. It computes the NUL LRscores 
+#' using the NULL imputation results and stores the results in the LR score object.
+#' The null distribution of the LR scores can be used to test the significance of the LR scores.
+#' 
+#' @param object A Cytosignal object
+#' @param slot.use The imputation method to use
+#' 
+#' @return A Cytosignal object
+#' @export
 permuteScoreLR <- function(
 	object,
 	slot.use = NULL
@@ -809,7 +987,22 @@ permuteScoreLR <- function(
     return(object)
 }
 
-
+#' Infer significance of LR scores
+#' 
+#' @param object A Cytosignal object
+#' @param lrscore.mtx A matrix of LR scores
+#' @param null.lrscore.mtx A matrix of NULL LR scores
+#' @param nb.fac A factor of nearest neighbors index
+#' @param intr.db A interaction database
+#' @param gene_to_uniprot A dataframe of gene to uniprot mapping
+#' @param p.thresh A numeric value of p-value threshold
+#' @param reads.thresh A numeric value of reads threshold
+#' @param sig.thresh A numeric value of significance threshold
+#' @param ... Other arguments
+#' 
+#' @return A list of indexes of significant cells
+#' @export
+#' 
 inferSignif <- function(
     object,
     ...
@@ -817,6 +1010,22 @@ inferSignif <- function(
     UseMethod(generic = 'inferSignif', object = object)
 }
 
+
+#' Sub function for inferSignif, input is a sparse matrix
+#' 
+#' @param dge.raw A sparse matrix of raw counts
+#' @param lrscore.mtx A matrix of LR scores
+#' @param null.lrscore.mtx A matrix of NULL LR scores
+#' @param nb.fac A factor of nearest neighbors index
+#' @param intr.db A interaction database
+#' @param gene_to_uniprot A dataframe of gene to uniprot mapping
+#' @param p.thresh A numeric value of p-value threshold
+#' @param reads.thresh A numeric value of reads threshold
+#' @param sig.thresh A numeric value of significance threshold
+#' 
+#' @return A list of indexes of significant cells
+#' @export
+#' 
 inferSignif.dgCMatrix <- function(
     dge.raw,
     lrscore.mtx,
@@ -862,6 +1071,18 @@ inferSignif.dgCMatrix <- function(
 
 }
 
+
+#' Sub function for inferSignif, input is a Cytosignal object
+#' 
+#' @param object A Cytosignal object
+#' @param p.value A numeric value of p-value threshold
+#' @param reads.thresh A numeric value of reads threshold
+#' @param sig.thresh A numeric value of significance threshold
+#' @param slot.use A string of slot name to use
+#' @param nn.use The lrscore obj to infer from
+#' 
+#' @return A Cytosignal object
+#' @export
 inferSignif.CytoSignal <- function(
     object,
 	p.value = 0.05, 
@@ -932,11 +1153,19 @@ inferSignif.CytoSignal <- function(
 
 }
 
+#' Identify spatially significant interactions using std-corrected pearson correlation
 
-
-# Normal Moran's I test is not applicable here since the total number of the cell is too large, causing 
-# unnacceptable computation cost. Here we use a modified version of Moran's I test, which is to take only 
-# the top KNNs to compute the Moran's I test.
+#' Normal Moran's I test is not applicable here since the total number of the cell is too large, causing 
+#' unnacceptable computation cost. Here we use a modified version of Moran's I test, which is to take only 
+#' the top KNNs to compute the Moran's I test.
+#' 
+#' @param object A Cytosignal object
+#' @param k The number of nearest neighbors to use
+#' @param weight The weight of the nearest neighbors
+#' @param score.slot The slot name of the lrscore obj to use
+#' 
+#' @return A Cytosignal object
+#' @export
 runPears.std <- function(
     object,
     k = 10,

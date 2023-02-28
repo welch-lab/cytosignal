@@ -9,11 +9,13 @@
 #'
 #' The key slots used in the CytoSignal object are described below.
 #'
-#' @slot raw.data raw dge, gene x cell
-#' @slot imp.data normalized dge
-#' @slot intr.data normed dge of only intr genes
+#' @slot counts raw dge, gene x cell
 #' @slot cell.loc matrix of cell locations
 #' @slot clusters cluster assignments
+#' @slot imputation list of imputation objs
+#' @slot lrscore list of lrScore objs
+#' @slot velo list of velo objs
+#' @slot intr.valid list of intr database
 #' @slot cell.data data frame of cell data
 #' @slot parameters List of parameters for gaussian imputation
 #' @slot log Log of each main steps
@@ -23,31 +25,6 @@
 #' @rdname CytoSignal-class
 #' @aliases CytoSignal-class
 #' @exportClass CytoSignal
-#' @importFrom Rcpp evalCpp
-#' @useDynLib rCytoSignal
-#'
-#'
-
-# CytoSignal <- setClass(
-#   Class = "CytoSignal",
-#   slots = c(
-# 	raw.data = "CsparseMatrix",
-# 	imp.data = "list",
-# 	imp.norm.data = "list",
-# 	intr.data = "list",
-# 	lrscore = "list",
-# 	lrscore.null = "list",
-# 	res.list = "list",
-# 	cells.loc = "matrix",
-# 	velo.data = "list"
-# 	clusters = "factor",
-# 	intr.db.valid = "list",
-# 	nn = "list",
-# 	parameters = "list",
-# 	log = "list",
-# 	version = "character"
-#   )
-# )
 
 
 CytoSignal <- setClass(
@@ -66,6 +43,27 @@ CytoSignal <- setClass(
   )
 )
 
+#' The ImpData Class
+#'
+#' The ImpData object is created from one ST dataset. User could choose a preferred imputation method
+#' and the class stores the imputed data, the imputed normalized data, the intr database, the intr database.
+#'
+#' The key slots used in the ImpData object are described below.
+#'
+#' @slot method imputation method
+#' @slot imp.data imputed data
+#' @slot imp.norm.data imputed normalized data
+#' @slot intr.data imputed normalized data subsetted by intr database
+#' @slot intr.data.null permuted imputed normalized data subsetted by intr database
+#' @slot nn.id nearest neighbor id
+#' @slot nn.dist nearest neighbor distance
+#' @slot log Log of each main steps
+#' 
+#' @name ImpData-class
+#' @rdname ImpData-class
+#' @aliases ImpData-class
+#' @exportClass ImpData
+ 
 
 ImpData <- setClass(
 	Class = "ImpData",
@@ -80,6 +78,31 @@ ImpData <- setClass(
 		log = "list"
 	)
 )
+
+
+
+#' The lrScores Class
+#' 
+#' The lrScores object is created from one ST dataset. User could choose two imputation methods to calculate
+#' the ligand-receptor scores. The class stores the ligand, receptor, and interaction database, the ligand-receptor
+#' scores, the ligand-receptor scores for permuted data, the ligand-receptor scores for permuted data, and the
+#' log of each main steps.
+#' 
+#' The key slots used in the lrScores object are described below.
+#' 
+#' @slot lig.slot ligand database
+#' @slot recep.slot receptor database
+#' @slot intr.slot interaction database
+#' @slot intr.list list of interaction database
+#' @slot score ligand-receptor scores
+#' @slot score.null permuted ligand-receptor scores
+#' @slot res.list list of results
+#' @slot log Log of each main steps
+#' 
+#' @name lrScores-class
+#' @rdname lrScores-class
+#' @aliases lrScores-class
+#' @exportClass lrScores
 
 
 lrScores <- setClass(
@@ -100,10 +123,7 @@ lrScores <- setClass(
 #' show method for CytoSignal
 #'
 #' @param object CytoSignal object
-#' @name show
-#' @aliases show,CytoSignal-method
-#' @docType methods
-#' @rdname show-methods
+#' @export
 
 setMethod(
   f = "show",
@@ -124,7 +144,14 @@ setMethod(
   }
 )
 
-# convenience functions for showing default slots
+
+
+#' show method for ImpData
+#' 
+#' @param object CytoSignal object
+#' @param slot.use slot to use
+#' @export 
+
 showImp <- function(object, slot.use = NULL) {
 	 if (is.null(slot.use)){
 		 slot.use <- object@imputation[["default"]]
@@ -145,6 +172,12 @@ showImp <- function(object, slot.use = NULL) {
 	 }
 }
 
+#' show intr.data in ImpData
+#' 
+#' @param object CytoSignal object
+#' @param slot.use slot to use
+#' @export
+#' 
 showUnpt <- function(object, slot.use = NULL){
 	 if (is.null(slot.use)){
 		 slot.use <- object@imputation[["default"]]
@@ -165,6 +198,13 @@ showUnpt <- function(object, slot.use = NULL){
 	 }
 }
 
+
+#' show method for lrScores
+#' 
+#' @param object CytoSignal object
+#' @param slot.use slot to use
+#' 
+#' @export
 showScore <- function(object, slot.use = NULL){
 	 if (is.null(slot.use)){
 		 slot.use <- object@lrscore[["default"]]
@@ -186,7 +226,11 @@ showScore <- function(object, slot.use = NULL){
 	 }
 }
 
-
+#' show all current logs
+#' 
+#' @param object CytoSignal object
+#' 
+#' @export
 showLog <- function(object){
 	cat("Pre-processing Log: \n")
 	print(object@log)
@@ -201,7 +245,8 @@ showLog <- function(object){
 	print(object@lrscore[[2]]@log)
 }
 
-
+#' show method for cytosignal obj
+#' 
 setMethod(
   f = "show",
   signature = "ImpData",
@@ -220,7 +265,20 @@ setMethod(
   }
 )
 
-
+#' Create a CytoSignal object
+#' 
+#' @param raw.data raw data matrix
+#' @param cells.loc cells location matrix
+#' @param clusters cluster information
+#' @param name name of the dataset
+#' @param parameters parameters used
+#' @param log log of the processing
+#' @param version version of the package
+#' 
+#' @return a CytoSignal object
+#' 
+#' @export
+#' 
 createCytoSignal <- function(
 	raw.data,
 	cells.loc,
@@ -273,7 +331,17 @@ createCytoSignal <- function(
 	return(object)
 }
 
-
+#' Add interaction database to CytoSignal object
+#' 
+#' @param object CytoSignal object
+#' @param gene_to_uniprot df, gene to uniprot symbols mapping
+#' @param intr.db.diff_dep intr.db for diffusable ligands + non-diffusable receptors
+#' @param intr.db.cont_dep intr.db for contact dependent ligands + receptors
+#' @param inter.index df, collection of intraction information
+#' 
+#' @return a CytoSignal object
+#' 
+#' @export
 addIntrDB <- function(
 	object,
 	gene_to_uniprot,
@@ -291,7 +359,15 @@ addIntrDB <- function(
 	return(object)
 }
 
-
+#' Remove low quality cells and genes from raw counts
+#' 
+#' @param object CytoSignal object
+#' @param counts.thresh threshold for cell counts
+#' @param gene.thresh threshold for gene counts
+#' 
+#' @return a CytoSignal object
+#' 
+#' @export
 removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 	dge.raw.filter <- object@counts
 	cells.loc <- object@cells.loc
@@ -348,7 +424,13 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 	return(object)
 }
 
-
+#' Remove imputed data and normalized imputed data from CytoSignal object to save disk space
+#' 
+#' @param object CytoSignal object
+#' 
+#' @return a CytoSignal object
+#' 
+#' @export
 purgeBeforeSave <- function(object) {
 	# get slot names
 	imp.names = setdiff(names(object@imputation), "default")
@@ -361,8 +443,16 @@ purgeBeforeSave <- function(object) {
 	return(object)
 }
 
-# this function is used to estimate the actual cell intervel in cells.loc after scaling
-# returns the top 5 least intervels, users can choose to which to use
+#' Suggest cell intervels for scaling
+#' 
+#' This function is used to estimate the actual cell intervel in cells.loc after scaling
+#' returns the top 5 least intervels, users can choose to which to use.
+#' 
+#' @param object CytoSignal object
+#' 
+#' @return a vector of intervels
+#' 
+#' @export
 suggestInterval <- function(object) {
 	nn = RANN::nn2(object@cells.loc, object@cells.loc, k = 6, searchtype = "priority")
 	# nn.idx <- t(nn[["nn.idx"]]) # k X N
