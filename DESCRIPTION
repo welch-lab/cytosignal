@@ -1,16 +1,33 @@
 Package: cytosignal
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
+Type: Package
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Jialin",
+           family = "Liu",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+           email = "alanliu@umich.edu")
 Description: What the package does (one paragraph).
+LinkingTo: Rcpp, RcppArmadillo, RcppEigen, RcppProgress
+Depends:
+  Matrix,
+  methods,
+  Rcpp,
+  RcppArmadillo,
+  stats
+Imports:
+  dbscan,
+  ggplot2,
+  ggsci,
+  paletteer,
+  RANN,
+  RTriangle
+Suggests:
+  cowplot,
+  patchwork
 License: `use_mit_license()`, `use_gpl3_license()` or friends to
     pick a license
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.3

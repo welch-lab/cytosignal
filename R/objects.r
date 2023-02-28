@@ -1,22 +1,5 @@
-library(RTriangle)
-library(Matrix)
-library(ggplot2)
-library(cowplot)
-library(patchwork)
-library(Rcpp)
-library(RcppArmadillo)
-library(stats)
-
-# get the file dir of the current script
-filr.dir <- "/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/R"
-
-sourceCpp("/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/src/mat_exp.cpp")
-sourceCpp("/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/src/utils_velo.cpp")
-
-source(paste0(filr.dir, "/utility.r"))
-source(paste0(filr.dir, "/analysis.r"))
-source(paste0(filr.dir, "/plotting.r"))
-
+#sourceCpp("/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/src/mat_exp.cpp")
+#sourceCpp("/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/src/utils_velo.cpp")
 
 #' The CytoSignal Class
 #'
@@ -42,8 +25,8 @@ source(paste0(filr.dir, "/plotting.r"))
 #' @exportClass CytoSignal
 #' @importFrom Rcpp evalCpp
 #' @useDynLib rCytoSignal
-#' 
-#' 
+#'
+#'
 
 # CytoSignal <- setClass(
 #   Class = "CytoSignal",
@@ -239,12 +222,12 @@ setMethod(
 
 
 createCytoSignal <- function(
-	raw.data, 
+	raw.data,
 	cells.loc,
-	clusters = NULL, 
-	name = NULL, 
-	parameters = NULL, 
-	log = NULL, 
+	clusters = NULL,
+	name = NULL,
+	parameters = NULL,
+	log = NULL,
 	version = NULL) {
 
 	if (is.null(clusters)) {
@@ -329,7 +312,7 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 		# cat("Removed ", length(del.cells), "/", ncol(dge.raw.filter), " low quality cells.\n")
 		dge.raw.filter = dge.raw.filter[, -del.cells]
 		cells.loc = cells.loc[-del.cells,]
-		
+
 	} else if (length(del.genes) != 0 & length(del.cells) != 0){
 		text1 = paste0("Removed ", length(del.genes), "/", nrow(dge.raw.filter), " low quality genes.")
 		text2 = paste0("Removed ", length(del.cells), "/", ncol(dge.raw.filter), " low quality cells.")
@@ -346,7 +329,7 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 	if (!all.equal(rownames(cells.loc), colnames(dge.raw.filter))){
 		stop("The cell names in raw data and cells locations are not the same.")
 	}
-	
+
 	object@clusters <- object@clusters[colnames(dge.raw.filter), drop = T]
 	object@counts <- dge.raw.filter
 	object@cells.loc <- cells.loc
@@ -384,7 +367,7 @@ suggestInterval <- function(object) {
 	nn = RANN::nn2(object@cells.loc, object@cells.loc, k = 6, searchtype = "priority")
 	# nn.idx <- t(nn[["nn.idx"]]) # k X N
 	nn.dist <- t(nn[["nn.dists"]]) # k X N
-	nn.dist <- nn.dist[-1, ] # remove the first row (self) 
+	nn.dist <- nn.dist[-1, ] # remove the first row (self)
 
 	# find the minimum within each row
 	nn.dist.min <- apply(nn.dist, 1, min)
