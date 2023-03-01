@@ -268,3 +268,187 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
 
 
 
+#' Plot the lrvelo results
+#' 
+#' 
+
+
+plotVelo <- function(
+    object,
+    num.plot,
+    plot_dir,
+    plot.fmt,
+    slot.use = NULL,
+    use.rank = NULL,
+    plot.clusters = TRUE,
+    colors.list = NULL,
+    z.scaler = 0.03,
+    use.cex = 0.1,
+    use.shape = 16,
+    use_xbins = 15,
+    use_ybins = 15,
+    arrow.line.width = 0.6,
+    arrow.width = 0.06,
+    width = 3,
+    height = 3,
+    use.phi = 45,
+    use.theta = -17
+) {
+    if (is.null(slot.use)){
+        slot.use = object@lrvelo[["default"]]
+    }
+
+    velo.obj <- object@lrvelo[[slot.use]]
+
+    if (is.null(colors.list)){
+        levels.use <- levels(object@clusters)
+        colors.list = as.character(paletteer::paletteer_d("ggsci::default_igv",
+                        n = length(levels.use)))
+        names(colors.list) = levels.use
+    }
+
+    if (length(colors.list) != length(levels(object@clusters))){
+        stop("The length of colors.list is not equal to the length of levels(clusters).\n")
+    }
+
+    col.fac = object@clusters
+    levels(col.fac) = colors.list
+
+    if (is.null(use.rank)){
+        use.rank <- object@lrscore[["default"]]
+        use.res.list <- object@lrscore[[use.rank]]@res.list[["result.hq.pear"]]
+    }
+
+    if (use.rank %in% names(object@lrscore)){
+        use.res.list <- object@lrscore[[use.rank]]@res.list[["result.hq.pear"]]
+    } else{
+        stop("The slot is not in the object@lrscore slot.\n")
+    }
+
+    # intrs that are in the lrscore@result.list
+    # velo may lack some genes so the intrs may be different
+
+    velo.intr.index <- which(names(use.res.list) %in% colnames(velo.obj@intr.velo))
+
+    if (!plot.fmt %in% c("png", "pdf")){
+        stop("The plot.fmt is not supported.\n")
+    }
+
+    cat("Plotting the results...\n")
+
+    plot.list <- lapply(num.plot, function(i){
+        cat("No.", i, ", ", sep = "")
+        intr.rank <- velo.intr.index[i]
+        use.intr = names(use.res.list)[intr.rank]
+        
+        # get value for the ranked #1 intr
+        plot.df = as.data.frame(object@cells.loc[velo.obj@dim.valid$cells, ])
+        plot.df$velo = velo.obj@intr.velo[rownames(plot.df), use.intr]
+
+        pt.df = plot.df[, c(1,2)]
+        pt.df$z = 0
+
+        pt.df$col = as.character(col.fac[rownames(pt.df)])
+        x.scale = max(pt.df$x) - min(pt.df$x)
+        y.scale = max(pt.df$y) - min(pt.df$y)
+
+        #------------------------------------- plotting df for arrows -------------------------------------#
+        # weight -> cell counts in each bin; var4 -> average velo in each bin
+        bin = hex_bin(plot.df$x, plot.df$y, var4=plot.df$velo, var4.to.color = T, xbins = use_xbins, ybins = use_ybins)
+
+        arrows.df = as.data.frame(bin[, c(1,2,3)])
+        colnames(arrows.df) = c("x", "y", "bin_velo")
+
+        ars.pos = arrows.df[arrows.df$bin_velo > 0, ]
+        ars.neg = arrows.df[arrows.df$bin_velo < 0, ]
+        ars.zero = arrows.df[arrows.df$bin_velo == 0, ]
+        # use.scale = max(abs(arrows.df$bin_velo))
+        z.scale = max(arrows.df$bin_velo) - min(arrows.df$bin_velo)
+
+        # scale the length of each arrow by the maximum abs(bin_velo)
+        # overall, scale by each intr
+
+        z.hold = z.scale*z.scaler # set the interval between arrows and points
+
+        if (nrow(ars.pos) > 0){
+            ars.pos$length = abs(ars.pos$bin_velo)/z.scale
+            ars.pos.plot.df = data.frame(
+                x0 = ars.pos$x, y0 = ars.pos$y, z0 = z.hold,
+                x1 = ars.pos$x, y1 = ars.pos$y, z1 = ars.pos$length+z.hold
+            )
+        }
+
+        if (nrow(ars.neg) > 0){
+            ars.neg$length = abs(ars.neg$bin_velo)/z.scale
+            ars.neg.plot.df = data.frame(
+                x0 = ars.neg$x, y0 = ars.neg$y, z0 = ars.neg$length+z.hold,
+                x1 = ars.neg$x, y1 = ars.neg$y, z1 = z.hold
+            )
+        }
+
+        if (nrow(ars.zero) > 0) {
+            ars.zero.plot.df = data.frame(
+                x0 = ars.zero$x, y0 = ars.zero$y, z0 = z.hold,
+                col = "#f7f7f7"
+            ) 
+        }
+
+        intr.name = getIntrNames(use.intr, object@intr.valid$intr.index)
+
+        if (plot.fmt == "png") {
+            png(paste0(plot_dir, "/", "Rank_", intr.rank, "_", intr.name, "_3d.png"), width = width, height = height, units = "in", res = 400)
+        } else if (plot.fmt == "pdf") {
+            pdf(paste0(plot_dir, "/", "Rank_", intr.rank, "_", intr.name, "_3d.pdf"), width = width, height = height)
+        } else {
+            stop("Plotting format not supported.\n")
+        }
+
+        # cex: control size of points
+        plot3D::points3D(pt.df$x, pt.df$y, pt.df$z, 
+            xlim = c(min(pt.df$x) - x.scale*0.025, max(pt.df$x) + x.scale*0.025), 
+            ylim = c(min(pt.df$y) - y.scale*0.025, max(pt.df$y) + y.scale*0.025),
+            zlim = c(-0.01, 1.1), expand = 0.3,
+            theta = use.theta, phi = use.phi, d = 2, 
+            colvar = NULL, col = pt.df$col,
+            colkey = FALSE, pch = use.shape, cex = use.cex,
+            main = "CytoSignalVelo", zlab = "velocity",
+            xlab = "", ylab = ""
+        )
+
+        # plot points with velo = 0 to be grey points
+        if (nrow(ars.zero) > 0) {
+            ars.zero.plot.df = data.frame(
+                x0 = ars.zero$x, y0 = ars.zero$y, z0 = z.hold
+            )
+            plot3D::points3D(ars.zero.plot.df$x0, ars.zero.plot.df$y0, ars.zero.plot.df$z0, 
+                colvar = NULL, col = "#f7f7f7",
+                colkey = FALSE, pch = 19, cex = use.cex, add = T)
+        }
+
+        ### parameters for plotting arrows
+        ### lwd: line width; length: arrow edge length; angle: arrow angle
+
+        # positive arrows
+        if (nrow(ars.pos) > 0 ){
+            plot3D::arrows3D(
+                x0 = ars.pos.plot.df$x0, y0 = ars.pos.plot.df$y0, z0 = ars.pos.plot.df$z0,
+                x1 = ars.pos.plot.df$x1, y1 = ars.pos.plot.df$y1, z1 = ars.pos.plot.df$z1,
+                colvar = NULL, col = "#d73027", lwd = arrow.line.width, length = arrow.width, 
+                clab = intr.name, d = 3, add = T
+            )
+        }
+
+        # negative arrows
+        if (nrow(ars.neg) > 0){
+            plot3D::arrows3D(
+                x0 = ars.neg.plot.df$x0, y0 = ars.neg.plot.df$y0, z0 = ars.neg.plot.df$z0,
+                x1 = ars.neg.plot.df$x1, y1 = ars.neg.plot.df$y1, z1 = ars.neg.plot.df$z1,
+                colvar = NULL, col = "#3c24f1", lwd = arrow.line.width, length = arrow.width, 
+                clab = intr.name, d = 3, add = T
+            )
+        }
+
+        dev.off()
+
+    })
+}

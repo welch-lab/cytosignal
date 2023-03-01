@@ -1,7 +1,8 @@
-// [[Rcpp::depends(RcppArmadillo)]]
-
 #include <RcppArmadillo.h>
+// #include <Rcpp.h>
 #include <iostream>
+
+// [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace std;
 using namespace Rcpp;

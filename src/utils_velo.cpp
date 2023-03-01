@@ -1,5 +1,5 @@
 #include <RcppArmadillo.h>
-#include <Rcpp.h>
+// #include <Rcpp.h>
 #include <iostream>
 // #include <vector>
 // #include <algorithm>
@@ -9,8 +9,6 @@
 using namespace std;
 using namespace Rcpp;
 using namespace arma;
-
-
 
 // // [[Rcpp::export]]
 // arma::mat lrScore_cpp(

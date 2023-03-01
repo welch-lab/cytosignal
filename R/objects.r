@@ -25,7 +25,8 @@
 #' @rdname CytoSignal-class
 #' @aliases CytoSignal-class
 #' @exportClass CytoSignal
-
+#' @importFrom Rcpp evalCpp
+#' @useDynLib cytosignal
 
 CytoSignal <- setClass(
   Class = "CytoSignal",
@@ -36,12 +37,14 @@ CytoSignal <- setClass(
 	imputation = "list",
 	lrscore = "list",
 	velo = "list",
+	lrvelo = "list",
 	intr.valid = "list",
 	parameters = "list",
 	log = "list",
 	version = "character"
   )
 )
+
 
 #' The ImpData Class
 #'
@@ -104,7 +107,6 @@ ImpData <- setClass(
 #' @aliases lrScores-class
 #' @exportClass lrScores
 
-
 lrScores <- setClass(
 	Class = "lrScores",
 	slots = c(
@@ -118,6 +120,48 @@ lrScores <- setClass(
 		log = "list"
 	)
 )
+
+
+
+#' The lrvelo Class
+#' 
+#' The lrvelo object is created from one ST dataset. User could choose two imputation methods to calculate
+#' the ligand-receptor scores. The class stores the index of ligand, receptor, and interaction database, inferred
+#' lrvelo for each interaction, and the log of each main steps.
+#' 
+#' The key slots used in the lrVelo object are described below.
+#' 
+#' @slot lig.slot ligand database
+#' @slot recep.slot receptor database
+#' @slot intr.slot interaction database
+#' @slot intr.list list of interaction database
+#' @slot velo.s A matrix of spliced velo for each gene
+#' @slot velo.u A matrix of unspliced velo for each gene
+#' @slot velo.intr A sparse matrix of velo for each intr
+#' @slot nn.id A factor of nearest neighbor id. Re-do findNN since the order of cells may change!
+#' @slot nn.dist A factor of nearest neighbor distance. Re-do findNN since the order of cells may change!
+#' @slot log Log of each main steps
+#' 
+#' @name lrVelo-class
+#' @rdname lrVelo-class
+#' @aliases lrVelo-class
+#' @exportClass lrVelo
+
+lrVelo <- setClass(
+	Class = "lrVelo",
+	slots = c(
+		lig.slot = "character",
+		recep.slot = "character",
+		intr.slot = "character",
+		intr.list = "list",
+		dim.valid = "list",
+		intr.velo = "matrix_like",
+		nn.id = "factor",
+		nn.dist = "factor",
+		log = "list"
+	)
+)
+
 
 
 #' show method for CytoSignal
@@ -226,6 +270,35 @@ showScore <- function(object, slot.use = NULL){
 	 }
 }
 
+
+#' show method for lrVelo
+#' 
+#' @param object CytoSignal object
+#' @param slot.use slot to use
+#' 
+#' @export
+showVelo <- function(object, slot.use = NULL) {
+	if (is.null(slot.use)){
+		slot.use <- object@lrvelo[["default"]]
+	}
+
+	cat(
+		"Default: Velo data using: \n",
+		slot.use, "\n",
+		"Number of intrs in the mtx:", ncol(object@lrvelo[[slot.use]]@intr.velo), "\n",
+		"Processing Log: \n"
+	)
+
+	print(object@lrvelo[[slot.use]]@log)
+
+	if (ncol(object@lrvelo[[slot.use]]@intr.velo) > 0){
+		print(object@lrvelo[[slot.use]]@intr.velo[1:5,1:5])
+	} else {
+		cat("No velo data available.\n")
+	}
+}
+
+
 #' show all current logs
 #' 
 #' @param object CytoSignal object
@@ -243,6 +316,11 @@ showLog <- function(object){
 
 	cat("Score Log: \n")
 	print(object@lrscore[[2]]@log)
+
+	if (length(object@lrscore) > 1){
+		cat("Score Log: \n")
+		print(object@lrscore[[2]]@log)
+	}
 }
 
 #' show method for cytosignal obj
@@ -465,3 +543,44 @@ suggestInterval <- function(object) {
 
 	return(nn.dist.min)
 }
+
+
+#' Add velocity data to CytoSignal object
+#' 
+#' @param object CytoSignal object
+#' @param velo.s matrix of spliced velo
+#' @param velo.u matrix of unspliced velo
+#' 
+#' @export 
+#' 
+addVelo <- function(
+	object,
+	velo.s,
+	velo.u
+) {
+	if (!is.matrix(velo.s) | !is.matrix(velo.u)) {
+		stop("velo.s and velo.u must be matrix.")
+	}
+
+	# check whether dimnames are the same
+	if (!all.equal(rownames(velo.s), rownames(velo.u))) {
+		stop("velo.s and velo.u must have the same rownames.")
+	}
+
+	if (!all.equal(colnames(velo.s), colnames(velo.u))) {
+		stop("velo.s and velo.u must have the same colnames.")
+	}
+
+	velo.s.intr = changeUniprot.matrix_like(velo.s, object@intr.valid[["gene_to_uniprot"]])
+	velo.u.intr = changeUniprot.matrix_like(velo.u, object@intr.valid[["gene_to_uniprot"]])
+
+	object@velo <- list(
+		"velo.s" = velo.s.intr[[1]],
+		"velo.u" = velo.u.intr[[1]]
+	)
+
+	object@intr.valid[["symbols"]][["velo"]] = velo.s.intr[[2]]
+
+	return(object)
+}
+

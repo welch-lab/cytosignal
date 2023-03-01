@@ -340,3 +340,26 @@ dataImpKNN <- function(
 }
 
 
+getIntrNames <- function(res.intr.list, inter.index){
+    intr.names = sapply(seq_along(res.intr.list), function(i){
+        pair.index = which(inter.index$id_cp_interaction == res.intr.list[i])
+
+        ligand.name = inter.index[pair.index, 4]
+        if (ligand.name == ""){ # if complex
+            ligand.name = inter.index[pair.index, 2]
+        }
+        ligand.name = gsub("_HUMAN", "", ligand.name)
+
+        receptor.name = inter.index[pair.index, 5]
+        if (receptor.name == ""){
+            receptor.name = inter.index[pair.index, 3]
+        }
+        receptor.name = gsub("_HUMAN", "", receptor.name)
+
+        # generate interaction names
+        # intr.name = paste0(gsub("_HUMAN", "", ligand.name), "-", gsub("_HUMAN", "", receptor.name))
+        intr.name = paste0(ligand.name, "-", receptor.name)
+    })
+
+    return(intr.names)
+}
