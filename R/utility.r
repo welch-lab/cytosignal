@@ -9,7 +9,7 @@ filterGene <- function(dge.raw, gene_to_uniprot, thresh = 50){
     mt_idx <- grep("MT-",rownames(dge.raw))
 
     # find low quality gene index
-    low_quality_idx <- which(rowSums(dge.raw) < thresh)
+    low_quality_idx <- which(Matrix::rowSums(dge.raw) < thresh)
 
     cat(paste0("Number of low-quality intr genes: ", sum(intr.genes.index %in% low_quality_idx), "\n"))
 
@@ -242,7 +242,7 @@ graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT
 # within each cell. This function filters out interactions that have: 1) low total counts
 # in the cells, 2) low number of significant interactions.
 filterRes <- function(dge.raw, res.list, intr.db, gene_to_uniprot, reads.thresh = 100, sig.thresh = 100){
-    low_genes = diff(t(dge.raw)@p)
+    low_genes = diff(Matrix::t(dge.raw)@p)
     low_genes = toupper(rownames(dge.raw)[which(low_genes < reads.thresh)])
     low_genes = intersect(low_genes, gene_to_uniprot$gene_name)
 
@@ -324,7 +324,7 @@ dataImpKNN <- function(
     # dge.intr.imp <- dge.intr %*% dist.graph
     # dge.mix.imp <- rbind(dge.intr.imp, dge.other)
 
-    data.imp <- crossprod(data, dist.graph)
+    data.imp <- Matrix::crossprod(data, dist.graph)
     data.imp <- as(data.imp, "CsparseMatrix")
 
     cat("Finished!\n")

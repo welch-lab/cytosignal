@@ -361,7 +361,7 @@ imputeNiche.dgCMatrix <- function(
 		x.list = rep(1, length(i.list))
 		do.norm <- T
 	} else if (weights == "counts") { # use total counts in each bead as weights
-		x.list = colSums(dge.raw)[i.list]
+		x.list = Matrix::colSums(dge.raw)[i.list]
 		do.norm <- T
 	} else if (weights == "dist") {
 		x.list = exp(-as.numeric(names(nb.dist.fac))) # exp(-dist) as similarities
@@ -378,7 +378,7 @@ imputeNiche.dgCMatrix <- function(
 
 	# re-weight the weight mtx across each niche (column)
 	if (do.norm) {
-		weights.mtx@x = weights.mtx@x / rep.int(colSums(weights.mtx), diff(weights.mtx@p))
+		weights.mtx@x = weights.mtx@x / rep.int(Matrix::colSums(weights.mtx), diff(weights.mtx@p))
 	}
 
 	dge.raw.imputed = dge.raw %*% weights.mtx
@@ -397,7 +397,7 @@ imputeNiche.dgCMatrix <- function(
 #' @export
 imputeNiche.CytoSignal <- function(object, 
 	nn.type = NULL, 
-	weights = c("mean", "counts", "dist", "gaussian"),
+	weights = c("mean", "counts", "dist", "none"),
 	save.obj = TRUE
 ){
 	dge.raw <- object@counts
@@ -405,6 +405,10 @@ imputeNiche.CytoSignal <- function(object,
 
 	if (is.null(nn.type)){
 		nn.type <- object@imputation[["default"]]
+	}
+
+	if  (!weights %in% c("mean", "counts", "dist", "none")){
+		stop("Incorret weighting method!\n")
 	}
 
 	message(paste0("Imputing using ", nn.type, "..."))
@@ -470,10 +474,10 @@ normCounts.dgCMatrix <- function(
 	method = c("default", "cpm")
 ){
 	if (method == "default"){
-		mat@x <- mat@x / rep.int(colSums(mat), diff(mat@p))
+		mat@x <- mat@x / rep.int(Matrix::colSums(mat), diff(mat@p))
 		mat@x <- log1p(mat@x * 1e4)
 	} else if (method == "cpm"){
-		mat@x <- mat@x / rep.int(colSums(mat), diff(mat@p))
+		mat@x <- mat@x / rep.int(Matrix::colSums(mat), diff(mat@p))
 		mat@x <- log1p(mat@x * 1e6)
 	} else {
 		stop("Method not found.")
@@ -538,10 +542,10 @@ normCounts.CytoSignal <- function(
 
 # 	mat_list_norm <- lapply(object@imputation[[slot.use]], function(mat) {
 # 		if (method == "default") {
-# 			mat@x = mat@x / rep.int(colSums(mat), diff(mat@p))
+# 			mat@x = mat@x / rep.int(Matrix::colSums(mat), diff(mat@p))
 # 			mat@x = lop1p(mat@x * 1e4)
 # 		} else if (method == "cpm") {
-# 			mat@x = mat@x / rep.int(colSums(mat), diff(mat@p))
+# 			mat@x = mat@x / rep.int(Matrix::colSums(mat), diff(mat@p))
 # 			mat@x = lop1p(mat@x * 1e6)
 # 		} else {
 # 			stop("Method not found.")
@@ -676,7 +680,7 @@ changeUniprot.CytoSignal <- function(
 	dge.raw <- object@imputation[[slot.use]]@imp.norm.data
 	# check duplicate items exists in database
 
-	unpt.list <- changeUniprot.dgCMatrix(dge.raw, gene_to_uniprot, verbose = verbose)
+	unpt.list <- changeUniprot.matrix_like(dge.raw, gene_to_uniprot, verbose = verbose)
 	
 	object@imputation[[slot.use]]@intr.data <- unpt.list[[1]]
 	object@intr.valid[["symbols"]][[slot.use]] <- unpt.list[[2]]
@@ -918,7 +922,7 @@ permuteImpLR <- function(
 		}
 
 		null.dge.eps = normCounts.dgCMatrix(null.dge.eps, "default"); gc()
-		null.dge.eps.unpt = changeUniprot.dgCMatrix(null.dge.eps, object@intr.valid[["gene_to_uniprot"]])[[1]]
+		null.dge.eps.unpt = changeUniprot.matrix_like(null.dge.eps, object@intr.valid[["gene_to_uniprot"]])[[1]]
 		rm(null.dge.eps, null.dge.raw); gc()
 
 		return(null.dge.eps.unpt)
@@ -972,9 +976,9 @@ permuteScoreLR <- function(
     null.lrscore.mtx = graphNicheLR.dgCMatrix(null.dge.eps.unpt, null.dge.dt.unpt, null.nb.fac[["id"]],
 						intr.valid[["ligands"]], intr.valid[["receptors"]]); gc()
 
-    if (sum(colSums(null.lrscore.mtx) == 0) != 0){
-        message("A total of ", sum(colSums(null.lrscore.mtx) == 0), " intr are empty in NULL scores.")
-        null.lrscore.mtx = null.lrscore.mtx[, !colSums(null.lrscore.mtx) == 0]
+    if (sum(Matrix::colSums(null.lrscore.mtx) == 0) != 0){
+        message("A total of ", sum(Matrix::colSums(null.lrscore.mtx) == 0), " intr are empty in NULL scores.")
+        null.lrscore.mtx = null.lrscore.mtx[, !Matrix::colSums(null.lrscore.mtx) == 0]
     }
 
 	intr.both <- intersect(colnames(null.lrscore.mtx), colnames(object@lrscore[[slot.use]]@score))
@@ -1197,7 +1201,7 @@ runPears.std <- function(
 
     lr.mtx <- object@lrscore[[score.slot]]@score[, intr.hq]
 	lt.mtx.imp <- dataImpKNN(lr.mtx, object@cells.loc, k = k, weight = weight)
-	lt.mtx.imp <- as.matrix(t(lt.mtx.imp))
+	lt.mtx.imp <- as.matrix(Matrix::t(lt.mtx.imp))
 
 	intr.order <- as.double(pearson_col_cpp(lt.mtx.imp, lr.mtx)) * as.double(stdMat_cpp(lt.mtx.imp)) / as.double(stdMat_cpp(lr.mtx))
     names(intr.order) <- colnames(lr.mtx)

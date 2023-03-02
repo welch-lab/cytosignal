@@ -14,10 +14,11 @@ Depends:
   methods,
   Rcpp,
   RcppArmadillo,
-  stats
+  stats,
+  ggplot2,
+  cowplot
 Imports:
   dbscan,
-  ggplot2,
   ggsci,
   paletteer,
   RANN,

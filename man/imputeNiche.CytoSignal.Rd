@@ -7,7 +7,7 @@
 \method{imputeNiche}{CytoSignal}(
   object,
   nn.type = NULL,
-  weights = c("mean", "counts", "dist", "gaussian"),
+  weights = c("mean", "counts", "dist", "none"),
   save.obj = TRUE
 )
 }

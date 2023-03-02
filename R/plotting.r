@@ -49,7 +49,7 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
     dge.recep <- object@imputation[[recep.slot]]@intr.data
     null.dge.gau <- object@imputation[[lig.slot]]@intr.data.null
     null.dge.dt <- object@imputation[[recep.slot]]@intr.data.null
-    dge.raw <- changeUniprot.dgCMatrix(object@counts, object@intr.valid[["gene_to_uniprot"]])[[1]]
+    dge.raw <- changeUniprot.matrix_like(object@counts, object@intr.valid[["gene_to_uniprot"]])[[1]]
     clusters <- object@clusters
 
     score.mtx <- score.obj@score
@@ -107,12 +107,12 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
         receps.ori = dge.raw[names(intr.db[[3]][intr.db[[3]] == res.intr.list[i]]), ]
         receps.null = null.dge.dt[names(intr.db[[3]][intr.db[[3]] == res.intr.list[i]]), ]
 
-        if (!is.null(nrow(ligands))){ligands = colSums(ligands)}
-        if (!is.null(nrow(receps))){receps = colSums(receps)}
-        if (!is.null(nrow(ligands.ori))){ligands.ori = colSums(ligands.ori)}
-        if (!is.null(nrow(ligands.null))){ligands.null = colSums(ligands.null)}
-        if (!is.null(nrow(receps.ori))){receps.ori = colSums(receps.ori)}
-        if (!is.null(nrow(receps.null))){receps.null = colSums(receps.null)}
+        if (!is.null(nrow(ligands))){ligands = Matrix::colSums(ligands)}
+        if (!is.null(nrow(receps))){receps = Matrix::colSums(receps)}
+        if (!is.null(nrow(ligands.ori))){ligands.ori = Matrix::colSums(ligands.ori)}
+        if (!is.null(nrow(ligands.null))){ligands.null = Matrix::colSums(ligands.null)}
+        if (!is.null(nrow(receps.ori))){receps.ori = Matrix::colSums(receps.ori)}
+        if (!is.null(nrow(receps.null))){receps.null = Matrix::colSums(receps.null)}
 
         sub.df$ligands = ligands
         sub.df$ligands_ori = ligands.ori

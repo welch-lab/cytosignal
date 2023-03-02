@@ -451,7 +451,7 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 	cells.loc <- object@cells.loc
 
 	del.genes = filterGene(dge.raw.filter, object@intr.valid[["gene_to_uniprot"]], gene.thresh)
-	del.cells = which(colSums(dge.raw.filter) < counts.thresh)
+	del.cells = which(Matrix::colSums(dge.raw.filter) < counts.thresh)
 
 	# Removed  13017 / 33611  low quality cells.
 	if (length(del.cells) == 0 & length(del.genes) != 0){
