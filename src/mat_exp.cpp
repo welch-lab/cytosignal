@@ -82,6 +82,110 @@ arma::vec pearson_col_cpp(const arma::mat& x, const arma::mat& y) {
 }
 
 
+// // [[Rcpp::export]]
+// arma::sp_mat sp_sample_rows(List matrix_list, int n) {
+  
+//   // combine all matrices in the list by row
+//   arma::sp_mat combined_matrix = arma::sp_join_rows(matrix_list);
+  
+//   // sort each row in ascending order
+//   for (int i = 0; i < combined_matrix.n_rows; i++) {
+//     combined_matrix.row(i) = arma::sort(combined_matrix.row(i));
+//   }
+  
+//   // sample n elements within each row evenly
+//   arma::sp_mat sampled_matrix(combined_matrix.n_rows, combined_matrix.n_cols);
+//   for (int i = 0; i < combined_matrix.n_rows; i++) {
+//     int nnz = combined_matrix.row(i).n_nonzero;
+//     int step = nnz / n;
+//     if (step == 0) {
+//       step = 1;
+//     }
+//     int count = 0;
+//     for (arma::sp_mat::const_row_iterator it = combined_matrix.begin_row(i); it != combined_matrix.end_row(i); ++it) {
+//       if (count % step == 0) {
+//         sampled_matrix(i, it.col()) = it.value();
+//       }
+//       count++;
+//     }
+//   }
+  
+//   return sampled_matrix;
+// }
+
+
+// [[Rcpp::export]]
+arma::mat sample_rows_cpp(List matrix_list, int n) {
+  
+  // combine all matrices in the list by row
+  arma::mat combined_matrix;
+  for (int i = 0; i < matrix_list.size(); i++) {
+    arma::mat mat = matrix_list[i];
+    if (i == 0) {
+      combined_matrix = mat;
+    } else {
+      combined_matrix = join_rows(combined_matrix, mat);
+    }
+  }
+  
+  // sort each row in ascending order
+  for (int i = 0; i < combined_matrix.n_rows; i++) {
+    combined_matrix.row(i) = sort(combined_matrix.row(i));
+  }
+  
+  // sample n elements within each row evenly
+  arma::mat sampled_matrix(combined_matrix.n_rows, n);
+  for (int i = 0; i < combined_matrix.n_rows; i++) {
+    int step = combined_matrix.n_cols / (n-1);
+    if (step == 0) {
+      step = 1;
+    }
+    int count = 0;
+    for (int j = 0; j < n; j++) {
+      int idx = j * step;
+      sampled_matrix(i, j) = combined_matrix(i, idx);
+    }
+  }
+  
+  return sampled_matrix;
+}
+
+
+// [[Rcpp::export]]
+arma::sp_mat combine_sparse_rows(List sparse_matrix_list) {
+  
+  // combine all sparse matrices in the list by row
+  arma::sp_mat combined_sparse_matrix;
+  for (int i = 0; i < sparse_matrix_list.size(); i++) {
+    arma::sp_mat mat = sparse_matrix_list[i];
+    if (i == 0) {
+      combined_sparse_matrix = mat;
+    } else {
+      combined_sparse_matrix = arma::join_rows(combined_sparse_matrix, mat);
+    }
+  }
+  
+  return combined_sparse_matrix;
+}
+
+
+// [[Rcpp::export]]
+arma::sp_mat combine_sparse_cols(List sparse_matrix_list) {
+  
+  // combine all sparse matrices in the list by column
+  arma::sp_mat combined_sparse_matrix;
+  for (int i = 0; i < sparse_matrix_list.size(); i++) {
+    arma::sp_mat mat = sparse_matrix_list[i];
+    if (i == 0) {
+      combined_sparse_matrix = mat;
+    } else {
+      combined_sparse_matrix = arma::join_cols(combined_sparse_matrix, mat);
+    }
+  }
+  
+  return combined_sparse_matrix;
+}
+
 
 // // generate regular sequence in cpp
 // // [[Rcpp::export]]

@@ -4,12 +4,7 @@
 \alias{normCounts.CytoSignal}
 \title{Sub function for normCounts, input a Cytosignal object}
 \usage{
-\method{normCounts}{CytoSignal}(
-  object,
-  method = c("default", "cpm"),
-  slot.use = NULL,
-  save.obj = TRUE
-)
+\method{normCounts}{CytoSignal}(object, method = c("default", "cpm"), slot.use = NULL)
 }
 \arguments{
 \item{object}{A Cytosignal object}
@@ -17,8 +12,6 @@
 \item{method}{The method to use for normalization}
 
 \item{slot.use}{The slot to use for normalization}
-
-\item{save.obj}{Whether to save the normalized data in the object}
 }
 \value{
 A Cytosignal object

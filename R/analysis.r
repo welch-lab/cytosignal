@@ -20,7 +20,10 @@ inferEpsParams <- function(object, tech.res, bin_size, loc.d, r.eps.real = 200, 
 	r.eps.scale = (loc.d*r.eps.real)/tech.res # the radius of the epsilon ball in scaled resolution
 	sigma.real = r.eps.real / sqrt(-2 * log(thresh)) # sigma in tech resolution
 	sigma.scale = (loc.d*sigma.real)/tech.res # sigma in scaled resolution
-	object@parameters <- list(r.diffuse.scale = r.eps.scale, sigma.scale = sigma.scale)
+	# object@parameters <- list(r.diffuse.scale = r.eps.scale, sigma.scale = sigma.scale)
+	object@parameters[["r.diffuse.scale"]] <- r.eps.scale
+	object@parameters[["sigma.scale"]] <- sigma.scale
+
 	return(object)
 }
 
@@ -104,7 +107,7 @@ findNNGauEB.matrix <- function(
 	   stop("Result fac longer than original beads length!\n")
 	}
 
-	cat(paste0("Mean num of neighbors: ", mean(table(nn.fac)), "\n"))
+	cat(paste0("Mean num of neighbors: ", ceiling(mean(table(nn.fac))), "\n"))
 	cat(paste0("Median num of neighbors: ", median(table(nn.fac)), "\n"))
 
 	return(list(
@@ -153,10 +156,12 @@ findNNGauEB.CytoSignal <- function(
 		"ImpData",
 		method = tag,
 		imp.data = new("dgCMatrix"),
-		imp.norm.data = new("dgCMatrix"),
-		intr.data = new("dgCMatrix"),
+		# imp.data.null = new("dgCMatrix"),
+		imp.data.null = list(),
+		# intr.data = new("dgCMatrix"),
 		nn.id = nn$id,
 		nn.dist = nn$dist,
+		scale.fac = new("numeric"),
 		log = list(
 			"Parameters" = paste0("eps: ", eps, ", sigma: ", sigma),
 			"Num of neighbors" = paste0("Mean: ", mean(table(nn$id)), ", Median: ", median(table(nn$id)))
@@ -230,7 +235,7 @@ findNNDT.matrix <- function(
 	nn.dist.fac <- nn.fac
 	names(nn.dist.fac) <- dist.list
 
-	cat(paste0("Mean num of neighbors: ", mean(nb.size), "\n"))
+	cat(paste0("Mean num of neighbors: ", ceiling(mean(nb.size)), "\n"))
 	cat(paste0("Median num of neighbors: ", median(nb.size), "\n"))
 
 	# return(nn.fac)
@@ -267,10 +272,12 @@ findNNDT.CytoSignal <- function(
 		"ImpData",
 		method = tag,
 		imp.data = new("dgCMatrix"),
-		imp.norm.data = new("dgCMatrix"),
-		intr.data = new("dgCMatrix"),
+		# imp.data.null = new("dgCMatrix"),
+		imp.data.null = list(),
+		# intr.data = new("dgCMatrix"),
 		nn.id = nn$id,
 		nn.dist = nn$dist,
+		scale.fac = new("numeric"),
 		log = list(
 			"Parameters" = "Delauany Triangulation",
 			"Num of neighbors" = paste0("Mean: ", mean(table(nn$id)), ", Median: ", median(table(nn$id)))
@@ -304,8 +311,9 @@ findNNRaw <- function(
 		"ImpData",
 		method = tag,
 		imp.data = object@counts,
-		imp.norm.data = new("dgCMatrix"),
-		intr.data = new("dgCMatrix"),
+		# imp.norm.data = new("dgCMatrix"),
+		imp.norm.data = list(),
+		# intr.data = new("dgCMatrix"),
 		nn.id = nn$id,
 		nn.dist = nn$dist,
 		log = list(
@@ -391,16 +399,14 @@ imputeNiche.dgCMatrix <- function(
 #' @param object A Cytosignal object
 #' @param nn.type The type of neighbors
 #' @param weights The weight of the Delaunay triangulation
-#' @param save.obj Whether to save the imputed data in the object
 #' 
 #' @return A Cytosignal object
 #' @export
 imputeNiche.CytoSignal <- function(object, 
 	nn.type = NULL, 
-	weights = c("mean", "counts", "dist", "none"),
-	save.obj = TRUE
+	weights = c("mean", "counts", "dist", "none")
 ){
-	dge.raw <- object@counts
+	# dge.raw <- object@counts
 	# Extract neighborhood factors
 
 	if (is.null(nn.type)){
@@ -412,6 +418,8 @@ imputeNiche.CytoSignal <- function(object,
 	}
 
 	message(paste0("Imputing using ", nn.type, "..."))
+
+	dge.raw <- object@counts
 
 	if (nn.type %in% names(object@imputation)){
 		nb.id.fac <- object@imputation[[nn.type]]@nn.id
@@ -431,15 +439,22 @@ imputeNiche.CytoSignal <- function(object,
 		weights = weights
 	)
 
-	# object@imp.data[[nn.type]] <- dge.raw.imputed
+	# weighted sum of scale factors as well
+	scale.fac.imp <- imputeNiche.dgCMatrix(
+		Matrix(object@parameters$lib.size, sparse = T, nrow = 1), 
+		nb.id.fac,
+		nb.dist.fac,
+		weights = weights
+	)
+
+	scale.fac.imp <- as.numeric(scale.fac.imp)
+	names(scale.fac.imp) <- names(object@parameters$lib.size)
+	object@imputation[[nn.type]]@scale.fac <- scale.fac.imp
 
 	res.density <- sum(dge.raw.imputed != 0)/length(dge.raw.imputed) # density 6.2%
 	cat(paste0("Density after imputation: ", res.density*100, "%\n"))
 
-	if (save.obj){
-		object@imputation[[nn.type]]@imp.data <- dge.raw.imputed
-	}
-
+	object@imputation[[nn.type]]@imp.data <- dge.raw.imputed
 	object@imputation[[nn.type]]@log[["Density:"]] <- paste0(res.density*100, "%")
 
 	return(object)
@@ -487,20 +502,46 @@ normCounts.dgCMatrix <- function(
 }
 
 
+#' Sub function for normCounts, input a sparse matrix
+#' 
+#' @param mat.list list of (mat, scale.fac)
+#' @param method The method to use for normalization
+#' 
+#' @return A sparse matrix
+#' @export
+normCounts.list <- function(
+	mat.list, 
+	method = c("default", "cpm")
+){
+	mat <- mat.list[["mat"]]
+	scale.fac <- mat.list[["scale.fac"]]
+
+	if (method == "default"){
+		mat@x <- mat@x / rep.int(scale.fac, diff(mat@p))
+		mat@x <- log1p(mat@x * 1e4)
+	} else if (method == "cpm"){
+		mat@x <- mat@x / rep.int(scale.fac, diff(mat@p))
+		mat@x <- log1p(mat@x * 1e6)
+	} else {
+		stop("Method not found.")
+	}
+
+	return(mat)
+}
+
+
 #' Sub function for normCounts, input a Cytosignal object
 #' 
 #' @param object A Cytosignal object
 #' @param method The method to use for normalization
 #' @param slot.use The slot to use for normalization
-#' @param save.obj Whether to save the normalized data in the object
 #' 
 #' @return A Cytosignal object
 #' @export
 normCounts.CytoSignal <- function(
 	object, 
 	method = c("default", "cpm"),
-	slot.use = NULL,
-	save.obj = TRUE
+	slot.use = NULL
 ){
 	if (is.null(slot.use)){
 		slot.use <- object@imputation[["default"]]
@@ -510,14 +551,16 @@ normCounts.CytoSignal <- function(
 		stop("Data not found.")
 	}
 
-	message(paste0("Normalizing using ", slot.use, "..."))
+	message(paste0("Normalizing on Imp slot: ", slot.use, "..."))
 
 	mat <- object@imputation[[slot.use]]@imp.data
-	mat <- normCounts.dgCMatrix(mat, method = method)
+	scale.fac <- object@imputation[[slot.use]]@scale.fac
 
-	if (save.obj){
-		object@imputation[[slot.use]]@imp.norm.data <- mat
-	}
+	mat <- normCounts.list(
+		list(mat = mat, scale.fac = scale.fac), 
+		method = method)
+
+	object@imputation[[slot.use]]@imp.data <- mat
 
 	# if (!all.equal(names(slot(object, slot.use)), names(object@imp.norm.data))){
 	# 	warning("Names of imp.data and imp.norm.data not equal!")
@@ -654,43 +697,47 @@ changeUniprot.matrix_like <- function(
 	))
 }
 
-#' Sub function for changeUniprot, input a cytosignal object
-#' 
-#' @param object A Cytosignal object
-#' @param slot.use The slot to use for subsetting
-#' @param verbose Whether to print out the progress
-#' 
-#' @return A Cytosignal object
-#' @export
-changeUniprot.CytoSignal <- function(
-	object,
-	slot.use = NULL, 
-	# mode = "unpt",
-	verbose = T
-){
-	if (is.null(slot.use)){
-		slot.use <- object@imputation[["default"]]
-	}
+# #' Sub function for changeUniprot, input a cytosignal object
+# #' 
+# #' @param object A Cytosignal object
+# #' @param slot.use The slot to use for subsetting
+# #' @param verbose Whether to print out the progress
+# #' 
+# #' @return A Cytosignal object
+# #' @export
+# changeUniprot.CytoSignal <- function(
+# 	object,
+# 	slot.use = NULL, 
+# 	# mode = "unpt",
+# 	verbose = T
+# ){
+# 	if (is.null(slot.use)){
+# 		slot.use <- object@imputation[["default"]]
+# 	}
 
-	if (!slot.use %in% names(object@imputation)){
-		stop("Data not found.")
-	}
+# 	if (!slot.use %in% names(object@imputation)){
+# 		stop("Data not found.")
+# 	}
 
-	gene_to_uniprot <- object@intr.valid[["gene_to_uniprot"]]
-	dge.raw <- object@imputation[[slot.use]]@imp.norm.data
-	# check duplicate items exists in database
+# 	gene_to_uniprot <- object@intr.valid[["gene_to_uniprot"]]
+# 	dge.raw <- object@counts
+# 	# check duplicate items exists in database
 
-	unpt.list <- changeUniprot.matrix_like(dge.raw, gene_to_uniprot, verbose = verbose)
+# 	unpt.list <- changeUniprot.matrix_like(dge.raw, gene_to_uniprot, verbose = verbose)
 	
-	object@imputation[[slot.use]]@intr.data <- unpt.list[[1]]
-	object@intr.valid[["symbols"]][[slot.use]] <- unpt.list[[2]]
+# 	object@imputation[[slot.use]]@intr.data <- unpt.list[[1]]
+# 	object@intr.valid[["symbols"]][[slot.use]] <- unpt.list[[2]]
 
-	# if (!all.equal(names(slot(object, slot.use)), names(object@intr.data))) {
-	# 	warning("Names of imp.norm.data and intr.data not equal!")
-	# }
+# 	scale.fac <- object@imputation[[slot.use]]@scale.fac$raw
+# 	scale.fac <- scale.fac[colnames(unpt.list[[1]])]
+# 	object@imputation[[slot.use]]@scale.fac$raw <- scale.fac
 
-	return(object)
-}
+# 	# if (!all.equal(names(slot(object, slot.use)), names(object@intr.data))) {
+# 	# 	warning("Names of imp.norm.data and intr.data not equal!")
+# 	# }
+
+# 	return(object)
+# }
 
 
 #' Compute the LR score for specific ligand-receptor imputation obj pairs
@@ -704,39 +751,31 @@ changeUniprot.CytoSignal <- function(
 #' @return A Cytosignal object
 #' @export
 #' 
-graphNicheLR <- function(
+inferScoreLR <- function(
   object,
   ...
 ) {
-  UseMethod(generic = 'graphNicheLR', object = object)
+  UseMethod(generic = 'inferScoreLR', object = object)
 }
 
-#' Sub function for graphNicheLR, input a sparse matrix
+#' Sub function for inferScoreLR, input a sparse matrix
 #' 
 #' @param dge.lig A sparse matrix for ligand
 #' @param dge.recep A sparse matrix for receptor
-#' @param nb.id.fac A factor of neighbor indices
 #' @param lig.fac A factor of ligand indices
 #' @param recep.fac A factor of receptor indices
 #' 
 #' @return A sparse matrix
 #' @export
 #' 
-graphNicheLR.dgCMatrix <- function(
+inferScoreLR.dgCMatrix <- function(
 	dge.lig,
     dge.recep,
-    nb.id.fac,
 	lig.fac,
 	recep.fac
 ){
 
 	### cavaet: remember to convert the Uniprot ids to indices!
-	# convert nb fac
-	nb.id.fac = sort(nb.id.fac)
-	nb.index = facToIndex(nb.id.fac)
-
-	# lig.fac = intr.valid[["ligands"]]
-	# recep.fac = intr.valid[["receptors"]]
 
 	if (max(as.integer(names(lig.fac))) > nrow(dge.lig)){
 		stop("Intr index out of dge bounds.")
@@ -746,22 +785,21 @@ graphNicheLR.dgCMatrix <- function(
 	recep.index = facToIndex(recep.fac)
 
 	# compute scores
-	res.mtx = graphNicheLR_cpp(
+	res.mtx = inferScoreLR_cpp(
 		unname(as.matrix(dge.lig)),
 		unname(as.matrix(dge.recep)),
 		lig.index[[1]], lig.index[[2]], 
-		recep.index[[1]], recep.index[[2]],
-		nb.index[[1]], nb.index[[2]]
+		recep.index[[1]], recep.index[[2]]
 	)
 
-	dimnames(res.mtx) = list(colnames(dge.lig)[as.integer(levels(nb.id.fac))], levels(lig.fac))
-	# dimnames(res.mtx) = list(colnames(dge.lig), levels(lig.fac))
+	dimnames(res.mtx) = list(colnames(dge.lig), levels(lig.fac))
 	# res.mtx = Matrix(res.mtx, sparse = T)
 
 	return(res.mtx)
 }
 
-#' Sub function for graphNicheLR, input a CytoSignal object
+
+#' Sub function for inferScoreLR, input a CytoSignal object
 #' 
 #' @param object A Cytosignal object
 #' @param lig.slot The ligand slot to use
@@ -773,7 +811,7 @@ graphNicheLR.dgCMatrix <- function(
 #' 
 #' @return A Cytosignal object
 #' @export
-graphNicheLR.CytoSignal <- function(
+inferScoreLR.CytoSignal <- function(
 	object,
 	lig.slot,
 	recep.slot,
@@ -792,47 +830,23 @@ graphNicheLR.CytoSignal <- function(
 		stop("intr.db.name must be either 'diff_dep' or 'cont_dep'.")
 	}
 
-	if (is.null(nn.use)) {
-		nn.use <- recep.slot
-	}
-	
-	if (is.character(nn.use)) {
-		if (!nn.use %in% names(object@imputation)){
-			stop("Imputation slot not found.")
-		}
-		nb.id.fac <- object@imputation[[nn.use]]@nn.id
-	} else if (is.factor(nn.use)) {
-		if (length(nn.use) != ncol(object@imputation[[lig.slot]]@intr.data))
-			stop("nn.use must have the same length as the number of cells.")
-		nb.id.fac <- nn.use
-	} else {
-		stop("nn.use must be either a factor or a character.")
-	}
-
-	dge.lig <- object@imputation[[lig.slot]]@intr.data
-	dge.recep <- object@imputation[[recep.slot]]@intr.data
+	dge.lig <- object@imputation[[lig.slot]]@imp.data
+	dge.recep <- object@imputation[[recep.slot]]@imp.data
 
 	if (!all.equal(dim(dge.lig), dim(dge.recep))){
 		stop("dge.lig and dge.recep must have the same dimension.")
 	}
 
-	if (ncol(dge.lig) < length(levels(nb.id.fac))){
-		stop("Number of index beads larger than the number of beads in DGE.")
-	}
-
-	if (!all.equal(object@intr.valid[["symbols"]][[lig.slot]], 
-					object@intr.valid[["symbols"]][[recep.slot]])){
-		stop("Unpt symbols generated from imputations not equal!")
-	}
-
 	message("Computing scores using ", intr.db.name, " database.")
 	message("Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
 
-	intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][[lig.slot]]), 
+	intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][["intr"]]), 
 							object@intr.valid[[intr.db.name]])
 
-	res.mtx <- graphNicheLR.dgCMatrix(dge.lig, dge.recep, nb.id.fac, 
+	res.mtx <- inferScoreLR.dgCMatrix(dge.lig, dge.recep,
 				intr.db.list[["ligands"]], intr.db.list[["receptors"]])
+
+	# res.mtx <- dge.lig * dge.recep
 
 	score.obj <- methods::new(
 		"lrScores",
@@ -840,7 +854,7 @@ graphNicheLR.CytoSignal <- function(
 		recep.slot = recep.slot,
 		intr.slot = intr.db.name,
 		intr.list = intr.db.list,
-		score = res.mtx,
+		score = Matrix::Matrix(res.mtx, sparse = T),
 		score.null = methods::new("matrix"),
 		res.list = list(),
 		log = list(
@@ -864,14 +878,14 @@ graphNicheLR.CytoSignal <- function(
 #' 
 #' @param object A Cytosignal object
 #' @param nn.type The imputation method to use
-#' @param times Number of permutations
+#' @param perm.size Size of the permutation test
 #' 
 #' @return A Cytosignal object
 #' @export
 permuteImpLR <- function(
 	object,
 	nn.type = NULL,
-	times = 10
+	perm.size = 100000
 ){
 	if (is.null(nn.type)){
 		nn.type <- object@imputation[["default"]]
@@ -891,9 +905,23 @@ permuteImpLR <- function(
 
 	message("Permuting imputation data on method ", nn.type, "...")
 
-	dimnames.list <- dimnames(object@imputation[[nn.type]]@intr.data)
+	dimnames.list <- dimnames(object@imputation[[nn.type]]@imp.data)
 	cells.loc <- object@cells.loc
-	dge.raw <- object@counts
+	dge.raw <- object@raw.counts
+
+	# decide how many times to permute according to the size of the data
+	if (!is.numeric(perm.size)){
+		stop("perm.size must be a numeric value.")
+	}
+
+	if (perm.size < ncol(dge.raw)){
+		message("Permutation size too small, using ", ncol(dge.raw), " instead.")
+		perm.size <- ncol(dge.raw)
+	}
+	
+	times <- ceiling(perm.size / ncol(dge.raw))
+
+	message("Permuting whole dataset ", times, " times...")
 
 	# permute cell locations
 	null.cells.loc.list = lapply(1:times, function(i){
@@ -906,33 +934,43 @@ permuteImpLR <- function(
 	# Null imputations
 	null.dge.list <- lapply(1:times, function(i){
 		## MUST shuffule raw dge!!
-		null.dge.raw <- dge.raw[, sample(seq_len(ncol(dge.raw)), ncol(dge.raw), replace = F)]
+		null.dge.raw.all <- dge.raw[, sample(ncol(dge.raw))]
+		colnames(null.dge.raw.all) <- colnames(dge.raw)
+
+		scale.fac <- Matrix::Matrix(Matrix::colSums(null.dge.raw.all), nrow = 1, byrow = T, sparse = T) # computing scale factor
+		null.dge.raw <- changeUniprot.matrix_like(null.dge.raw.all, object@intr.valid[["gene_to_uniprot"]])[[1]]
 
 		if (use.gau) {
-			eps.params <- object@parameters
-			null.eps.nb <- findNNGauEB.matrix(null.cells.loc.list[[i]], eps = eps.params[[1]], sigma = eps.params[[2]], weight.sum = 2)
+			param.eps <- object@parameters$r.diffuse.scale
+			param.sigma <- object@parameters$sigma.scale
+
+			null.eps.nb <- findNNGauEB.matrix(null.cells.loc.list[[i]], eps = param.eps, 
+							sigma = param.sigma, weight.sum = 2); gc()
+
 			null.dge.eps <- imputeNiche.dgCMatrix(null.dge.raw, null.eps.nb$id, null.eps.nb$dist, weights = "none"); gc()
+			scale.fac.imp <- imputeNiche.dgCMatrix(scale.fac, null.eps.nb$id, null.eps.nb$dist, weights = "none")
 		} else if (use.dt) {
 			null.nb.fac <- findNNDT.matrix(null.cells.loc.list[[i]])
         	null.dge.eps <- imputeNiche.dgCMatrix(null.dge.raw, null.nb.fac$id, null.nb.fac$dist, weights = "none"); gc() # den: 31%
+			scale.fac.imp <- imputeNiche.dgCMatrix(scale.fac, null.nb.fac$id, null.nb.fac$dist, weights = "none")
 		} else if (use.raw) {
 			null.dge.eps <- null.dge.raw
+			scale.fac.imp <- scale.fac
 		} else {
 			stop("Cannot find corresponding imputation method.")
 		}
+		
+		null.dge.eps = normCounts.list(list(mat=null.dge.eps, scale.fac=as.numeric(scale.fac.imp)), "default"); gc()
+		rm(null.dge.raw); gc()
 
-		null.dge.eps = normCounts.dgCMatrix(null.dge.eps, "default"); gc()
-		null.dge.eps.unpt = changeUniprot.matrix_like(null.dge.eps, object@intr.valid[["gene_to_uniprot"]])[[1]]
-		rm(null.dge.eps, null.dge.raw); gc()
-
-		return(null.dge.eps.unpt)
+		return(null.dge.eps)
 	})
 
 	null.dge.eps.unpt = meanMat_cpp(null.dge.list, nrow(null.dge.list[[1]]), ncol(null.dge.list[[1]]))
 	dimnames(null.dge.eps.unpt) <- dimnames.list
 	rm(null.dge.list); gc()
 
-    object@imputation[[nn.type]]@intr.data.null <- null.dge.eps.unpt
+    object@imputation[[nn.type]]@imp.data.null <- null.dge.eps.unpt
 
 	return(object)
 
@@ -940,7 +978,70 @@ permuteImpLR <- function(
 
 #' Permute LR score for specific ligand-receptor imputation obj pairs
 #' 
-#' This function is a follow-up function of graphNicheLR. It computes the NUL LRscores 
+#' This function is a follow-up function of inferScoreLR. It computes the NUL LRscores 
+#' using the NULL imputation results and stores the results in the LR score object.
+#' The null distribution of the LR scores can be used to test the significance of the LR scores.
+#' 
+#' @param object A Cytosignal object
+#' @param slot.use The imputation method to use
+#' 
+#' @return A Cytosignal object
+#' @export
+permuteNicheScoreLR <- function(
+	object,
+	slot.use = NULL
+){
+	if (is.null(slot.use)){
+		slot.use <- object@lrscore[["default"]]
+	}
+
+	message("Permuting scores on Score slot: ", slot.use, "...")
+
+	# score.obj <- object@lrscore[[slot.use]]
+	lig.slot <- object@lrscore[[slot.use]]@lig.slot
+	recep.slot <- object@lrscore[[slot.use]]@recep.slot
+	cells.loc <- object@cells.loc
+	intr.valid <- object@lrscore[[slot.use]]@intr.list
+
+	null.dge.eps.unpt <- object@imputation[[lig.slot]]@imp.data.null
+	null.dge.dt.unpt <- object@imputation[[recep.slot]]@imp.data.null
+
+    perm.index = sample(seq_len(nrow(cells.loc)), nrow(cells.loc), replace = F)
+    null.cells.loc = cells.loc[perm.index,]
+    rownames(null.cells.loc) = rownames(cells.loc)
+    null.nb.fac = findNNDT.matrix(null.cells.loc); gc() # Mean num of neighbors: 44, median: 36
+
+    null.lrscore.mtx = graphNicheLR.dgCMatrix(null.dge.eps.unpt, null.dge.dt.unpt, null.nb.fac[["id"]],
+						intr.valid[["ligands"]], intr.valid[["receptors"]]); gc()
+
+	# null.lrscore.mtx <- null.dge.eps.unpt * null.dge.dt.unpt
+ 
+    if (sum(Matrix::colSums(null.lrscore.mtx) == 0) != 0){
+        message("A total of ", sum(Matrix::colSums(null.lrscore.mtx) == 0), " intr are empty in NULL scores.")
+        null.lrscore.mtx = null.lrscore.mtx[, !Matrix::colSums(null.lrscore.mtx) == 0]
+    }
+
+	intr.both <- intersect(colnames(null.lrscore.mtx), colnames(object@lrscore[[slot.use]]@score))
+
+	if (length(intr.both) != ncol(null.lrscore.mtx)) {
+		message("Removing ", ncol(null.lrscore.mtx) - length(intr.both), " more intr from NULL scores.")
+		null.lrscore.mtx = null.lrscore.mtx[, intr.both]
+	}
+
+	if (length(intr.both) != ncol(object@lrscore[[slot.use]]@score)) {
+		message("Removing ", ncol(object@lrscore[[slot.use]]@score) - length(intr.both), " corresponding intr from REAL scores.")
+		object@lrscore[[slot.use]]@score = object@lrscore[[slot.use]]@score[, intr.both]
+	}
+
+	object@lrscore[[slot.use]]@score.null <- null.lrscore.mtx
+
+    return(object)
+}
+
+
+#' Permute LR score for specific ligand-receptor imputation obj pairs
+#' 
+#' This function is a follow-up function of inferScoreLR. It computes the NUL LRscores 
 #' using the NULL imputation results and stores the results in the LR score object.
 #' The null distribution of the LR scores can be used to test the significance of the LR scores.
 #' 
@@ -965,16 +1066,22 @@ permuteScoreLR <- function(
 	cells.loc <- object@cells.loc
 	intr.valid <- object@lrscore[[slot.use]]@intr.list
 
-	null.dge.eps.unpt <- object@imputation[[lig.slot]]@intr.data.null
-	null.dge.dt.unpt <- object@imputation[[recep.slot]]@intr.data.null
+	null.dge.eps.unpt <- object@imputation[[lig.slot]]@imp.data.null
+	null.dge.dt.unpt <- object@imputation[[recep.slot]]@imp.data.null
 
-    perm.index = sample(seq_len(nrow(cells.loc)), nrow(cells.loc), replace = F)
-    null.cells.loc = cells.loc[perm.index,]
-    rownames(null.cells.loc) = rownames(cells.loc)
-    null.nb.fac = findNNDT.matrix(null.cells.loc); gc() # Mean num of neighbors: 44, median: 36
+    # perm.index = sample(seq_len(nrow(cells.loc)), nrow(cells.loc), replace = F)
+    # null.cells.loc = cells.loc[perm.index,]
+    # rownames(null.cells.loc) = rownames(cells.loc)
+    # null.nb.fac = findNNDT.matrix(null.cells.loc); gc() # Mean num of neighbors: 44, median: 36
 
-    null.lrscore.mtx = graphNicheLR.dgCMatrix(null.dge.eps.unpt, null.dge.dt.unpt, null.nb.fac[["id"]],
+	### test permuting NULL mtx again
+	# null.dge.eps.unpt = null.dge.eps.unpt[, sample(ncol(null.dge.eps.unpt))]
+	# null.dge.dt.unpt = null.dge.dt.unpt[, sample(ncol(null.dge.dt.unpt))]
+
+    null.lrscore.mtx = inferScoreLR.dgCMatrix(null.dge.eps.unpt, null.dge.dt.unpt,
 						intr.valid[["ligands"]], intr.valid[["receptors"]]); gc()
+
+	# null.lrscore.mtx <- null.dge.eps.unpt * null.dge.dt.unpt
 
     if (sum(Matrix::colSums(null.lrscore.mtx) == 0) != 0){
         message("A total of ", sum(Matrix::colSums(null.lrscore.mtx) == 0), " intr are empty in NULL scores.")
@@ -997,6 +1104,8 @@ permuteScoreLR <- function(
 
     return(object)
 }
+
+
 
 #' Infer significance of LR scores
 #' 
@@ -1037,7 +1146,7 @@ inferSignif <- function(
 #' @return A list of indexes of significant cells
 #' @export
 #' 
-inferSignif.dgCMatrix <- function(
+inferSignif.matrix_like <- function(
     dge.raw,
     lrscore.mtx,
     null.lrscore.mtx,
@@ -1142,7 +1251,7 @@ inferSignif.CytoSignal <- function(
 	use.intr.slot.name <- object@lrscore[[slot.use]]@intr.slot
 	use.intr.db <- object@intr.valid[[use.intr.slot.name]]
 
-    res.list = inferSignif(object@counts, object@lrscore[[slot.use]]@score, 
+    res.list = inferSignif(object@raw.counts, object@lrscore[[slot.use]]@score, 
 				object@lrscore[[slot.use]]@score.null, nb.fac,
 				use.intr.db, object@intr.valid[["gene_to_uniprot"]], p.value,
 				reads.thresh, sig.thresh)
@@ -1199,8 +1308,8 @@ runPears.std <- function(
 
 	intr.hq <- names(object@lrscore[[score.slot]]@res.list[["result.hq"]])
 
-    lr.mtx <- object@lrscore[[score.slot]]@score[, intr.hq]
-	lt.mtx.imp <- dataImpKNN(lr.mtx, object@cells.loc, k = k, weight = weight)
+    lr.mtx <- as.matrix(object@lrscore[[score.slot]]@score[, intr.hq])
+	lt.mtx.imp <- dataImpKNN(as.matrix(lr.mtx), object@cells.loc, k = k, weight = weight)
 	lt.mtx.imp <- as.matrix(Matrix::t(lt.mtx.imp))
 
 	intr.order <- as.double(pearson_col_cpp(lt.mtx.imp, lr.mtx)) * as.double(stdMat_cpp(lt.mtx.imp)) / as.double(stdMat_cpp(lr.mtx))
@@ -1268,7 +1377,7 @@ veloNicheLR.matrix_like <- function(
 	recep.index = facToIndex(recep.fac)
 
 	# compute velos
-	res.mtx = VelographNicheLR_cpp(
+	res.mtx = VeloinferScoreLR_cpp(
 		unname(as.matrix(dge.lig)),
 		unname(as.matrix(dge.recep)),
 		unname(as.matrix(velo.mtx)),

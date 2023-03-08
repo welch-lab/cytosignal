@@ -31,6 +31,7 @@
 CytoSignal <- setClass(
   Class = "CytoSignal",
   slots = c(
+	raw.counts = "dgCMatrix",
 	counts = "dgCMatrix",
 	cells.loc = "matrix",
 	clusters = "factor",
@@ -45,6 +46,11 @@ CytoSignal <- setClass(
   )
 )
 
+# set a new class union containing dgCMatrix and matrix
+setClassUnion(
+	"imp_null_class",
+	c("dgCMatrix", "list")
+)
 
 #' The ImpData Class
 #'
@@ -73,14 +79,16 @@ ImpData <- setClass(
 	slots = c(
 		method = "character",
 		imp.data = "dgCMatrix",
-		imp.norm.data = "dgCMatrix",
-		intr.data = "dgCMatrix",
-		intr.data.null = "dgCMatrix",
+		# imp.norm.data = "dgCMatrix",
+		# intr.data = "dgCMatrix",
+		imp.data.null = "imp_null_class",
 		nn.id = "factor",
 		nn.dist = "factor",
+		scale.fac = "numeric",
 		log = "list"
 	)
 )
+
 
 
 
@@ -114,8 +122,8 @@ lrScores <- setClass(
 		recep.slot = "character",
 		intr.slot = "character",
 		intr.list = "list",
-		score = "matrix",
-		score.null = "matrix",
+		score = "matrix_like",
+		score.null = "matrix_like",
 		res.list = "list",
 		log = "list"
 	)
@@ -394,9 +402,10 @@ createCytoSignal <- function(
 
 	object <- methods::new(
 		"CytoSignal",
-		counts = raw.data,
-		cells.loc = cells.loc,
+		raw.counts = raw.data,
 		clusters = clusters,
+		counts = new("dgCMatrix"),
+		cells.loc = cells.loc,
 		imputation = list(),
 		lrscore = list(),
 		velo = list(),
@@ -437,6 +446,8 @@ addIntrDB <- function(
 	return(object)
 }
 
+
+
 #' Remove low quality cells and genes from raw counts
 #' 
 #' @param object CytoSignal object
@@ -447,7 +458,7 @@ addIntrDB <- function(
 #' 
 #' @export
 removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
-	dge.raw.filter <- object@counts
+	dge.raw.filter <- object@raw.counts
 	cells.loc <- object@cells.loc
 
 	del.genes = filterGene(dge.raw.filter, object@intr.valid[["gene_to_uniprot"]], gene.thresh)
@@ -485,8 +496,9 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 	}
 
 	object@clusters <- object@clusters[colnames(dge.raw.filter), drop = T]
-	object@counts <- dge.raw.filter
 	object@cells.loc <- cells.loc
+	object@raw.counts <- dge.raw.filter
+	object@parameters[["lib.size"]] <- Matrix::colSums(dge.raw.filter)
 
 	log_text = c(
 		paste0("Gene count threshold: ", gene.thresh),
@@ -501,6 +513,35 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 
 	return(object)
 }
+
+
+
+#' Sub function for changeUniprot, input a cytosignal object
+#' 
+#' @param object A Cytosignal object
+#' @param verbose Whether to print out the progress
+#' 
+#' @return A Cytosignal object
+#' @export
+changeUniprot.CytoSignal <- function(
+	object,
+	verbose = T
+){
+
+	gene_to_uniprot <- object@intr.valid[["gene_to_uniprot"]]
+	dge.raw <- object@raw.counts
+	# check duplicate items exists in database
+
+	unpt.list <- changeUniprot.matrix_like(dge.raw, gene_to_uniprot, verbose = verbose)
+	
+	object@counts <- unpt.list[[1]]
+	object@cells.loc <- object@cells.loc[colnames(unpt.list[[1]]), ]
+	object@intr.valid[["symbols"]][["intr"]] <- unpt.list[[2]]
+
+	return(object)
+}
+
+
 
 #' Remove imputed data and normalized imputed data from CytoSignal object to save disk space
 #' 

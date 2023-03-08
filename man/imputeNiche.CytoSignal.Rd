@@ -7,8 +7,7 @@
 \method{imputeNiche}{CytoSignal}(
   object,
   nn.type = NULL,
-  weights = c("mean", "counts", "dist", "none"),
-  save.obj = TRUE
+  weights = c("mean", "counts", "dist", "none")
 )
 }
 \arguments{
@@ -17,8 +16,6 @@
 \item{nn.type}{The type of neighbors}
 
 \item{weights}{The weight of the Delaunay triangulation}
-
-\item{save.obj}{Whether to save the imputed data in the object}
 }
 \value{
 A Cytosignal object

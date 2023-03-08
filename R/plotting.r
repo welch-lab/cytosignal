@@ -45,11 +45,12 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
 
     lig.slot <- score.obj@lig.slot
     recep.slot <- score.obj@recep.slot
-    dge.lig <- object@imputation[[lig.slot]]@intr.data
-    dge.recep <- object@imputation[[recep.slot]]@intr.data
-    null.dge.gau <- object@imputation[[lig.slot]]@intr.data.null
-    null.dge.dt <- object@imputation[[recep.slot]]@intr.data.null
-    dge.raw <- changeUniprot.matrix_like(object@counts, object@intr.valid[["gene_to_uniprot"]])[[1]]
+    dge.lig <- object@imputation[[lig.slot]]@imp.data
+    dge.recep <- object@imputation[[recep.slot]]@imp.data
+    null.dge.gau <- object@imputation[[lig.slot]]@imp.data.null
+    null.dge.dt <- object@imputation[[recep.slot]]@imp.data.null
+    # dge.raw <- changeUniprot.matrix_like(object@counts, object@intr.valid[["gene_to_uniprot"]])[[1]]
+    dge.raw <- object@counts
     clusters <- object@clusters
 
     score.mtx <- score.obj@score
@@ -165,10 +166,10 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
         if (ncol(dge.lig) != nrow(score.mtx)){
             cat("Setting LR-scores of cells with no neighbors to empty.\n")
             sub.df$scores = 0
-            sub.df[rownames(score.mtx), "scores"] = score.mtx[, res.intr.list[i]]
+            sub.df[Matrix::rownames(score.mtx), "scores"] = score.mtx[, res.intr.list[i]]
 
             null.sub.df$null_scores = 0
-            null.sub.df[rownames(null.lrscore.mtx), "null_scores"] = null.lrscore.mtx[, res.intr.list[i]]
+            null.sub.df[Matrix::rownames(null.lrscore.mtx), "null_scores"] = null.lrscore.mtx[, res.intr.list[i]]
         } else{
             sub.df$scores = score.mtx[, res.intr.list[i]]
             null.sub.df$null_scores = null.lrscore.mtx[, res.intr.list[i]]

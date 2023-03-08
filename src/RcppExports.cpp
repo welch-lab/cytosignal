@@ -107,9 +107,43 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// graphNicheLR_cpp_ori
-arma::mat graphNicheLR_cpp_ori(const arma::mat& dge_lig, const arma::mat& dge_recep, const arma::uvec& lig_index, const arma::uvec& lig_list, const arma::uvec& recep_index, const arma::uvec& recep_list, const arma::uvec& nb_index, const arma::uvec& nb_list);
-RcppExport SEXP _cytosignal_graphNicheLR_cpp_ori(SEXP dge_ligSEXP, SEXP dge_recepSEXP, SEXP lig_indexSEXP, SEXP lig_listSEXP, SEXP recep_indexSEXP, SEXP recep_listSEXP, SEXP nb_indexSEXP, SEXP nb_listSEXP) {
+// sample_rows_cpp
+arma::mat sample_rows_cpp(List matrix_list, int n);
+RcppExport SEXP _cytosignal_sample_rows_cpp(SEXP matrix_listSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type matrix_list(matrix_listSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(sample_rows_cpp(matrix_list, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// combine_sparse_rows
+arma::sp_mat combine_sparse_rows(List sparse_matrix_list);
+RcppExport SEXP _cytosignal_combine_sparse_rows(SEXP sparse_matrix_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type sparse_matrix_list(sparse_matrix_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(combine_sparse_rows(sparse_matrix_list));
+    return rcpp_result_gen;
+END_RCPP
+}
+// combine_sparse_cols
+arma::sp_mat combine_sparse_cols(List sparse_matrix_list);
+RcppExport SEXP _cytosignal_combine_sparse_cols(SEXP sparse_matrix_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type sparse_matrix_list(sparse_matrix_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(combine_sparse_cols(sparse_matrix_list));
+    return rcpp_result_gen;
+END_RCPP
+}
+// inferScoreLR_cpp
+arma::mat inferScoreLR_cpp(const arma::mat& dge_lig, const arma::mat& dge_recep, const arma::uvec& lig_index, const arma::uvec& lig_list, const arma::uvec& recep_index, const arma::uvec& recep_list);
+RcppExport SEXP _cytosignal_inferScoreLR_cpp(SEXP dge_ligSEXP, SEXP dge_recepSEXP, SEXP lig_indexSEXP, SEXP lig_listSEXP, SEXP recep_indexSEXP, SEXP recep_listSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -119,9 +153,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::uvec& >::type lig_list(lig_listSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type recep_index(recep_indexSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type recep_list(recep_listSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type nb_index(nb_indexSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type nb_list(nb_listSEXP);
-    rcpp_result_gen = Rcpp::wrap(graphNicheLR_cpp_ori(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list));
+    rcpp_result_gen = Rcpp::wrap(inferScoreLR_cpp(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -188,7 +220,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_varMat_cpp", (DL_FUNC) &_cytosignal_varMat_cpp, 1},
     {"_cytosignal_stdMat_cpp", (DL_FUNC) &_cytosignal_stdMat_cpp, 1},
     {"_cytosignal_pearson_col_cpp", (DL_FUNC) &_cytosignal_pearson_col_cpp, 2},
-    {"_cytosignal_graphNicheLR_cpp_ori", (DL_FUNC) &_cytosignal_graphNicheLR_cpp_ori, 8},
+    {"_cytosignal_sample_rows_cpp", (DL_FUNC) &_cytosignal_sample_rows_cpp, 2},
+    {"_cytosignal_combine_sparse_rows", (DL_FUNC) &_cytosignal_combine_sparse_rows, 1},
+    {"_cytosignal_combine_sparse_cols", (DL_FUNC) &_cytosignal_combine_sparse_cols, 1},
+    {"_cytosignal_inferScoreLR_cpp", (DL_FUNC) &_cytosignal_inferScoreLR_cpp, 6},
     {"_cytosignal_graphNicheLR_cpp", (DL_FUNC) &_cytosignal_graphNicheLR_cpp, 8},
     {"_cytosignal_graphMeanLR_cpp", (DL_FUNC) &_cytosignal_graphMeanLR_cpp, 6},
     {"_cytosignal_VelographNicheLR_cpp", (DL_FUNC) &_cytosignal_VelographNicheLR_cpp, 9},
