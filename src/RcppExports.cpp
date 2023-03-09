@@ -191,6 +191,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// inferVeloLR_cpp
+arma::mat inferVeloLR_cpp(const arma::mat& dge_lig, const arma::mat& dge_recep, const arma::mat& dge_lig_velo, const arma::mat& dge_recep_velo, const arma::uvec& lig_index, const arma::uvec& lig_list, const arma::uvec& recep_index, const arma::uvec& recep_list);
+RcppExport SEXP _cytosignal_inferVeloLR_cpp(SEXP dge_ligSEXP, SEXP dge_recepSEXP, SEXP dge_lig_veloSEXP, SEXP dge_recep_veloSEXP, SEXP lig_indexSEXP, SEXP lig_listSEXP, SEXP recep_indexSEXP, SEXP recep_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type dge_lig(dge_ligSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type dge_recep(dge_recepSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type dge_lig_velo(dge_lig_veloSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type dge_recep_velo(dge_recep_veloSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type lig_index(lig_indexSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type lig_list(lig_listSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type recep_index(recep_indexSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type recep_list(recep_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(inferVeloLR_cpp(dge_lig, dge_recep, dge_lig_velo, dge_recep_velo, lig_index, lig_list, recep_index, recep_list));
+    return rcpp_result_gen;
+END_RCPP
+}
 // VelographNicheLR_cpp
 arma::mat VelographNicheLR_cpp(const arma::mat& dge_lig, const arma::mat& dge_recep, const arma::mat& dge_velo, const arma::uvec& lig_index, const arma::uvec& lig_list, const arma::uvec& recep_index, const arma::uvec& recep_list, const arma::uvec& nb_index, const arma::uvec& nb_list);
 RcppExport SEXP _cytosignal_VelographNicheLR_cpp(SEXP dge_ligSEXP, SEXP dge_recepSEXP, SEXP dge_veloSEXP, SEXP lig_indexSEXP, SEXP lig_listSEXP, SEXP recep_indexSEXP, SEXP recep_listSEXP, SEXP nb_indexSEXP, SEXP nb_listSEXP) {
@@ -226,6 +244,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_inferScoreLR_cpp", (DL_FUNC) &_cytosignal_inferScoreLR_cpp, 6},
     {"_cytosignal_graphNicheLR_cpp", (DL_FUNC) &_cytosignal_graphNicheLR_cpp, 8},
     {"_cytosignal_graphMeanLR_cpp", (DL_FUNC) &_cytosignal_graphMeanLR_cpp, 6},
+    {"_cytosignal_inferVeloLR_cpp", (DL_FUNC) &_cytosignal_inferVeloLR_cpp, 8},
     {"_cytosignal_VelographNicheLR_cpp", (DL_FUNC) &_cytosignal_VelographNicheLR_cpp, 9},
     {NULL, NULL, 0}
 };
