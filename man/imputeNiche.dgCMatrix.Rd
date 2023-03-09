@@ -8,7 +8,8 @@
   dge.raw,
   nb.id.fac,
   nb.dist.fac,
-  weights = c("mean", "counts", "dist", "none")
+  weights = c("mean", "counts", "dist", "none"),
+  return.graph = F
 )
 }
 \arguments{

@@ -243,10 +243,15 @@ graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT
 # in the cells, 2) low number of significant interactions.
 filterRes <- function(dge.raw, res.list, intr.db, gene_to_uniprot, reads.thresh = 100, sig.thresh = 100){
     low_genes = diff(Matrix::t(dge.raw)@p)
-    low_genes = toupper(rownames(dge.raw)[which(low_genes < reads.thresh)])
-    low_genes = intersect(low_genes, gene_to_uniprot$gene_name)
+    
+    # # if dge.raw is genes X cell
+    # low_genes = toupper(rownames(dge.raw)[which(low_genes < reads.thresh)])
+    # low_genes = intersect(low_genes, gene_to_uniprot$gene_name)
+    # low_unpt = gene_to_uniprot$uniprot[gene_to_uniprot$gene_name %in% low_genes]
 
-    low_unpt = gene_to_uniprot$uniprot[gene_to_uniprot$gene_name %in% low_genes]
+    # if dge is UNPT X cell
+    low_unpt = rownames(dge.raw)[which(low_genes < reads.thresh)]
+
     low_unpt = low_unpt[!duplicated(low_unpt)]
     all.intrs = intr.db[["combined"]]
     low.intrs = levels(all.intrs[names(all.intrs) %in% low_unpt, drop = T])
@@ -363,3 +368,54 @@ getIntrNames <- function(res.intr.list, inter.index){
 
     return(intr.names)
 }
+
+
+# x is the new column names of the sparse matrix
+# y is the sparse matrix
+increase_columns_sparse <- function(x, y) {
+	# Get the column names of the sparse matrix
+    colnames_y <- colnames(y)
+	
+	# Determine which columns are missing
+	missing_cols <- setdiff(x, colnames_y)
+	
+	# Add missing columns filled with 0s
+	if (length(missing_cols) > 0) {
+		n_missing_cols <- length(missing_cols)
+		n_rows <- nrow(y)
+		y_new <- cbind(y, sparseMatrix(i = integer(0), j = integer(0), x = double(0), 
+										dims = c(n_rows, n_missing_cols), 
+										dimnames = list(NULL, missing_cols)))
+	} else {
+		y_new <- y
+	}
+	
+	# Reorder columns to match x
+	y_new[, x]
+}
+
+
+
+# x is the new column names of the matrix
+# y is the matrix
+increase_columns <- function(x, y) {
+	# Get the column names of the matrix
+	colnames_y <- colnames(y)
+	
+	# Determine which columns are missing
+	missing_cols <- setdiff(x, colnames_y)
+	
+	# Add missing columns filled with 0s
+	if (length(missing_cols) > 0) {
+		n_missing_cols <- length(missing_cols)
+		n_rows <- nrow(y)
+		y_new <- cbind(y, matrix(0, nrow = n_rows, ncol = n_missing_cols,
+								 dimnames = list(NULL, missing_cols)))
+	} else {
+		y_new <- y
+	}
+	
+	# Reorder columns to match x
+	y_new[, x]
+}
+

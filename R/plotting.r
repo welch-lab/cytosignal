@@ -338,12 +338,12 @@ plotVelo <- function(
     cat("Plotting the results...\n")
 
     plot.list <- lapply(num.plot, function(i){
-        cat("No.", i, ", ", sep = "")
         intr.rank <- velo.intr.index[i]
+        cat("No.", intr.rank, ", ", sep = "")
         use.intr = names(use.res.list)[intr.rank]
         
         # get value for the ranked #1 intr
-        plot.df = as.data.frame(object@cells.loc[velo.obj@dim.valid$cells, ])
+        plot.df = as.data.frame(object@cells.loc)
         plot.df$velo = velo.obj@intr.velo[rownames(plot.df), use.intr]
 
         pt.df = plot.df[, c(1,2)]
@@ -396,10 +396,12 @@ plotVelo <- function(
 
         intr.name = getIntrNames(use.intr, object@intr.valid$intr.index)
 
+        sig.len <- lengths(use.res.list)[intr.rank]
+
         if (plot.fmt == "png") {
-            png(paste0(plot_dir, "/", "Rank_", intr.rank, "_", intr.name, "_3d.png"), width = width, height = height, units = "in", res = 400)
+            png(paste0(plot_dir, "/", "Rank_", intr.rank, "_", intr.name, "-n_", sig.len, "-3D.png"), width = width, height = height, units = "in", res = 400)
         } else if (plot.fmt == "pdf") {
-            pdf(paste0(plot_dir, "/", "Rank_", intr.rank, "_", intr.name, "_3d.pdf"), width = width, height = height)
+            pdf(paste0(plot_dir, "/", "Rank_", intr.rank, "_", intr.name, "-n_", sig.len, "-3D.pdf"), width = width, height = height)
         } else {
             stop("Plotting format not supported.\n")
         }
@@ -452,4 +454,6 @@ plotVelo <- function(
         dev.off()
 
     })
+
+    cat("End.\nFinished!\n")
 }

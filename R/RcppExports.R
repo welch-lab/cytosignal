@@ -57,6 +57,10 @@ graphMeanLR_cpp <- function(alpha_list, dge_lig, lig_index, lig_list, nb_index, 
     .Call('_cytosignal_graphMeanLR_cpp', PACKAGE = 'cytosignal', alpha_list, dge_lig, lig_index, lig_list, nb_index, nb_list)
 }
 
+inferVeloLR_cpp <- function(dge_lig, dge_recep, dge_lig_velo, dge_recep_velo, lig_index, lig_list, recep_index, recep_list) {
+    .Call('_cytosignal_inferVeloLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, dge_lig_velo, dge_recep_velo, lig_index, lig_list, recep_index, recep_list)
+}
+
 VelographNicheLR_cpp <- function(dge_lig, dge_recep, dge_velo, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list) {
     .Call('_cytosignal_VelographNicheLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, dge_velo, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list)
 }

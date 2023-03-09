@@ -129,6 +129,58 @@ arma::mat graphMeanLR_cpp(
 
 
 
+
+// [[Rcpp::export]]
+arma::mat inferVeloLR_cpp(
+    const arma::mat& dge_lig,
+    const arma::mat& dge_recep,
+    const arma::mat& dge_lig_velo,
+    const arma::mat& dge_recep_velo,
+    const arma::uvec& lig_index,
+    const arma::uvec& lig_list,
+    const arma::uvec& recep_index,
+    const arma::uvec& recep_list
+){
+    // lig_dge & recep_dge: genes X beads
+    // res_mtx: bead X interactions mtx
+    arma::mat res_mtx = arma::zeros<arma::mat>(dge_lig.n_cols, lig_index.size()-1);
+
+    for (uword i = 0; i < res_mtx.n_cols; i++){ // for each ligand
+
+        for (uword j = 0; j < res_mtx.n_rows; j++){ // for each bead
+            // All indices in Cpp starts with 0 --> all values - 1
+
+            arma::vec lig_vec = dge_lig.col(j);
+            lig_vec = lig_vec.elem(lig_list(span(lig_index(i), lig_index(i+1)-1))); // n_ligs X 1
+            double lig_val = arma::accu(lig_vec); // n_ligs X 1
+
+            // same for dge_velo
+            arma::vec lig_velo = dge_lig_velo.col(j);
+            lig_velo = lig_velo.elem(lig_list(span(lig_index(i), lig_index(i+1)-1))); // n_ligs X 1
+            double lig_velo_val = arma::accu(lig_velo); // n_ligs X 1
+
+            arma::vec recep_vec = dge_recep.col(j);
+            recep_vec = recep_vec.elem(recep_list(span(recep_index(i), recep_index(i+1)-1))); // n_ligs X 1
+            double recep_val = arma::accu(recep_vec); // 1 X n_receps
+
+            arma::vec recep_velo = dge_recep_velo.col(j);
+            recep_velo = recep_velo.elem(recep_list(span(recep_index(i), recep_index(i+1)-1))); // n_ligs X 1
+            double recep_velo_val = arma::accu(recep_velo); // 1 X n_receps
+
+            // res_mtx(j, i) = arma::accu(lig_vec * recep_vec.t());
+            res_mtx(j, i) = lig_val * recep_velo_val + recep_val * lig_velo_val;
+        }
+        
+        // cout << i << endl;
+    }
+
+    return res_mtx;
+}
+
+
+
+
+
 // [[Rcpp::export]]
 arma::mat VelographNicheLR_cpp(
     const arma::mat& dge_lig,

@@ -1,5 +1,6 @@
-#sourceCpp("/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/src/mat_exp.cpp")
-#sourceCpp("/home/alan/Documents/Welch_lab/pj19-cell_cell_int/cytosignal_v1_02142023/cytosignal/src/utils_velo.cpp")
+#' @importFrom Matrix colSums rowSums t
+NULL
+
 
 #' The CytoSignal Class
 #'
@@ -48,8 +49,15 @@ CytoSignal <- setClass(
 
 # set a new class union containing dgCMatrix and matrix
 setClassUnion(
+	"matrix_like",
+	c("dgCMatrix", "matrix")
+)
+
+
+# set a new class union containing dgCMatrix and matrix
+setClassUnion(
 	"imp_null_class",
-	c("dgCMatrix", "list")
+	c("dgCMatrix", "matrix", "list")
 )
 
 #' The ImpData Class
@@ -78,17 +86,18 @@ ImpData <- setClass(
 	Class = "ImpData",
 	slots = c(
 		method = "character",
-		imp.data = "dgCMatrix",
+		imp.data = "matrix_like",
 		# imp.norm.data = "dgCMatrix",
 		# intr.data = "dgCMatrix",
 		imp.data.null = "imp_null_class",
+		imp.velo = "matrix_like",
 		nn.id = "factor",
 		nn.dist = "factor",
 		scale.fac = "numeric",
+		scale.fac.velo = "numeric",
 		log = "list"
 	)
 )
-
 
 
 
@@ -130,7 +139,6 @@ lrScores <- setClass(
 )
 
 
-
 #' The lrvelo Class
 #' 
 #' The lrvelo object is created from one ST dataset. User could choose two imputation methods to calculate
@@ -162,10 +170,10 @@ lrVelo <- setClass(
 		recep.slot = "character",
 		intr.slot = "character",
 		intr.list = "list",
-		dim.valid = "list",
 		intr.velo = "matrix_like",
-		nn.id = "factor",
-		nn.dist = "factor",
+		velo.gene = "list",
+		# nn.id = "factor",
+		# nn.dist = "factor",
 		log = "list"
 	)
 )
@@ -385,7 +393,7 @@ createCytoSignal <- function(
 		log[["Dataset"]] <- name
 	}
 	if (is.null(version)) {
-		version <- "v1.0.0"
+		version <- packageVersion("cytosignal")
 	}
 
 	# check the class of raw.data
@@ -516,6 +524,91 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 
 
 
+#' Subset the imputed data (intr.data) by the specified intr index
+#' 
+#' @param object A Cytosignal object
+#' @param intr.index The intr index to use for subsetting
+#' @param slot.use The slot to use for subsetting
+#' 
+#' @return A Cytosignal object
+#' @export
+#' 
+changeUniprot <- function(
+  object,
+  ...
+) {
+  UseMethod(generic = 'changeUniprot', object = object)
+}
+
+#' Sub function for changeUniprot, input a sparse matrix
+#' 
+#' @param dge.raw A sparse matrix
+#' @param gene_to_uniprot A data frame with gene name and uniprot id
+#' @param verbose Whether to print out the progress
+#' 
+#' @return A sparse matrix
+#' @export
+#' 
+changeUniprot.matrix_like <- function(
+    dge.raw, 
+    gene_to_uniprot,
+    # mode = "unpt",
+    verbose = T
+){
+    # uppercase the gene to match database
+    rownames(dge.raw) = toupper(rownames(dge.raw))
+
+	unique.check = sapply(rownames(dge.raw), function(x){
+		length(unique(gene_to_uniprot$uniprot[which(gene_to_uniprot$gene_name == x)]))
+	})
+
+	if (max(unique.check) > 1){ # remove duplicated genes if nany
+		dup.num = sum(unique.check > 1)
+		stop(paste0("Must remove duplicated Uniprot items: ", dup.num, " genes."))
+	}
+    
+    uniprot.genes = rownames(dge.raw)[rownames(dge.raw) %in% gene_to_uniprot$gene_name] # 738/22683
+
+    if (verbose){
+        cat(paste0("Number of genes in the database: ", length(uniprot.genes), "\n"))
+    }
+
+    uniprot.names = sapply(uniprot.genes, function(x){
+        unique(gene_to_uniprot$uniprot[which(gene_to_uniprot$gene_name == x)])
+    })
+    
+    dge.raw = dge.raw[uniprot.genes, ]
+
+    # rownames(dge.raw) = unname(lowwords(rownames(dge.raw)))
+	rownames(dge.raw) = unname(uniprot.names)
+
+    # if (mode == "unpt"){
+    #     rownames(dge.raw) = unname(uniprot.names)
+    # }
+
+    if (anyDuplicated(rownames(dge.raw)) != 0){
+		del.num <- sum(duplicated(rownames(dge.raw)))
+		message(paste0("Removing ", del.num, " duplicated unpt genes."))
+
+        if (del.num > 10){
+            stop("More than 10 duplicated Uniprot items detected.")
+        }
+
+        dup.index = which(duplicated(rownames(dge.raw)) == T)
+        dge.raw = dge.raw[-dup.index, ]
+		uniprot.names = uniprot.names[-dup.index]
+		uniprot.genes = uniprot.genes[-dup.index]
+    }
+    
+	names(uniprot.names) <- lowwords(uniprot.genes)
+
+    return(list(
+		dge.raw,
+		uniprot.names
+	))
+}
+
+
 #' Sub function for changeUniprot, input a cytosignal object
 #' 
 #' @param object A Cytosignal object
@@ -550,13 +643,18 @@ changeUniprot.CytoSignal <- function(
 #' @return a CytoSignal object
 #' 
 #' @export
-purgeBeforeSave <- function(object) {
+purgeBeforeSave <- function(object, purge.raw = T, purge.null = F) {
 	# get slot names
 	imp.names = setdiff(names(object@imputation), "default")
 
-	for (i in 1:length(imp.names)) {
-		object@imputation[[imp.names[i]]]@imp.data <- new("dgCMatrix")
-		object@imputation[[imp.names[i]]]@imp.norm.data <- new("dgCMatrix")
+	if (purge.null) {
+		for (i in 1:length(imp.names)) {
+			object@imputation[[imp.names[i]]]@imp.data.null <- new("dgCMatrix")
+		}
+	}
+
+	if (purge.raw) {
+		object@raw.counts <- new("dgCMatrix"); gc()
 	}
 
 	return(object)
@@ -615,12 +713,18 @@ addVelo <- function(
 	velo.s.intr = changeUniprot.matrix_like(velo.s, object@intr.valid[["gene_to_uniprot"]])
 	velo.u.intr = changeUniprot.matrix_like(velo.u, object@intr.valid[["gene_to_uniprot"]])
 
+	velo.s.intr[[1]] <- Matrix::Matrix(increase_columns(colnames(object@counts), velo.s.intr[[1]]), sparse = T)
+	velo.u.intr[[1]] <- Matrix::Matrix(increase_columns(colnames(object@counts), velo.u.intr[[1]]), sparse = T)
+
+	rownames(velo.s.intr[[1]]) <- rownames(velo.u.intr[[1]]) <- rownames(object@counts)
+
 	object@velo <- list(
 		"velo.s" = velo.s.intr[[1]],
 		"velo.u" = velo.u.intr[[1]]
 	)
 
 	object@intr.valid[["symbols"]][["velo"]] = velo.s.intr[[2]]
+	object@parameters[["velo.lib.size"]] <- Matrix::colSums(velo.s.intr[[1]]) + Matrix::colSums(velo.u.intr[[1]])
 
 	return(object)
 }
