@@ -830,6 +830,7 @@ inferScoreLR.CytoSignal <- function(
 }
 
 
+
 #' Permute Imputation Results of specific imputation method
 #' 
 #' This function is a follow-up function of imputeNiche, which permutes the default or user-defined
@@ -859,10 +860,6 @@ permuteImpLR <- function(
 	use.gau <- grepl("GauEps", nn.type)
 	use.dt <- grepl("DT", nn.type)
 	use.raw <- grepl("Raw", nn.type)
-
-	# if (!use.gau & !use.dt){
-	# 	stop("Cannot find corresponding imputation method.")
-	# }
 
 	message("Permuting imputation data on method ", nn.type, "...")
 
@@ -902,16 +899,34 @@ permuteImpLR <- function(
 
 	message("Permuting whole dataset ", times, " times...")
 
-	# permute cell locations
-	null.cells.loc.list = lapply(1:times, function(i){
-		null.cells.loc = cells.loc[sample(nrow(cells.loc)), ]
-		rownames(null.cells.loc) = rownames(cells.loc)
-		return(null.cells.loc)
-	})
-	
-	# Null imputations
+	null.cells.loc = cells.loc[sample(nrow(cells.loc)), ]
+	rownames(null.cells.loc) = rownames(cells.loc)
+
+	# get a random graph for permuting
+	if (use.gau) {
+		param.eps <- object@parameters$r.diffuse.scale
+		param.sigma <- object@parameters$sigma.scale
+
+		null.eps.nb <- findNNGauEB.matrix(null.cells.loc, eps = param.eps, 
+						sigma = param.sigma, weight.sum = 2); gc()
+
+		null.graph <- imputeNiche.dgCMatrix(dge.raw, null.eps.nb$id, null.eps.nb$dist, 
+							weights = "none", return.graph = T); gc()
+	} else if (use.dt) {
+		null.nb.fac <- findNNDT.matrix(null.cells.loc)
+		null.graph <- imputeNiche.dgCMatrix(dge.raw, null.nb.fac$id, null.nb.fac$dist, 
+							weights = "none", return.graph = T); gc()
+	} else if (use.raw) {
+		cat("No need to generate a random graph for raw imputation.\n")
+	} else {
+		stop("Cannot find corresponding imputation method.")
+	}
+
+	cat("Permuting NULL expressions...\nTimes No.")
+
 	null.dge.list <- lapply(1:times, function(i){
 		## MUST shuffule raw dge!!
+		cat(i, ", ", sep = "")
 		perm.index <- sample(ncol(dge.raw))
 		null.dge.raw <- dge.raw[, perm.index]
 		scale.fac <- object@parameters[["lib.size"]][perm.index]
@@ -922,31 +937,22 @@ permuteImpLR <- function(
 		scale.fac <- Matrix::Matrix(scale.fac, nrow = 1, byrow = T, sparse = T) # computing scale factor
 		# null.dge.raw <- changeUniprot.matrix_like(null.dge.raw.all, object@intr.valid[["gene_to_uniprot"]])[[1]]
 
-		if (use.gau) {
-			param.eps <- object@parameters$r.diffuse.scale
-			param.sigma <- object@parameters$sigma.scale
-
-			null.eps.nb <- findNNGauEB.matrix(null.cells.loc.list[[i]], eps = param.eps, 
-							sigma = param.sigma, weight.sum = 2); gc()
-
-			null.dge.eps <- imputeNiche.dgCMatrix(null.dge.raw, null.eps.nb$id, null.eps.nb$dist, weights = "none"); gc()
-			scale.fac.imp <- imputeNiche.dgCMatrix(scale.fac, null.eps.nb$id, null.eps.nb$dist, weights = "none")
-		} else if (use.dt) {
-			null.nb.fac <- findNNDT.matrix(null.cells.loc.list[[i]])
-        	null.dge.eps <- imputeNiche.dgCMatrix(null.dge.raw, null.nb.fac$id, null.nb.fac$dist, weights = "none"); gc() # den: 31%
-			scale.fac.imp <- imputeNiche.dgCMatrix(scale.fac, null.nb.fac$id, null.nb.fac$dist, weights = "none")
-		} else if (use.raw) {
+		if (use.raw) {
 			null.dge.eps <- null.dge.raw
 			scale.fac.imp <- scale.fac
 		} else {
-			stop("Cannot find corresponding imputation method.")
+			null.dge.eps <- null.dge.raw %*% null.graph; gc()
+			scale.fac.imp <- scale.fac %*% null.graph; gc()
 		}
 		
-		null.dge.eps = normCounts.list(list(mat=null.dge.eps, scale.fac=as.numeric(scale.fac.imp)), "default"); gc()
+		null.dge.eps <- normCounts.list(list(mat=null.dge.eps, scale.fac=as.numeric(scale.fac.imp)), "default"); gc()
 		rm(null.dge.raw); gc()
 
 		return(null.dge.eps)
 	})
+
+	cat("End.\nFinished!\n")
+
 
 	null.dge.eps.unpt = meanMat_cpp(null.dge.list, nrow(null.dge.list[[1]]), ncol(null.dge.list[[1]]))
 	dimnames(null.dge.eps.unpt) <- dimnames.list

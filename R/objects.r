@@ -393,7 +393,7 @@ createCytoSignal <- function(
 		log[["Dataset"]] <- name
 	}
 	if (is.null(version)) {
-		version <- packageVersion("cytosignal")
+		version <- as.character(packageVersion("cytosignal"))
 	}
 
 	# check the class of raw.data

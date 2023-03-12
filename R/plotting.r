@@ -43,18 +43,22 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
         stop("No such significance level found!\n")
     }
 
+    dge.raw <- object@counts
+    clusters <- object@clusters
     lig.slot <- score.obj@lig.slot
     recep.slot <- score.obj@recep.slot
     dge.lig <- object@imputation[[lig.slot]]@imp.data
     dge.recep <- object@imputation[[recep.slot]]@imp.data
-    null.dge.gau <- object@imputation[[lig.slot]]@imp.data.null
-    null.dge.dt <- object@imputation[[recep.slot]]@imp.data.null
-    # dge.raw <- changeUniprot.matrix_like(object@counts, object@intr.valid[["gene_to_uniprot"]])[[1]]
-    dge.raw <- object@counts
-    clusters <- object@clusters
+    
+    # sample null values for plotting
+    null.dge.gau <- sample_null_dge(object, lig.slot)
+    null.dge.dt <- sample_null_dge(object, recep.slot)
 
+    # sample null scores for plotting
     score.mtx <- score.obj@score
     null.lrscore.mtx <- score.obj@score.null
+    null.lrscore.mtx <- null.lrscore.mtx[sample(nrow(null.lrscore.mtx), nrow(score.mtx)), ]
+    rownames(null.lrscore.mtx) <- rownames(score.mtx)
 
     res.list <- score.obj@res.list[[signif.use]]
     res.intr.list = names(res.list)
@@ -72,10 +76,10 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
         stop("Incorrect beads positions!\n")
     }
 
-    cat("Now processing: ")
+    cat("Now plotting INTRs...\nRank No.")
 
     plots.list <- lapply(num.plot, function(i){ # for each intr in the res.list
-        cat("No.", i, ", ", sep = "")
+        cat(i, ", ", sep = "")
         sub.df = cells.loc
         null.sub.df = cells.loc
 

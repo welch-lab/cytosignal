@@ -419,3 +419,24 @@ increase_columns <- function(x, y) {
 	y_new[, x]
 }
 
+
+# # helper function for plotting
+# sample_null_dge <- function(object, imp.slot){
+#     n.cells <- ncol(object@counts)
+#     n.null <- ncol(object@imputation[[imp.slot]]@imp.data.null[[1]])
+#     need.times <- ceiling(n.cells/n.null)
+#     each.size <- ceiling(n.null/need.times)
+
+#     sel.index <- sample(n.null, each.size)
+#     null.data <- lapply(object@imputation[[imp.slot]]@imp.data.null, function(x){
+#         return( x[ ,sel.index] )
+#     })
+
+#     null.data <- combine_sparse_rows(null.data); gc()
+#     null.data <- null.data[, 1:n.cells]
+
+#     dimnames(null.data) <- dimnames(object@counts)
+
+#     return(null.data)
+# }
+
