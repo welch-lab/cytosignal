@@ -4,7 +4,7 @@
 \alias{inferScoreLR.CytoSignal}
 \title{Sub function for inferScoreLR, input a CytoSignal object}
 \usage{
-\method{inferScoreLR}{CytoSignal}(object, lig.slot, recep.slot, intr.db.name, nn.use = NULL)
+\method{inferScoreLR}{CytoSignal}(object, lig.slot, recep.slot, intr.db.name)
 }
 \arguments{
 \item{object}{A Cytosignal object}

@@ -152,7 +152,7 @@ arma::mat sample_rows_cpp(List matrix_list, int n) {
 
 
 // [[Rcpp::export]]
-arma::sp_mat combine_sparse_rows(List sparse_matrix_list) {
+arma::sp_mat cbind_list(List sparse_matrix_list) {
   
   // combine all sparse matrices in the list by row
   arma::sp_mat combined_sparse_matrix;
@@ -170,7 +170,7 @@ arma::sp_mat combine_sparse_rows(List sparse_matrix_list) {
 
 
 // [[Rcpp::export]]
-arma::sp_mat combine_sparse_cols(List sparse_matrix_list) {
+arma::sp_mat rbind_list(List sparse_matrix_list) {
   
   // combine all sparse matrices in the list by column
   arma::sp_mat combined_sparse_matrix;

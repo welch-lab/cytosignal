@@ -50,7 +50,7 @@ CytoSignal <- setClass(
 # set a new class union containing dgCMatrix and matrix
 setClassUnion(
 	"matrix_like",
-	c("dgCMatrix", "matrix")
+	c("dgCMatrix", "matrix", "ddiMatrix")
 )
 
 
@@ -91,6 +91,7 @@ ImpData <- setClass(
 		# intr.data = "dgCMatrix",
 		imp.data.null = "imp_null_class",
 		imp.velo = "matrix_like",
+		nn.graph = "matrix_like",
 		nn.id = "factor",
 		nn.dist = "factor",
 		scale.fac = "numeric",

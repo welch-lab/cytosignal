@@ -12,7 +12,7 @@ using namespace arma;
 
 
 // [[Rcpp::export]]
-arma::mat inferScoreLR_cpp(
+arma::mat inferScoreLR_cpp_old(
     const arma::mat& dge_lig,
     const arma::mat& dge_recep,
     const arma::uvec& lig_index,
@@ -46,6 +46,74 @@ arma::mat inferScoreLR_cpp(
 
     return res_mtx;
 }
+
+
+
+// [[Rcpp::export]]
+arma::mat inferScoreLR_cpp(
+    const arma::mat& dge_lig,
+    const arma::mat& dge_recep,
+    const arma::uvec& lig_index,
+    const arma::uvec& lig_list,
+    const arma::uvec& recep_index,
+    const arma::uvec& recep_list
+){
+    // lig_dge & recep_dge: genes X beads
+    // res_mtx: bead X interactions mtx
+    arma::mat res_mtx = arma::zeros<arma::mat>(dge_lig.n_cols, lig_index.size()-1);
+
+    for (uword i = 0; i < res_mtx.n_cols; i++){ // for each intr
+
+        arma::mat lig_dge = dge_lig.rows(lig_list(span(lig_index(i), lig_index(i+1)-1)));
+        arma::rowvec lig_vec = arma::sum(lig_dge, 0); // column sum of lig_dge, 1 X n_beads
+
+        arma::mat recep_dge = dge_recep.rows(recep_list(span(recep_index(i), recep_index(i+1)-1)));
+        arma::rowvec recep_vec = arma::sum(recep_dge, 0); // column sum of recep_dge, 1 X n_beads
+
+        // arma::rowvec intr_res = lig_vec % recep_vec;
+        res_mtx.col(i) = (lig_vec % recep_vec).t();
+    }
+
+    return res_mtx;
+}
+
+
+
+
+
+// // [[Rcpp::export]]
+// arma::mat inferScoreLR_sp_cpp(
+//     const arma::sp_mat& dge_lig,
+//     const arma::sp_mat& dge_recep,
+//     const arma::uvec& lig_index,
+//     const arma::uvec& lig_list,
+//     const arma::uvec& recep_index,
+//     const arma::uvec& recep_list
+// ){
+//     // lig_dge & recep_dge: genes X beads
+//     // res_mtx: bead X interactions mtx
+//     arma::mat res_mtx = arma::zeros<arma::mat>(dge_lig.n_cols, lig_index.size()-1);
+
+//     // !!!! this function is not runnable since sp_mat only supports .cols() but not .rows()
+//     // !!!! need to modify the function if using sp_mat in the future
+
+//     for (uword i = 0; i < res_mtx.n_cols; i++){ // for each intr
+//         arma::sp_mat lig_dge = dge_lig.rows(lig_list(span(lig_index(i), lig_index(i+1)-1)));
+//         // column sum of lig_dge
+//         arma::vec lig_vec = arma::sum(lig_dge, 0); // 1 X n_beads
+
+//         arma::sp_mat recep_dge = dge_recep.rows(recep_list(span(recep_index(i), recep_index(i+1)-1)));
+//         // column sum of recep_dge
+//         arma::vec recep_vec = arma::sum(recep_dge, 0); // 1 X n_beads
+
+//         res_mtx.col(i) = (lig_vec % recep_vec).t();
+    
+//         // cout << i << endl;
+//     }
+
+//     return res_mtx;
+// }
+
 
 
 // [[Rcpp::export]]

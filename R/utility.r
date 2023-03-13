@@ -419,6 +419,64 @@ increase_columns <- function(x, y) {
 	y_new[, x]
 }
 
+# Shuffling strategy 1: find a random set of cells to be the new neighbors; same weights, but different cells.
+# shuffle the values in very column of a sparse matrix, keep the column index the same
+shuffle_sp_mat_col <- function(mat) {
+    new.i.len <- diff(mat@p) # num of non-zero elements in each column
+    nr <- nrow(mat)
+
+    new.i <- lapply(new.i.len, function(n){
+        return(sample(0:(nr-1), n, replace = FALSE))
+    })
+
+    i.list <- unlist(new.i, use.names = FALSE)
+
+    mat@i <- i.list
+
+    return(mat)
+
+}
+
+
+# Shuffling strategy 2: keep the neighbors and corresponding weights the same, but infer the signals from a
+# random set of cells.
+shuffleEdgeRandomNB <- function(mat) {
+    size <- ncol(mat)
+
+    new.list <- lapply(seq_len(size), function(j){
+        # get the @i indices for column j
+        start <- mat@p[j] + 1
+        end   <- mat@p[j+1]
+        indx  <- start:end
+        len <- length(indx)
+        
+        # sample a new set of cells to be the new sender cells
+        new.i <- sample(size, len)
+        keep.idx <- which(mat@i[indx] %in% new.i)
+        
+        # if no new sender cells are found, return NULL
+        if (length(keep.idx) == 0){
+            return(list(x = NULL, i = NULL, j = NULL))
+        }
+        
+        # if new sender cells are found, return the new @x, @i, @j
+        keep.x <- mat@x[keep.idx]
+        keep.i <- mat@i[keep.idx]
+        keep.j <- rep(j, length(keep.idx))
+
+        return(list(x = keep.x, i = keep.i, j = keep.j))
+    })
+
+    new.x <- unlist(lapply(new.list, function(x) x$x ))
+    new.i <- unlist(lapply(new.list, function(x) x$i ))
+    new.j <- unlist(lapply(new.list, function(x) x$j )) - 1 # 0-based index
+
+    new.mat <- sparseMatrix(i = new.i, x = new.x, j = new.j, dims = c(size, size),
+                        dimnames = list(NULL, colnames(mat)), index1=F) # 0-based index
+
+    return(new.mat)
+}
+
 
 # # helper function for plotting
 # sample_null_dge <- function(object, imp.slot){

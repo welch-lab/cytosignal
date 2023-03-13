@@ -37,12 +37,16 @@ sample_rows_cpp <- function(matrix_list, n) {
     .Call('_cytosignal_sample_rows_cpp', PACKAGE = 'cytosignal', matrix_list, n)
 }
 
-combine_sparse_rows <- function(sparse_matrix_list) {
-    .Call('_cytosignal_combine_sparse_rows', PACKAGE = 'cytosignal', sparse_matrix_list)
+cbind_list <- function(sparse_matrix_list) {
+    .Call('_cytosignal_cbind_list', PACKAGE = 'cytosignal', sparse_matrix_list)
 }
 
-combine_sparse_cols <- function(sparse_matrix_list) {
-    .Call('_cytosignal_combine_sparse_cols', PACKAGE = 'cytosignal', sparse_matrix_list)
+rbind_list <- function(sparse_matrix_list) {
+    .Call('_cytosignal_rbind_list', PACKAGE = 'cytosignal', sparse_matrix_list)
+}
+
+inferScoreLR_cpp_old <- function(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list) {
+    .Call('_cytosignal_inferScoreLR_cpp_old', PACKAGE = 'cytosignal', dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list)
 }
 
 inferScoreLR_cpp <- function(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list) {

@@ -51,8 +51,11 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
     dge.recep <- object@imputation[[recep.slot]]@imp.data
     
     # sample null values for plotting
-    null.dge.gau <- sample_null_dge(object, lig.slot)
-    null.dge.dt <- sample_null_dge(object, recep.slot)
+    sample.index <- sample(ncol(object@imputation[[lig.slot]]@imp.data.null), ncol(dge.lig))
+    null.dge.gau <- object@imputation[[lig.slot]]@imp.data.null[, sample.index]
+    null.dge.dt <- object@imputation[[recep.slot]]@imp.data.null[, sample.index]
+    colnames(null.dge.gau) <- colnames(null.dge.dt) <- colnames(dge.lig)
+    rownames(null.dge.gau) <- rownames(null.dge.dt) <- rownames(dge.lig)
 
     # sample null scores for plotting
     score.mtx <- score.obj@score

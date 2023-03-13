@@ -4,11 +4,7 @@
 \alias{imputeNiche.CytoSignal}
 \title{Sub function for imputeNiche, input a Cytosignal object}
 \usage{
-\method{imputeNiche}{CytoSignal}(
-  object,
-  nn.type = NULL,
-  weights = c("mean", "counts", "dist", "none")
-)
+\method{imputeNiche}{CytoSignal}(object, nn.type = NULL, weights = "none")
 }
 \arguments{
 \item{object}{A Cytosignal object}

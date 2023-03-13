@@ -83,7 +83,7 @@ findNNGauEB.matrix <- function(
 	dist.list.gau = lapply(nn$dist, function(x){
 		if (weight.sum == 1){
 			# norm the sum to 1
-			y = gauss_vec_cpp(c(x, 1e-8), sigma)[,1]
+			y = gauss_vec_cpp(c(x, 1e-9), sigma)[,1]
 			return(y/sum(y))
 		} else if (weight.sum == 2) {
 			# norm the sum except the index cell to 1
@@ -130,11 +130,12 @@ findNNGauEB.CytoSignal <- function(
 	object,
 	eps = NULL,
 	sigma = NULL,
-	weight.sum = 2
+	weight.sum = 2,
+	tag = NULL
 ){
 	cells.loc <- object@cells.loc
 
-	tag <- "GauEps"
+	if (is.null(tag)){tag <- "GauEps"}
 
 	if (is.null(eps)){
 		eps <- object@parameters$r.diffuse.scale
@@ -160,6 +161,7 @@ findNNGauEB.CytoSignal <- function(
 		imp.data.null = list(),
 		# intr.data = new("dgCMatrix"),
 		imp.velo = new("matrix"),
+		nn.graph = new("dgCMatrix"),
 		nn.id = nn$id,
 		nn.dist = nn$dist,
 		scale.fac = new("numeric"),
@@ -278,6 +280,7 @@ findNNDT.CytoSignal <- function(
 		imp.data.null = list(),
 		# intr.data = new("dgCMatrix"),
 		imp.velo = new("matrix"),
+		nn.graph = new("dgCMatrix"),
 		nn.id = nn$id,
 		nn.dist = nn$dist,
 		scale.fac = new("numeric"),
@@ -326,6 +329,7 @@ findNNRaw <- function(
 		# imp.norm.data = new("list"),
 		imp.velo = new("matrix"),
 		# intr.data = new("dgCMatrix"),
+		nn.graph = Matrix::Diagonal(ncol(object@counts)),
 		nn.id = nn$id,
 		nn.dist = nn$dist,
 		scale.fac = object@parameters[["lib.size"]],
@@ -404,11 +408,11 @@ imputeNiche.dgCMatrix <- function(
 		weights.mtx@x = weights.mtx@x / rep.int(Matrix::colSums(weights.mtx), diff(weights.mtx@p))
 	}
 
-	if (return.graph){
-		return(weights.mtx)
-	}
-
 	dge.raw.imputed = dge.raw %*% weights.mtx
+
+	if (return.graph){
+		return(list(dge.raw.imputed, weights.mtx))
+	}
 
 	return(dge.raw.imputed)
 }
@@ -425,7 +429,7 @@ imputeNiche.dgCMatrix <- function(
 #' @export
 imputeNiche.CytoSignal <- function(object, 
 	nn.type = NULL, 
-	weights = c("mean", "counts", "dist", "none")
+	weights = "none"
 ){
 	# dge.raw <- object@counts
 	# Extract neighborhood factors
@@ -453,30 +457,32 @@ imputeNiche.CytoSignal <- function(object,
 		stop("Number of index beads larger than the number of beads in DGE.")
 	}
 
-	dge.raw.imputed <- imputeNiche.dgCMatrix(
+	imp.list <- imputeNiche.dgCMatrix(
 		dge.raw, 
 		nb.id.fac,
 		nb.dist.fac,
-		weights = weights
+		weights = weights,
+		return.graph = T
 	)
 
+	dge.raw.imputed <- imp.list[[1]]
+	weights.mtx <- imp.list[[2]]
+	rm(imp.list); gc()
+
 	# weighted sum of scale factors as well
-	scale.fac.imp <- imputeNiche.dgCMatrix(
-		Matrix(object@parameters$lib.size, sparse = T, nrow = 1,
-					dimnames = list(NULL, colnames(dge.raw))), 
-		nb.id.fac,
-		nb.dist.fac,
-		weights = weights
-	)
+	scale.fac <- Matrix(object@parameters$lib.size, sparse = T, nrow = 1,
+					dimnames = list(NULL, colnames(dge.raw)))
+	scale.fac.imp <- scale.fac %*% weights.mtx
 
 	scale.fac.imp <- as.numeric(scale.fac.imp)
 	names(scale.fac.imp) <- names(object@parameters$lib.size)
-	object@imputation[[nn.type]]@scale.fac <- scale.fac.imp
-
+	
 	res.density <- sum(dge.raw.imputed != 0)/length(dge.raw.imputed) # density 6.2%
 	cat(paste0("Density after imputation: ", res.density*100, "%\n"))
 
 	object@imputation[[nn.type]]@imp.data <- dge.raw.imputed
+	object@imputation[[nn.type]]@nn.graph <- weights.mtx
+	object@imputation[[nn.type]]@scale.fac <- scale.fac.imp
 	object@imputation[[nn.type]]@log[["Density:"]] <- paste0(res.density*100, "%")
 
 	return(object)
@@ -545,30 +551,22 @@ imputeNicheVelo.CytoSignal <- function(
 		stop("Number of index beads larger than the number of beads in DGE.")
 	}
 
-	dge.raw.imputed <- imputeNiche.dgCMatrix(
-		dge.raw, 
-		nb.id.fac,
-		nb.dist.fac,
-		weights = weights
-	)
+	nn.graph <- object@imputation[[nn.type]]@nn.graph
+	dge.raw.imputed <- dge.raw %*% nn.graph
 
 	# weighted sum of scale factors as well
-	scale.fac.imp <- imputeNiche.dgCMatrix(
-		Matrix::Matrix(object@parameters[["velo.lib.size"]], sparse = T, nrow = 1,
-						dimnames = list(NULL, names(object@parameters[["velo.lib.size"]]))), 
-		nb.id.fac,
-		nb.dist.fac,
-		weights = weights
-	)
+	scale.fac <- Matrix::Matrix(object@parameters[["velo.lib.size"]], sparse = T, nrow = 1,
+						dimnames = list(NULL, names(object@parameters[["velo.lib.size"]])))
+	scale.fac.imp <- scale.fac %*% weights.mtx
 
 	scale.fac.imp <- as.numeric(scale.fac.imp)
 	names(scale.fac.imp) <- names(object@parameters[["velo.lib.size"]])
-	object@imputation[[nn.type]]@scale.fac.velo <- scale.fac.imp
 
 	res.density <- sum(dge.raw.imputed != 0)/length(dge.raw.imputed) # density 6.2%
 	cat(paste0("Density after imputation: ", res.density*100, "%\n"))
 
 	object@imputation[[nn.type]]@imp.velo <- dge.raw.imputed
+	object@imputation[[nn.type]]@scale.fac.velo <- scale.fac.imp
 	object@imputation[[nn.type]]@log[["Density:"]] <- paste0(res.density*100, "%")
 
 	return(object)
@@ -774,8 +772,7 @@ inferScoreLR.CytoSignal <- function(
 	object,
 	lig.slot,
 	recep.slot,
-	intr.db.name,
-	nn.use = NULL
+	intr.db.name
 ){
 	if (!lig.slot %in% names(object@imputation)){
 		stop("Ligand slot not found.")

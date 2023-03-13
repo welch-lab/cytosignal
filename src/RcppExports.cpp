@@ -119,25 +119,41 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// combine_sparse_rows
-arma::sp_mat combine_sparse_rows(List sparse_matrix_list);
-RcppExport SEXP _cytosignal_combine_sparse_rows(SEXP sparse_matrix_listSEXP) {
+// cbind_list
+arma::sp_mat cbind_list(List sparse_matrix_list);
+RcppExport SEXP _cytosignal_cbind_list(SEXP sparse_matrix_listSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type sparse_matrix_list(sparse_matrix_listSEXP);
-    rcpp_result_gen = Rcpp::wrap(combine_sparse_rows(sparse_matrix_list));
+    rcpp_result_gen = Rcpp::wrap(cbind_list(sparse_matrix_list));
     return rcpp_result_gen;
 END_RCPP
 }
-// combine_sparse_cols
-arma::sp_mat combine_sparse_cols(List sparse_matrix_list);
-RcppExport SEXP _cytosignal_combine_sparse_cols(SEXP sparse_matrix_listSEXP) {
+// rbind_list
+arma::sp_mat rbind_list(List sparse_matrix_list);
+RcppExport SEXP _cytosignal_rbind_list(SEXP sparse_matrix_listSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type sparse_matrix_list(sparse_matrix_listSEXP);
-    rcpp_result_gen = Rcpp::wrap(combine_sparse_cols(sparse_matrix_list));
+    rcpp_result_gen = Rcpp::wrap(rbind_list(sparse_matrix_list));
+    return rcpp_result_gen;
+END_RCPP
+}
+// inferScoreLR_cpp_old
+arma::mat inferScoreLR_cpp_old(const arma::mat& dge_lig, const arma::mat& dge_recep, const arma::uvec& lig_index, const arma::uvec& lig_list, const arma::uvec& recep_index, const arma::uvec& recep_list);
+RcppExport SEXP _cytosignal_inferScoreLR_cpp_old(SEXP dge_ligSEXP, SEXP dge_recepSEXP, SEXP lig_indexSEXP, SEXP lig_listSEXP, SEXP recep_indexSEXP, SEXP recep_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type dge_lig(dge_ligSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type dge_recep(dge_recepSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type lig_index(lig_indexSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type lig_list(lig_listSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type recep_index(recep_indexSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type recep_list(recep_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(inferScoreLR_cpp_old(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -239,8 +255,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_stdMat_cpp", (DL_FUNC) &_cytosignal_stdMat_cpp, 1},
     {"_cytosignal_pearson_col_cpp", (DL_FUNC) &_cytosignal_pearson_col_cpp, 2},
     {"_cytosignal_sample_rows_cpp", (DL_FUNC) &_cytosignal_sample_rows_cpp, 2},
-    {"_cytosignal_combine_sparse_rows", (DL_FUNC) &_cytosignal_combine_sparse_rows, 1},
-    {"_cytosignal_combine_sparse_cols", (DL_FUNC) &_cytosignal_combine_sparse_cols, 1},
+    {"_cytosignal_cbind_list", (DL_FUNC) &_cytosignal_cbind_list, 1},
+    {"_cytosignal_rbind_list", (DL_FUNC) &_cytosignal_rbind_list, 1},
+    {"_cytosignal_inferScoreLR_cpp_old", (DL_FUNC) &_cytosignal_inferScoreLR_cpp_old, 6},
     {"_cytosignal_inferScoreLR_cpp", (DL_FUNC) &_cytosignal_inferScoreLR_cpp, 6},
     {"_cytosignal_graphNicheLR_cpp", (DL_FUNC) &_cytosignal_graphNicheLR_cpp, 8},
     {"_cytosignal_graphMeanLR_cpp", (DL_FUNC) &_cytosignal_graphMeanLR_cpp, 6},

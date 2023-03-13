@@ -4,7 +4,7 @@
 \alias{findNNGauEB.CytoSignal}
 \title{Sub function for findNNGauEB, input a Cytosignal object}
 \usage{
-\method{findNNGauEB}{CytoSignal}(object, eps = NULL, sigma = NULL, weight.sum = 2)
+\method{findNNGauEB}{CytoSignal}(object, eps = NULL, sigma = NULL, weight.sum = 2, tag = NULL)
 }
 \arguments{
 \item{object}{A Cytosignal object}
