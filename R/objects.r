@@ -89,7 +89,7 @@ ImpData <- setClass(
 		imp.data = "matrix_like",
 		# imp.norm.data = "dgCMatrix",
 		# intr.data = "dgCMatrix",
-		imp.data.null = "imp_null_class",
+		# imp.data.null = "imp_null_class",
 		imp.velo = "matrix_like",
 		nn.graph = "matrix_like",
 		nn.id = "factor",
@@ -130,10 +130,13 @@ lrScores <- setClass(
 	slots = c(
 		lig.slot = "character",
 		recep.slot = "character",
+		lig.null = "imp_null_class",
+		recep.null = "imp_null_class",
 		intr.slot = "character",
 		intr.list = "list",
 		score = "matrix_like",
 		score.null = "matrix_like",
+		perm.idx = "list",
 		res.list = "list",
 		log = "list"
 	)
