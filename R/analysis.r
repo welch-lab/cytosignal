@@ -33,7 +33,7 @@ inferEpsParams <- function(object, tech.res, bin_size, loc.d, r.eps.real = 200, 
 #' @param object A Cytosignal object
 #' @param eps The radius of the epsilon ball
 #' @param sigma The sigma of the Gaussian kernel
-#' @param weight.sum The sum of the weights
+#' @param self.weight weight of the index cell
 #' 
 #' @return A list of neighbors and their distances
 #' @export
@@ -51,7 +51,7 @@ findNNGauEB <- function(
 #' @param object A Cytosignal object
 #' @param eps The radius of the epsilon ball
 #' @param sigma The sigma of the Gaussian kernel
-#' @param weight.sum The sum of the weights
+#' @param self.weight weight of the index cell
 #' 
 #' @return A Cytosignal object
 #' @export
@@ -59,10 +59,24 @@ findNNGauEB.matrix <- function(
 	cells.loc,
 	eps,
 	sigma = 0.15,
-	weight.sum = 1
+	self.weight = "auto"
 ){
-	cat("Finding neighbors in epsilon circle...\n")
+	# cat("Finding neighbors in epsilon circle...\n")
 	nn <- dbscan::frNN(cells.loc, eps = eps, sort = F)
+
+	if (is.numeric(self.weight)) {
+		if (self.weight < 0 || self.weight > 1) {
+			stop("Self weight should be within (0,1)!\n")
+		}
+		message("Using manual self weight: ", self.weight, "...")
+	} else if (self.weight == "auto") {
+		message("Determining self weight automatically...")
+	} else if (self.weight == "sum_1") {
+		message("Using self weight: all NB weights sum to 1...")
+	} else {
+		message("Unknown self weight, determining automatically...")
+		self.weight = "auto"
+	}
 
 	# get a sorted nn factor
 	nn.fac <- factor(rep(seq_along(nn$id), lengths(nn$id)))
@@ -81,15 +95,23 @@ findNNGauEB.matrix <- function(
 	# })
 	
 	dist.list.gau = lapply(nn$dist, function(x){
-		if (weight.sum == 1){
+		if (self.weight == "auto"){
+			# times the index cell weight by 10
+			y = gauss_vec_cpp(c(x, 1e-9), sigma)[,1]
+			y[length(y)] <- y[length(y)] * 5
+			return(y/sum(y))
+		} else if (is.numeric(self.weight)) {
+			# norm the sum except the index cell to 1
+			y = gauss_vec_cpp(x, sigma)[,1]
+			return(c(y/sum(y), self.weight))
+		} else if (self.weight == "sum_1") {
 			# norm the sum to 1
 			y = gauss_vec_cpp(c(x, 1e-9), sigma)[,1]
 			return(y/sum(y))
-		} else if (weight.sum == 2) {
-			# norm the sum except the index cell to 1
-			y = gauss_vec_cpp(x, sigma)[,1]
-			return(c(y/sum(y), 1))
-		} 
+		}
+		else {
+			stop("Unknown self weight!\n")
+		}
 	})
 
 	# discard the cell that has no neighbors
@@ -122,7 +144,7 @@ findNNGauEB.matrix <- function(
 #' @param object A Cytosignal object
 #' @param eps The radius of the epsilon ball
 #' @param sigma The sigma of the Gaussian kernel
-#' @param weight.sum The sum of the weights
+#' @param self.weight weight of the index cell
 #' 
 #' @return A Cytosignal object
 #' @export
@@ -130,7 +152,7 @@ findNNGauEB.CytoSignal <- function(
 	object,
 	eps = NULL,
 	sigma = NULL,
-	weight.sum = 2,
+	self.weight = "auto",
 	tag = NULL
 ){
 	cells.loc <- object@cells.loc
@@ -151,7 +173,7 @@ findNNGauEB.CytoSignal <- function(
 
 	message("Finding neighbors in epsilon circle with tag: ", tag, "...")
 
-	nn <- findNNGauEB.matrix(cells.loc, eps, sigma, weight.sum)
+	nn <- findNNGauEB.matrix(cells.loc, eps, sigma, self.weight)
 
 	nn.obj <- methods::new(
 		"ImpData",

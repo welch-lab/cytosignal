@@ -1,3 +1,135 @@
+# #' Permute scores on corresponded imputation methods, using the same shuffle index
+# #' 
+# #' This function is a follow-up function of imputeNiche, which permutes the default or user-defined
+# #' imputation method and stored the results in the ImpData object.
+# #' 
+# #' @param object A Cytosignal object
+# #' @param nn.type The imputation method to use
+# #' @param perm.size Size of the permutation test
+# #' 
+# #' @return A Cytosignal object
+# #' @export
+# permuteRandomNBScore <- function(
+# 	object,
+# 	slot.use = NULL,
+# 	perm.size = 100000
+# ){
+# 	if (is.null(slot.use)){
+# 		slot.use <- object@lrscore[["default"]]
+# 	}
+
+# 	message("Permuting scores on Score slot: ", slot.use, "...")
+
+# 	# score.obj <- object@lrscore[[slot.use]]
+# 	lig.slot <- object@lrscore[[slot.use]]@lig.slot
+# 	recep.slot <- object@lrscore[[slot.use]]@recep.slot
+# 	cells.loc <- object@cells.loc
+# 	intr.valid <- object@lrscore[[slot.use]]@intr.list
+
+# 	if (!nn.type %in% names(object@imputation)){
+# 		stop("Cannot find corresponding imputation method.")
+# 	}
+
+# 	# call function permuteRandomScore separately, but add parameter fro shuffule index
+
+
+# 	use.gau <- grepl("GauEps", nn.type)
+# 	use.dt <- grepl("DT", nn.type)
+# 	use.raw <- grepl("Raw", nn.type)
+
+# 	# if (!use.gau & !use.dt){
+# 	# 	stop("Cannot find corresponding imputation method.")
+# 	# }
+
+# 	message("Permuting imputation data on method ", nn.type, "...")
+
+# 	dimnames.list <- dimnames(object@imputation[[nn.type]]@imp.data)
+# 	cells.loc <- object@cells.loc
+# 	dge.raw <- object@counts
+
+# 	# decide how many times to permute according to the size of the data
+# 	if (!is.numeric(perm.size)){
+# 		stop("perm.size must be a numeric value.")
+# 	}
+
+# 	if (perm.size < ncol(dge.raw)){
+# 		message("Permutation size too small, using ", ncol(dge.raw), " instead.")
+# 		perm.size <- ncol(dge.raw)
+# 	}
+	
+# 	# reason for computing by batch is to save costs
+# 	times <- ceiling(perm.size / ncol(dge.raw))
+# 	each.size <- ceiling(perm.size / times)
+
+# 	message("Permuting whole dataset ", times, " times...")
+
+# 	# permute cell locations and remember to change the rownames!!
+# 	null.cells.loc = cells.loc[sample(nrow(cells.loc)), ]
+# 	rownames(null.cells.loc) = rownames(cells.loc)
+
+# 	# use the same imputation graph for permutation
+# 	graph.nn <- object@imputation[[nn.type]]@nn.graph
+
+# 	cat("Permuting NULL expressions...\nTimes No.")
+
+# 	null.dge.list <- lapply(1:times, function(i){
+# 		## shuffule dge, remember to change the colnames!!
+# 		## could also shuffle the null graph, mathematically the same
+# 		cat(i, ", ", sep = "")
+
+# 		# # if shuffle dge.raw
+# 		# perm.index <- sample(ncol(dge.raw))
+# 		# null.dge.raw <- dge.raw[, perm.index]
+# 		# scale.fac <- object@parameters[["lib.size"]][perm.index]
+# 		# colnames(null.dge.raw) <- colnames(dge.raw)
+# 		# names(scale.fac) <- colnames(dge.raw)
+
+# 		scale.fac <- object@parameters[["lib.size"]]
+# 		scale.fac <- Matrix::Matrix(scale.fac, nrow = 1, byrow = T, sparse = T) # computing scale factor
+# 		# null.dge.raw <- changeUniprot.matrix_like(null.dge.raw.all, object@intr.valid[["gene_to_uniprot"]])[[1]]
+
+# 		if (use.raw) {
+# 			# sample the dge.raw to control the size of the permutation
+# 			# not really necessary, but put here for consistency
+# 			sample.index <- sample(ncol(dge.raw), each.size)
+# 			null.dge.eps <- dge.raw[, sample.index]
+# 			scale.fac.imp <- scale.fac[sample.index]
+# 		} else {
+# 			##### core permutation step #####
+# 			# null.graph <- shuffle_sp_mat_col(graph.nn)
+# 			null.graph <- shuffleEdgeRandomNB(graph.nn)
+# 			##### core permutation step #####
+
+# 			# sample the null graph to control the size of the permutation
+# 			null.graph <- null.graph[, sample(ncol(null.graph), each.size)]
+
+# 			null.dge.eps <- dge.raw %*% null.graph
+# 			scale.fac.imp <- scale.fac %*% null.graph
+# 		}
+		
+# 		null.dge.eps <- normCounts.list(list(mat=null.dge.eps, scale.fac=as.numeric(scale.fac.imp)), "default")
+# 		# rm(null.dge.raw)
+
+# 		return(null.dge.eps)
+# 	})
+
+# 	null.dge.imp <- cbind_list(null.dge.list)
+# 	rm(null.dge.list); gc()
+
+# 	cat("End.\nFinished!\n")
+
+# 	object@imputation[[nn.type]]@imp.data.null <- null.dge.imp
+
+# 	return(object)
+
+# }
+
+
+
+
+
+
+
 # #' Permute Imputation Results of specific imputation method
 # #' 
 # #' This function is a follow-up function of imputeNiche, which permutes the default or user-defined
@@ -681,6 +813,7 @@ permuteRandomNB <- function(
 		perm.size <- ncol(dge.raw)
 	}
 	
+	# reason for computing by batch is to save costs
 	times <- ceiling(perm.size / ncol(dge.raw))
 	each.size <- ceiling(perm.size / times)
 
@@ -699,22 +832,23 @@ permuteRandomNB <- function(
 		## shuffule dge, remember to change the colnames!!
 		## could also shuffle the null graph, mathematically the same
 		cat(i, ", ", sep = "")
-		perm.index <- sample(ncol(dge.raw))
-		null.dge.raw <- dge.raw[, perm.index]
-		scale.fac <- object@parameters[["lib.size"]][perm.index]
-		# scale.fac <- object@parameters[["lib.size"]]
-		
-		colnames(null.dge.raw) <- colnames(dge.raw)
-		names(scale.fac) <- colnames(dge.raw)
 
+		# # if shuffle dge.raw
+		# perm.index <- sample(ncol(dge.raw))
+		# null.dge.raw <- dge.raw[, perm.index]
+		# scale.fac <- object@parameters[["lib.size"]][perm.index]
+		# colnames(null.dge.raw) <- colnames(dge.raw)
+		# names(scale.fac) <- colnames(dge.raw)
+
+		scale.fac <- object@parameters[["lib.size"]]
 		scale.fac <- Matrix::Matrix(scale.fac, nrow = 1, byrow = T, sparse = T) # computing scale factor
 		# null.dge.raw <- changeUniprot.matrix_like(null.dge.raw.all, object@intr.valid[["gene_to_uniprot"]])[[1]]
 
 		if (use.raw) {
 			# sample the dge.raw to control the size of the permutation
-			sample.index <- sample(ncol(null.dge.raw), each.size)
-
-			null.dge.eps <- null.dge.raw[, sample.index]
+			# not really necessary, but put here for consistency
+			sample.index <- sample(ncol(dge.raw), each.size)
+			null.dge.eps <- dge.raw[, sample.index]
 			scale.fac.imp <- scale.fac[sample.index]
 		} else {
 			##### core permutation step #####
@@ -725,12 +859,12 @@ permuteRandomNB <- function(
 			# sample the null graph to control the size of the permutation
 			null.graph <- null.graph[, sample(ncol(null.graph), each.size)]
 
-			null.dge.eps <- null.dge.raw %*% null.graph
+			null.dge.eps <- dge.raw %*% null.graph
 			scale.fac.imp <- scale.fac %*% null.graph
 		}
 		
 		null.dge.eps <- normCounts.list(list(mat=null.dge.eps, scale.fac=as.numeric(scale.fac.imp)), "default")
-		rm(null.dge.raw)
+		# rm(null.dge.raw)
 
 		return(null.dge.eps)
 	})
@@ -777,8 +911,12 @@ permuteRandomScore <- function(
 	intr.valid <- object@lrscore[[slot.use]]@intr.list
 
 	null.dge.lig <- object@imputation[[lig.slot]]@imp.data.null
-	# null.dge.recep <- object@imputation[[recep.slot]]@imp.data.null
 	null.dge.recep <- object@imputation[[recep.slot]]@imp.data
+
+	if (ncol(null.dge.lig) != ncol(null.dge.recep)){
+		null.dge.recep <- null.dge.recep[, sample(ncol(null.dge.recep), 
+							ncol(null.dge.lig), replace = T)]
+	}
 
 	null.lrscore.mtx <- inferScoreLR.dgCMatrix(null.dge.lig, null.dge.recep,
 					intr.valid[["ligands"]], intr.valid[["receptors"]]); gc()
