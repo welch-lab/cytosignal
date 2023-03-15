@@ -4,7 +4,7 @@
 \alias{findNNGauEB.CytoSignal}
 \title{Sub function for findNNGauEB, input a Cytosignal object}
 \usage{
-\method{findNNGauEB}{CytoSignal}(object, eps = NULL, sigma = NULL, weight.sum = 2, tag = NULL)
+\method{findNNGauEB}{CytoSignal}(object, eps = NULL, sigma = NULL, self.weight = "auto", tag = NULL)
 }
 \arguments{
 \item{object}{A Cytosignal object}
@@ -13,7 +13,7 @@
 
 \item{sigma}{The sigma of the Gaussian kernel}
 
-\item{weight.sum}{The sum of the weights}
+\item{self.weight}{weight of the index cell}
 }
 \value{
 A Cytosignal object

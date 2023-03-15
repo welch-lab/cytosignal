@@ -6,7 +6,7 @@
 \usage{
 plotSignif(
   object,
-  num.plot,
+  num.plot = NULL,
   res_dir,
   plot.details = T,
   slot.use = NULL,

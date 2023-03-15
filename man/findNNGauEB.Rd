@@ -13,7 +13,7 @@ findNNGauEB(object, ...)
 
 \item{sigma}{The sigma of the Gaussian kernel}
 
-\item{weight.sum}{The sum of the weights}
+\item{self.weight}{weight of the index cell}
 }
 \value{
 A list of neighbors and their distances

@@ -4,14 +4,14 @@
 \alias{findNNGauEB.matrix}
 \title{Sub function for findNNGauEB, input a sparse matrix}
 \usage{
-\method{findNNGauEB}{matrix}(cells.loc, eps, sigma = 0.15, weight.sum = 1)
+\method{findNNGauEB}{matrix}(cells.loc, eps, sigma = 0.15, self.weight = "auto")
 }
 \arguments{
 \item{eps}{The radius of the epsilon ball}
 
 \item{sigma}{The sigma of the Gaussian kernel}
 
-\item{weight.sum}{The sum of the weights}
+\item{self.weight}{weight of the index cell}
 
 \item{object}{A Cytosignal object}
 }

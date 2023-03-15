@@ -20,7 +20,7 @@
 #' 
 #' @export
 
-plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = NULL, signif.use = NULL, plot.clusters = T,
+plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.use = NULL, signif.use = NULL, plot.clusters = T,
                     plot.velo = F, colors.list = NULL, pt.size=0.5, pt.stroke = 0.2, u_width = 6, u_hgt = 5, set.res = 200,
                     return.plot = F
 ){
@@ -40,7 +40,12 @@ plotSignif <- function(object, num.plot, res_dir, plot.details = T, slot.use = N
     }
 
     if (!signif.use %in% names(score.obj@res.list)){
-        stop("No such significance level found!\n")
+        stop("No such significance level: ", signif.use, " found!\n")
+    }
+
+    if (is.null(num.plot)) {
+        index.len <- length(cs.obj@lrscore[[slot.use]]@res.list[[signif.use]])
+        num.plot <- intersect(union(1:20, (index.len-10):index.len), 1:index.len)
     }
 
     dge.raw <- object@counts

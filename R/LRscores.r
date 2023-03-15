@@ -1,3 +1,152 @@
+#' Compute the LR score for specific ligand-receptor imputation obj pairs
+#' 
+#' @param object A Cytosignal object
+#' @param lig.slot The ligand slot to use
+#' @param recep.slot The receptor slot to use
+#' @param intr.db.name The intr database name to use
+#' @param nn.use The neighbor index as niche
+#' 
+#' @return A Cytosignal object
+#' @export
+#' 
+inferScoreLR <- function(
+  object,
+  ...
+) {
+  UseMethod(generic = 'inferScoreLR', object = object)
+}
+
+#' Sub function for inferScoreLR, input a sparse matrix
+#' 
+#' @param dge.lig A sparse matrix for ligand
+#' @param dge.recep A sparse matrix for receptor
+#' @param lig.fac A factor of ligand indices
+#' @param recep.fac A factor of receptor indices
+#' 
+#' @return A sparse matrix
+#' @export
+#' 
+inferScoreLR.dgCMatrix <- function(
+	dge.lig,
+    dge.recep,
+	lig.fac,
+	recep.fac
+){
+
+	### cavaet: remember to convert the Uniprot ids to indices!
+
+	if (max(as.integer(names(lig.fac))) > nrow(dge.lig)){
+		stop("Intr index out of dge bounds.")
+	}
+
+	lig.index = facToIndex(lig.fac)
+	recep.index = facToIndex(recep.fac)
+
+	# compute scores
+	res.mtx = inferScoreLR_cpp(
+		unname(as.matrix(dge.lig)),
+		unname(as.matrix(dge.recep)),
+		lig.index[[1]], lig.index[[2]], 
+		recep.index[[1]], recep.index[[2]]
+	)
+
+	dimnames(res.mtx) = list(colnames(dge.lig), levels(lig.fac))
+	# res.mtx = Matrix(res.mtx, sparse = T)
+
+	return(res.mtx)
+}
+
+
+#' Sub function for inferScoreLR, input a CytoSignal object
+#' 
+#' @param object A Cytosignal object
+#' @param lig.slot The ligand slot to use
+#' @param recep.slot The receptor slot to use
+#' @param intr.db.name The intr database name to use
+#' @param nn.use slot that the neighbor index should be taken from, by default is the same as
+#' 			the recep.slot. For example, if score.obj = GauEps-DT, then nn.use = "DT".
+#' 			nn.use could also be a user-defind factor.
+#' 
+#' @return A Cytosignal object
+#' @export
+inferScoreLR.CytoSignal <- function(
+	object,
+	lig.slot,
+	recep.slot,
+	intr.db.name
+){
+	# check DT imputation first, this is for pre-computing lrscore.mtx
+	if (!"DT" %in% names(object@imputation)) {
+		stop("Need to run DT imputation first.")
+	}
+
+	if (!lig.slot %in% names(object@imputation)){
+		stop("Ligand slot not found.")
+	}
+
+	if (!recep.slot %in% names(object@imputation)){
+		stop("Receptor slot not found.")
+	}
+
+	if (!intr.db.name %in% c("diff_dep", "cont_dep")) {
+		stop("intr.db.name must be either 'diff_dep' or 'cont_dep'.")
+	}
+
+	dge.lig <- object@imputation[[lig.slot]]@imp.data
+	dge.recep <- object@imputation[[recep.slot]]@imp.data
+
+	#----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
+	message("Pre-computing LR-scores by niche...")
+	dt.avg.g <- object@imputation[["DT"]]@nn.graph
+	dt.avg.g <- to_mean(dt.avg.g)
+
+	dge.lig <- dge.lig %*% dt.avg.g
+	dge.recep <- dge.recep %*% dt.avg.g
+	#------------------------------------------------------------------------------------------#
+
+	if (!all.equal(dim(dge.lig), dim(dge.recep))){
+		stop("dge.lig and dge.recep must have the same dimension.")
+	}
+
+	message("Computing LR-scores using ", intr.db.name, " database.")
+	message("Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
+
+	intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][["intr"]]), 
+							object@intr.valid[[intr.db.name]])
+
+	res.mtx <- inferScoreLR.dgCMatrix(dge.lig, dge.recep,
+				intr.db.list[["ligands"]], intr.db.list[["receptors"]])
+
+	# res.mtx <- dge.lig * dge.recep
+
+	score.obj <- methods::new(
+		"lrScores",
+		lig.slot = lig.slot,
+		recep.slot = recep.slot,
+		lig.null = methods::new("dgCMatrix"),
+		recep.null = methods::new("dgCMatrix"),
+		intr.slot = intr.db.name,
+		intr.list = intr.db.list,
+		score = Matrix::Matrix(res.mtx, sparse = T),
+		score.null = methods::new("matrix"),
+		perm.idx = list(),
+		res.list = list(),
+		log = list(
+			"Parmaeters:" = c(lig.slot, recep.slot),
+			"Date:" = Sys.time()
+		)
+	)
+
+	tag <- paste0(lig.slot, "-", recep.slot)
+	object@lrscore[["default"]] <- tag
+	object@lrscore[[tag]] <- score.obj
+
+	return(object)
+}
+
+
+
+
 #' Permute LR score for specific ligand-receptor imputation obj pairs
 #' 
 #' This function is a follow-up function of inferScoreLR. It computes the NULL LR-scores 
