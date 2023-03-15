@@ -426,7 +426,7 @@ shuffle_sp_mat_col <- function(mat) {
     nr <- nrow(mat)
 
     new.i <- lapply(new.i.len, function(n){
-        return(sample(0:(nr-1), n, replace = FALSE))
+        return(sample(0:(nr-1), n))
     })
 
     i.list <- unlist(new.i, use.names = FALSE)
@@ -475,6 +475,13 @@ shuffleEdgeRandomNB <- function(mat) {
                         dimnames = list(NULL, colnames(mat)), index1=F) # 0-based index
 
     return(new.mat)
+}
+
+
+to_mean <- function(mat) {
+    new.x <- rep(1/(diff(mat@p)), diff(mat@p))
+    mat@x <- new.x
+    return(mat)
 }
 
 

@@ -392,14 +392,13 @@ imputeNiche <- function(
 #' @param nb.dist.fac A factor of weights
 #' @param weights The weight of the Delaunay triangulation
 #' 
-#' @return A sparse matrix
+#' @return A sparse matrix, N x N graph
 #' @export
 imputeNiche.dgCMatrix <- function(
 	dge.raw, 
 	nb.id.fac,
 	nb.dist.fac,
-	weights = c("mean", "counts", "dist", "none"),
-	return.graph = F
+	weights = c("mean", "counts", "dist", "none")
 ){
 	cat("Imputing...\n")
 
@@ -432,11 +431,13 @@ imputeNiche.dgCMatrix <- function(
 
 	dge.raw.imputed = dge.raw %*% weights.mtx
 
-	if (return.graph){
-		return(list(dge.raw.imputed, weights.mtx))
-	}
+	# if (return.graph){
+	# 	return(list(dge.raw.imputed, weights.mtx))
+	# }
 
-	return(dge.raw.imputed)
+	# return(dge.raw.imputed)
+
+	return(weights.mtx)
 }
 
 
@@ -479,17 +480,28 @@ imputeNiche.CytoSignal <- function(object,
 		stop("Number of index beads larger than the number of beads in DGE.")
 	}
 
-	imp.list <- imputeNiche.dgCMatrix(
+	weights.mtx <- imputeNiche.dgCMatrix(
 		dge.raw, 
 		nb.id.fac,
 		nb.dist.fac,
-		weights = weights,
-		return.graph = T
+		weights = weights
 	)
 
-	dge.raw.imputed <- imp.list[[1]]
-	weights.mtx <- imp.list[[2]]
-	rm(imp.list); gc()
+	# ####################################################
+	# ####### if DT on both Ligands and receptors ########
+	# if (nn.type == "DT") {
+	# 	weights.mtx <- weights.mtx %*% weights.mtx
+	# } else if (nn.type == "GauEps") {
+	# 	weights.mtx <- weights.mtx %*% object@imputation[["DT"]]@nn.graph
+	# } else if (nn.type == "Raw") {
+	# 	weights.mtx <- weights.mtx
+	# } else {
+	# 	stop("NN type not found.")
+	# }
+	# ####### if DT on both Ligands and receptors ########
+	# ####################################################
+
+	dge.raw.imputed <- dge.raw %*% weights.mtx; gc()
 
 	# weighted sum of scale factors as well
 	scale.fac <- Matrix(object@parameters$lib.size, sparse = T, nrow = 1,
@@ -796,6 +808,11 @@ inferScoreLR.CytoSignal <- function(
 	recep.slot,
 	intr.db.name
 ){
+	# check DT imputation first, this is for pre-computing lrscore.mtx
+	if (!"DT" %in% names(object@imputation)) {
+		stop("Need to run DT imputation first.")
+	}
+
 	if (!lig.slot %in% names(object@imputation)){
 		stop("Ligand slot not found.")
 	}
@@ -811,11 +828,20 @@ inferScoreLR.CytoSignal <- function(
 	dge.lig <- object@imputation[[lig.slot]]@imp.data
 	dge.recep <- object@imputation[[recep.slot]]@imp.data
 
+	#----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
+	message("Pre-computing LR-scores by niche...")
+	dt.avg.g <- object@imputation[["DT"]]@nn.graph
+	dt.avg.g <- to_mean(dt.avg.g)
+
+	dge.lig <- dge.lig %*% dt.avg.g
+	dge.recep <- dge.recep %*% dt.avg.g
+	#------------------------------------------------------------------------------------------#
+
 	if (!all.equal(dim(dge.lig), dim(dge.recep))){
 		stop("dge.lig and dge.recep must have the same dimension.")
 	}
 
-	message("Computing scores using ", intr.db.name, " database.")
+	message("Computing LR-scores using ", intr.db.name, " database.")
 	message("Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
 
 	intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][["intr"]]), 
@@ -933,11 +959,11 @@ permuteImpLR <- function(
 						sigma = param.sigma, weight.sum = 2); gc()
 
 		null.graph <- imputeNiche.dgCMatrix(dge.raw, null.eps.nb$id, null.eps.nb$dist, 
-							weights = "none", return.graph = T); gc()
+							weights = "none"); gc()
 	} else if (use.dt) {
 		null.nb.fac <- findNNDT.matrix(null.cells.loc)
 		null.graph <- imputeNiche.dgCMatrix(dge.raw, null.nb.fac$id, null.nb.fac$dist, 
-							weights = "none", return.graph = T); gc()
+							weights = "none"); gc()
 	} else if (use.raw) {
 		cat("No need to generate a random graph for raw imputation.\n")
 	} else {
@@ -1176,15 +1202,15 @@ inferSignif.CytoSignal <- function(
 			stop("Imputation slot not found.")
 		}
 		nb.id.fac <- object@imputation[[nn.use]]@nn.id
-	} 
+	} else {
+		stop("nn.use must be either a factor or a character.")
+	}
+
 	# else if (is.factor(nn.use)) {
 	# 	if (length(nn.use) != ncol(object@imputation[[nn.use]]@intr.data))
 	# 		stop("nn.use must have the same length as the number of cells.")
 	# 	nb.id.fac <- nn.use
 	# } 
-	else {
-		stop("nn.use must be either a factor or a character.")
-	}
 
 	message("Inferring significant beads on Score slot ", slot.use, "... ")
 

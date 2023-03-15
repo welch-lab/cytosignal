@@ -132,11 +132,6 @@ permuteLR <- function(
 	
     message("Calculating NULL scores...")
 
-    # ### infer the NULL score
-	# null.lrscore.mtx <- inferScoreLR.dgCMatrix(null.lig.dge, null.recep.dge,
-	# 				intr.valid[["ligands"]], intr.valid[["receptors"]]); gc()
-    # null.lrscore.mtx <- Matrix::Matrix(null.lrscore.mtx, sparse = T)
-
     object@lrscore[[slot.use]]@lig.null <- null.lig.dge
     object@lrscore[[slot.use]]@recep.null <- null.recep.dge
     object@lrscore[[slot.use]]@perm.idx <- list(
@@ -173,6 +168,11 @@ permuteLR.sparse <- function(
 	perm.index = NULL,
 	sample.index = NULL
 ){
+	# check DT imputation first, this is for pre-computing lrscore.mtx
+	if (!"DT" %in% names(object@imputation)) {
+		stop("Need to run DT imputation first.")
+	}
+
 	if (is.null(nn.type)){
 		nn.type <- object@imputation[["default"]]
 	}
@@ -195,44 +195,49 @@ permuteLR.sparse <- function(
 		stop("Sample index out of range.")
 	}
 
-	use.gau <- grepl("GauEps", nn.type)
-	use.dt <- grepl("DT", nn.type)
-	use.raw <- grepl("Raw", nn.type)
-
-	# message("Permuting imputation data on method ", nn.type, "...")
+	# use.gau <- grepl("GauEps", nn.type)
+	# use.dt <- grepl("DT", nn.type)
+	# use.raw <- grepl("Raw", nn.type)
 
 	dge.raw <- object@counts
-	# use the same imputation graph for permutation
-	null.graph <- object@imputation[[nn.type]]@nn.graph
+	scale.fac <- object@parameters[["lib.size"]]
+	scale.fac <- Matrix::Matrix(scale.fac, nrow = 1, byrow = T, sparse = T)
+    
+	nn.graph <- object@imputation[[nn.type]]@nn.graph
+	null.graph <- nn.graph[perm.index, ]
 
-	# perm.index <- sample(ncol(dge.raw))
-	null.dge.raw <- dge.raw[, perm.index]
-	scale.fac <- object@parameters[["lib.size"]][perm.index]
+	# #---------------------------------------------------------------------------------------------------#
+	# #----------- if permuting the neighbors again, use either of the two following functions -----------#
+	# null.graph <- shuffle_sp_mat_col(null.graph)
+	# null.graph <- shuffleEdgeRandomNB(null.graph)
+	# #---------------------------------------------------------------------------------------------------#
 	
-	# ### change the colnames of the null.dge.raw if needed
+	# #---------------------------------------------------------------------------------------------------#
+	# #-----------  if permuting dge.raw colnames instead of the graph, use the following code -----------#
+	# null.dge.raw <- dge.raw[, perm.index]
+	# scale.fac <- object@parameters[["lib.size"]][perm.index]
 	# colnames(null.dge.raw) <- colnames(dge.raw)
 	# names(scale.fac) <- colnames(dge.raw)
+	# #---------------------------------------------------------------------------------------------------#
 
-	scale.fac <- Matrix::Matrix(scale.fac, nrow = 1, byrow = T, sparse = T) # computing scale factor
-
-	if (use.raw) {
-		null.dge.eps <- null.dge.raw[, sample.index]
-		scale.fac.imp <- scale.fac[sample.index]
-	} else {
-		# try to permute the values of each column
-		null.graph <- shuffle_sp_mat_col(null.graph)
+	# first: permute the dge.raw and scale.fac
+	null.dge <- dge.raw %*% null.graph
+	null.scale.fac <- scale.fac %*% null.graph
 	
-		# sample the null graph to control the size of the permutation
-		null.graph <- null.graph[, sample.index]
+	null.dge <- normCounts.list(list(mat=null.dge, scale.fac=as.numeric(null.scale.fac)), "default")
 
-		null.dge.eps <- null.dge.raw %*% null.graph
-		scale.fac.imp <- scale.fac %*% null.graph
-	}
-	
-	null.dge.eps <- normCounts.list(list(mat=null.dge.eps, scale.fac=as.numeric(scale.fac.imp)), "default")
-	rm(null.dge.raw); gc()
+	# #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
+	dt.avg.g <- object@imputation[["DT"]]@nn.graph
+	dt.avg.g <- to_mean(dt.avg.g)[perm.index, ]
 
-	return(null.dge.eps)
+	# sample the null graph to control the size of the permutation
+	dt.avg.g <- dt.avg.g[, sample.index]
+	# second: avg across null DT neighbors, without norm
+	null.dge <- null.dge %*% dt.avg.g
+
+	gc()
+
+	return(null.dge)
 
 }
 
