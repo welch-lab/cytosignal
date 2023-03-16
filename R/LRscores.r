@@ -73,7 +73,8 @@ inferScoreLR.CytoSignal <- function(
 	object,
 	lig.slot,
 	recep.slot,
-	intr.db.name
+	intr.db.name,
+	tag = NULL
 ){
 	# check DT imputation first, this is for pre-computing lrscore.mtx
 	if (!"DT" %in% names(object@imputation)) {
@@ -92,32 +93,39 @@ inferScoreLR.CytoSignal <- function(
 		stop("intr.db.name must be either 'diff_dep' or 'cont_dep'.")
 	}
 
-	dge.lig <- object@imputation[[lig.slot]]@imp.data
-	dge.recep <- object@imputation[[recep.slot]]@imp.data
-
-	#----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
-	message("Pre-computing LR-scores by niche...")
-	dt.avg.g <- object@imputation[["DT"]]@nn.graph
-	dt.avg.g <- to_mean(dt.avg.g)
-
-	dge.lig <- dge.lig %*% dt.avg.g
-	dge.recep <- dge.recep %*% dt.avg.g
-	#------------------------------------------------------------------------------------------#
-
-	if (!all.equal(dim(dge.lig), dim(dge.recep))){
-		stop("dge.lig and dge.recep must have the same dimension.")
+	if (is.null(tag)) {
+		tag <- paste0(lig.slot, "-", recep.slot)
 	}
 
 	message("Computing LR-scores using ", intr.db.name, " database.")
 	message("Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
 
+	dge.lig <- object@imputation[[lig.slot]]@imp.data
+	dge.recep <- object@imputation[[recep.slot]]@imp.data
+
+	#----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
+	message("Comfirming niche index...")
+
+	dt.avg.g <- object@imputation[["DT"]]@nn.graph
+	dt.avg.g <- to_mean(dt.avg.g)
+
+	dge.lig <- dge.lig %*% dt.avg.g
+	dge.recep <- dge.recep %*% dt.avg.g
+	#-------------------------------------------------------------------------------------------#
+
+	if (!all.equal(dim(dge.lig), dim(dge.recep))){
+		stop("dge.lig and dge.recep must have the same dimension.")
+	}
+
 	intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][["intr"]]), 
 							object@intr.valid[[intr.db.name]])
+
+	message("Calculating LR-scores...")
 
 	res.mtx <- inferScoreLR.dgCMatrix(dge.lig, dge.recep,
 				intr.db.list[["ligands"]], intr.db.list[["receptors"]])
 
-	# res.mtx <- dge.lig * dge.recep
+	message("Done!")
 
 	score.obj <- methods::new(
 		"lrScores",
@@ -137,7 +145,6 @@ inferScoreLR.CytoSignal <- function(
 		)
 	)
 
-	tag <- paste0(lig.slot, "-", recep.slot)
 	object@lrscore[["default"]] <- tag
 	object@lrscore[[tag]] <- score.obj
 

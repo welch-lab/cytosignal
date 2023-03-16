@@ -175,7 +175,7 @@ lrVelo <- setClass(
 		intr.slot = "character",
 		intr.list = "list",
 		intr.velo = "matrix_like",
-		velo.gene = "list",
+		# velo.gene = "list",
 		# nn.id = "factor",
 		# nn.dist = "factor",
 		log = "list"
@@ -717,18 +717,29 @@ addVelo <- function(
 	velo.s.intr = changeUniprot.matrix_like(velo.s, object@intr.valid[["gene_to_uniprot"]])
 	velo.u.intr = changeUniprot.matrix_like(velo.u, object@intr.valid[["gene_to_uniprot"]])
 
-	velo.s.intr[[1]] <- Matrix::Matrix(increase_columns(colnames(object@counts), velo.s.intr[[1]]), sparse = T)
-	velo.u.intr[[1]] <- Matrix::Matrix(increase_columns(colnames(object@counts), velo.u.intr[[1]]), sparse = T)
+	object@intr.valid[["symbols"]][["velo"]] = velo.s.intr[[2]]
 
-	rownames(velo.s.intr[[1]]) <- rownames(velo.u.intr[[1]]) <- rownames(object@counts)
+	velo.s.intr = velo.s.intr[[1]]
+	velo.u.intr = velo.u.intr[[1]]
+
+	velo.s.intr <- Matrix::Matrix(increase_dims(velo.s.intr, object@counts), sparse = T)
+	velo.u.intr <- Matrix::Matrix(increase_dims(velo.u.intr, object@counts), sparse = T)
+
+	# rownames(velo.s.intr) <- rownames(velo.u.intr) <- rownames(object@counts)
+	if (!all.equal(dimnames(velo.s.intr), dimnames(velo.u.intr))) {
+		stop("velo.s and velo.u must have the same dimnames.")
+	}
+
+	if (!all.equal(dimnames(velo.s.intr), dimnames(object@counts))) {
+		stop("counts matrix and velo matrix must have the same dimnames.")
+	}
 
 	object@velo <- list(
-		"velo.s" = velo.s.intr[[1]],
-		"velo.u" = velo.u.intr[[1]]
+		"velo.s" = velo.s.intr,
+		"velo.u" = velo.u.intr
 	)
 
-	object@intr.valid[["symbols"]][["velo"]] = velo.s.intr[[2]]
-	object@parameters[["velo.lib.size"]] <- Matrix::colSums(velo.s.intr[[1]]) + Matrix::colSums(velo.u.intr[[1]])
+	object@parameters[["velo.lib.size"]] <- Matrix::colSums(velo.s.intr) + Matrix::colSums(velo.u.intr)
 
 	return(object)
 }

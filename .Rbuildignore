@@ -1,2 +1,3 @@
 ^cytosignal\.Rproj$
 ^\.Rproj\.user$
+.vscode/*

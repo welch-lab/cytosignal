@@ -419,6 +419,37 @@ increase_columns <- function(x, y) {
 	y_new[, x]
 }
 
+increase_rows <- function(x, y) {
+    # Get the row names of the matrix
+    rownames_y <- rownames(y)
+    
+    # Determine which rows are missing
+    missing_rows <- setdiff(x, rownames_y)
+    
+    # Add missing rows filled with 0s
+    if (length(missing_rows) > 0) {
+        n_missing_rows <- length(missing_rows)
+        n_cols <- ncol(y)
+        y_new <- rbind(y, matrix(0, nrow = n_missing_rows, ncol = n_cols,
+                                 dimnames = list(missing_rows, NULL)))
+    } else {
+        y_new <- y
+    }
+    
+    # Reorder rows to match x
+    y_new[x, ]
+}
+
+
+# mat_a is a matrix, mat_b is another matrix
+increase_dims <- function(mat_a, mat_b) {
+    mat_a <- increase_rows(rownames(mat_b), mat_a)
+    mat_a <- increase_columns(colnames(mat_b), mat_a)
+    return(mat_a)
+}
+
+
+
 # Shuffling strategy 1: find a random set of cells to be the new neighbors; same weights, but different cells.
 # shuffle the values in very column of a sparse matrix, keep the column index the same
 shuffle_sp_mat_col <- function(mat) {

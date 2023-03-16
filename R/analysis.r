@@ -454,9 +454,6 @@ imputeNiche.CytoSignal <- function(object,
 	nn.type = NULL, 
 	weights = "none"
 ){
-	# dge.raw <- object@counts
-	# Extract neighborhood factors
-
 	if (is.null(nn.type)){
 		nn.type <- object@imputation[["default"]]
 	}
@@ -857,171 +854,171 @@ runPears.std <- function(
 
 
 
-#' Compute the LR velo for specific ligand-receptor imputation obj pairs
-#' 
-#' @param object A Cytosignal object
-#' @param lig.slot The ligand slot to use
-#' @param recep.slot The receptor slot to use
-#' @param intr.db.name The intr database name to use
-#' @param nn.use The neighbor index as niche
-#' 
-#' @return A Cytosignal object
-#' @export
-#' 
-inferVeloLR <- function(
-  object,
-  ...
-) {
-  UseMethod(generic = 'inferVeloLR', object = object)
-}
+# #' Compute the LR velo for specific ligand-receptor imputation obj pairs
+# #' 
+# #' @param object A Cytosignal object
+# #' @param lig.slot The ligand slot to use
+# #' @param recep.slot The receptor slot to use
+# #' @param intr.db.name The intr database name to use
+# #' @param nn.use The neighbor index as niche
+# #' 
+# #' @return A Cytosignal object
+# #' @export
+# #' 
+# inferVeloLR <- function(
+#   object,
+#   ...
+# ) {
+#   UseMethod(generic = 'inferVeloLR', object = object)
+# }
 
-#' Sub function for inferVeloLR, input a sparse matrix
-#' 
-#' @param dge.lig A sparse matrix for ligand
-#' @param dge.recep A sparse matrix for receptor
-#' @param nb.id.fac A factor of neighbor indices
-#' @param lig.fac A factor of ligand indices
-#' @param recep.fac A factor of receptor indices
-#' 
-#' @return A sparse matrix
-#' @export
-#' 
-inferVeloLR.matrix_like <- function(
-	dge.lig,
-    dge.recep,
-	dge.lig.velo,
-	dge.recep.velo,
-	lig.fac,
-	recep.fac
-){
+# #' Sub function for inferVeloLR, input a sparse matrix
+# #' 
+# #' @param dge.lig A sparse matrix for ligand
+# #' @param dge.recep A sparse matrix for receptor
+# #' @param nb.id.fac A factor of neighbor indices
+# #' @param lig.fac A factor of ligand indices
+# #' @param recep.fac A factor of receptor indices
+# #' 
+# #' @return A sparse matrix
+# #' @export
+# #' 
+# inferVeloLR.matrix_like <- function(
+# 	dge.lig,
+#     dge.recep,
+# 	dge.lig.velo,
+# 	dge.recep.velo,
+# 	lig.fac,
+# 	recep.fac
+# ){
 
-	### cavaet: remember to convert the Uniprot ids to indices!
-	# convert nb fac
-	# nb.id.fac = sort(nb.id.fac)
-	# nb.index = facToIndex(nb.id.fac)
+# 	### cavaet: remember to convert the Uniprot ids to indices!
+# 	# convert nb fac
+# 	# nb.id.fac = sort(nb.id.fac)
+# 	# nb.index = facToIndex(nb.id.fac)
 
-	if (max(as.integer(names(lig.fac))) > nrow(dge.lig)){
-		stop("Intr index out of dge bounds.")
-	}
+# 	if (max(as.integer(names(lig.fac))) > nrow(dge.lig)){
+# 		stop("Intr index out of dge bounds.")
+# 	}
 
-	lig.index = facToIndex(lig.fac)
-	recep.index = facToIndex(recep.fac)
+# 	lig.index = facToIndex(lig.fac)
+# 	recep.index = facToIndex(recep.fac)
 
-	# compute velos
-	res.mtx = inferVeloLR_cpp(
-		unname(as.matrix(dge.lig)),
-		unname(as.matrix(dge.recep)),
-		unname(as.matrix(dge.lig.velo)),
-		unname(as.matrix(dge.recep.velo)),
-		lig.index[[1]], lig.index[[2]], 
-		recep.index[[1]], recep.index[[2]]
-	)
+# 	# compute velos
+# 	res.mtx = inferVeloLR_cpp(
+# 		unname(as.matrix(dge.lig)),
+# 		unname(as.matrix(dge.recep)),
+# 		unname(as.matrix(dge.lig.velo)),
+# 		unname(as.matrix(dge.recep.velo)),
+# 		lig.index[[1]], lig.index[[2]], 
+# 		recep.index[[1]], recep.index[[2]]
+# 	)
 
-	dimnames(res.mtx) = list(colnames(dge.lig), levels(lig.fac))
-	# dimnames(res.mtx) = list(colnames(dge.lig), levels(lig.fac))
-	# res.mtx = Matrix(res.mtx, sparse = T)
+# 	dimnames(res.mtx) = list(colnames(dge.lig), levels(lig.fac))
+# 	# dimnames(res.mtx) = list(colnames(dge.lig), levels(lig.fac))
+# 	# res.mtx = Matrix(res.mtx, sparse = T)
 
-	return(res.mtx)
-}
+# 	return(res.mtx)
+# }
 
 
 
-#' Sub function for inferVeloLR, input a CytoSignal object
-#' 
-#' @param object A Cytosignal object
-#' @param lig.slot The ligand slot to use
-#' @param recep.slot The receptor slot to use
-#' @param intr.db.name The intr database name to use
-#' @param nn.use slot that the neighbor index should be taken from, by default is the same as
-#' 			the recep.slot. For example, if velo.obj = GauEps-DT, then nn.use = "DT".
-#' 			nn.use could also be a user-defind factor.
-#' 
-#' @return A Cytosignal object
-#' @export
-inferVeloLR.CytoSignal <- function(
-	object,
-	lig.slot,
-	recep.slot,
-	intr.db.name,
-	tag = NULL
-){
-	if (!lig.slot %in% names(object@imputation)){
-		stop("Ligand slot not found.")
-	}
+# #' Sub function for inferVeloLR, input a CytoSignal object
+# #' 
+# #' @param object A Cytosignal object
+# #' @param lig.slot The ligand slot to use
+# #' @param recep.slot The receptor slot to use
+# #' @param intr.db.name The intr database name to use
+# #' @param nn.use slot that the neighbor index should be taken from, by default is the same as
+# #' 			the recep.slot. For example, if velo.obj = GauEps-DT, then nn.use = "DT".
+# #' 			nn.use could also be a user-defind factor.
+# #' 
+# #' @return A Cytosignal object
+# #' @export
+# inferVeloLR.CytoSignal <- function(
+# 	object,
+# 	lig.slot,
+# 	recep.slot,
+# 	intr.db.name,
+# 	tag = NULL
+# ){
+# 	if (!lig.slot %in% names(object@imputation)){
+# 		stop("Ligand slot not found.")
+# 	}
 
-	if (!recep.slot %in% names(object@imputation)){
-		stop("Receptor slot not found.")
-	}
+# 	if (!recep.slot %in% names(object@imputation)){
+# 		stop("Receptor slot not found.")
+# 	}
 
-	message("Computing velos using ", intr.db.name, " database.")
-	message("Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
+# 	message("Computing velos using ", intr.db.name, " database.")
+# 	message("Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
 
-	if (!intr.db.name %in% c("diff_dep", "cont_dep")) {
-		stop("intr.db.name must be either 'diff_dep' or 'cont_dep'.")
-	}
+# 	if (!intr.db.name %in% c("diff_dep", "cont_dep")) {
+# 		stop("intr.db.name must be either 'diff_dep' or 'cont_dep'.")
+# 	}
 
-	if (is.null(tag)) {
-		tag <- paste0(lig.slot, "-", recep.slot)
-	}
+# 	if (is.null(tag)) {
+# 		tag <- paste0(lig.slot, "-", recep.slot)
+# 	}
 
-	if (tag %in% names(object@lrvelo)) {
-		stop("Tag already exists.")
-	}
+# 	if (tag %in% names(object@lrvelo)) {
+# 		stop("Tag already exists.")
+# 	}
 	
-	object@lrvelo[["default"]] <- tag
+# 	object@lrvelo[["default"]] <- tag
 
-	dge.lig <- object@imputation[[lig.slot]]@imp.data
-	dge.recep <- object@imputation[[recep.slot]]@imp.data
-	dge.lig.velo <- object@imputation[[lig.slot]]@imp.velo
-	dge.recep.velo <- object@imputation[[recep.slot]]@imp.velo
+# 	dge.lig <- object@imputation[[lig.slot]]@imp.data
+# 	dge.recep <- object@imputation[[recep.slot]]@imp.data
+# 	dge.lig.velo <- object@imputation[[lig.slot]]@imp.velo
+# 	dge.recep.velo <- object@imputation[[recep.slot]]@imp.velo
 
-	# compare the dimnames of all four matrices
-	if (!all.equal(dimnames(dge.lig), dimnames(dge.recep))){
-		stop("dge.lig and dge.recep must have the same dimension names.")
-	}
+# 	# compare the dimnames of all four matrices
+# 	if (!all.equal(dimnames(dge.lig), dimnames(dge.recep))){
+# 		stop("dge.lig and dge.recep must have the same dimension names.")
+# 	}
 
-	if (!all.equal(dimnames(dge.lig.velo), dimnames(dge.recep.velo))){
-		stop("dge.lig.velo and dge.recep.velo must have the same dimension names.")
-	}
+# 	if (!all.equal(dimnames(dge.lig.velo), dimnames(dge.recep.velo))){
+# 		stop("dge.lig.velo and dge.recep.velo must have the same dimension names.")
+# 	}
 
-	use.genes <- intersect(rownames(dge.lig), rownames(dge.lig.velo))
+# 	use.genes <- intersect(rownames(dge.lig), rownames(dge.lig.velo))
 
-	dge.lig <- dge.lig[use.genes, ]
-	dge.recep <- dge.recep[use.genes, ]
-	dge.lig.velo <- dge.lig.velo[use.genes, ]
-	dge.recep.velo <- dge.recep.velo[use.genes, ]
+# 	dge.lig <- dge.lig[use.genes, ]
+# 	dge.recep <- dge.recep[use.genes, ]
+# 	dge.lig.velo <- dge.lig.velo[use.genes, ]
+# 	dge.recep.velo <- dge.recep.velo[use.genes, ]
 
-	message("Number of velo genes: ", length(use.genes), " / ", nrow(object@imputation[[lig.slot]]@imp.data))
+# 	message("Number of velo genes: ", length(use.genes), " / ", nrow(object@imputation[[lig.slot]]@imp.data))
 	
-	intr.db.list <- checkIntr(use.genes, object@intr.valid[[intr.db.name]])
+# 	intr.db.list <- checkIntr(use.genes, object@intr.valid[[intr.db.name]])
 
-	res.mtx <- inferVeloLR.matrix_like(dge.lig, dge.recep, 
-				dge.lig.velo, dge.recep.velo,
-				intr.db.list[["ligands"]], intr.db.list[["receptors"]])
+# 	res.mtx <- inferVeloLR.matrix_like(dge.lig, dge.recep, 
+# 				dge.lig.velo, dge.recep.velo,
+# 				intr.db.list[["ligands"]], intr.db.list[["receptors"]])
 
-	intr.hq <- names(object@lrscore[[tag]]@res.list[["result.hq.pear"]])
-	intr.hq <- intr.hq[intr.hq %in% colnames(res.mtx)]
+# 	intr.hq <- names(object@lrscore[[tag]]@res.list[["result.hq.pear"]])
+# 	intr.hq <- intr.hq[intr.hq %in% colnames(res.mtx)]
 
-	lrvelo.obj <- new(
-		"lrVelo",
-		lig.slot = lig.slot,
-		recep.slot = recep.slot,
-		intr.slot = intr.db.name,
-		intr.list = intr.db.list,
-		intr.velo = res.mtx,
-		velo.gene = list(
-			"velo.genes" = use.genes,
-			"velo.intr" = colnames(res.mtx),
-			"velo.intr.hq" = intr.hq),
-		# nn.id = velo.nn.list[["id"]],
-		# nn.dist = velo.nn.list[["dist"]],
-		log = list(
-			"Used slot" = c(lig.slot, recep.slot)
-		)
-	)
+# 	lrvelo.obj <- new(
+# 		"lrVelo",
+# 		lig.slot = lig.slot,
+# 		recep.slot = recep.slot,
+# 		intr.slot = intr.db.name,
+# 		intr.list = intr.db.list,
+# 		intr.velo = res.mtx,
+# 		velo.gene = list(
+# 			"velo.genes" = use.genes,
+# 			"velo.intr" = colnames(res.mtx),
+# 			"velo.intr.hq" = intr.hq),
+# 		# nn.id = velo.nn.list[["id"]],
+# 		# nn.dist = velo.nn.list[["dist"]],
+# 		log = list(
+# 			"Used slot" = c(lig.slot, recep.slot)
+# 		)
+# 	)
 
-	object@lrvelo[[tag]] <- lrvelo.obj
+# 	object@lrvelo[[tag]] <- lrvelo.obj
 
-	return(object)
-}
+# 	return(object)
+# }
 

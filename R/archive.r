@@ -1,205 +1,205 @@
 
 
 
-#' Permute Imputation Results of specific imputation method
-#' 
-#' This function is a follow-up function of imputeNiche, which permutes the default or user-defined
-#' imputation method and stored the results in the ImpData object.
-#' 
-#' @param object A Cytosignal object
-#' @param nn.type The imputation method to use
-#' @param perm.size Size of the permutation test, by defualt NULL
-#' @param times Number of times to permute the whole dataset, by default 10
-#' 
-#' @return A Cytosignal object
+# #' Permute Imputation Results of specific imputation method
+# #' 
+# #' This function is a follow-up function of imputeNiche, which permutes the default or user-defined
+# #' imputation method and stored the results in the ImpData object.
+# #' 
+# #' @param object A Cytosignal object
+# #' @param nn.type The imputation method to use
+# #' @param perm.size Size of the permutation test, by defualt NULL
+# #' @param times Number of times to permute the whole dataset, by default 10
+# #' 
+# #' @return A Cytosignal object
 
-permuteImpLR <- function(
-	object,
-	nn.type = NULL,
-	perm.size = NULL,
-	times = 10
-){
-	if (is.null(nn.type)){
-		nn.type <- object@imputation[["default"]]
-	}
+# permuteImpLR <- function(
+# 	object,
+# 	nn.type = NULL,
+# 	perm.size = NULL,
+# 	times = 10
+# ){
+# 	if (is.null(nn.type)){
+# 		nn.type <- object@imputation[["default"]]
+# 	}
 
-	if (!nn.type %in% names(object@imputation)){
-		stop("Cannot find corresponding imputation method.")
-	}
+# 	if (!nn.type %in% names(object@imputation)){
+# 		stop("Cannot find corresponding imputation method.")
+# 	}
 
-	use.gau <- grepl("GauEps", nn.type)
-	use.dt <- grepl("DT", nn.type)
-	use.raw <- grepl("Raw", nn.type)
+# 	use.gau <- grepl("GauEps", nn.type)
+# 	use.dt <- grepl("DT", nn.type)
+# 	use.raw <- grepl("Raw", nn.type)
 
-	message("Permuting imputation data on method ", nn.type, "...")
+# 	message("Permuting imputation data on method ", nn.type, "...")
 
-	dimnames.list <- dimnames(object@imputation[[nn.type]]@imp.data)
-	cells.loc <- object@cells.loc
-	dge.raw <- object@counts
+# 	dimnames.list <- dimnames(object@imputation[[nn.type]]@imp.data)
+# 	cells.loc <- object@cells.loc
+# 	dge.raw <- object@counts
 
-	if (!is.null(times)) {
-		if (!is.numeric(times)){
-			stop("times must be a numeric value.")
-		}
+# 	if (!is.null(times)) {
+# 		if (!is.numeric(times)){
+# 			stop("times must be a numeric value.")
+# 		}
 
-		times <- ceiling(times)
+# 		times <- ceiling(times)
 
-		if (times < 1) {
-			stop("times must be larger than 1.")
-		}
+# 		if (times < 1) {
+# 			stop("times must be larger than 1.")
+# 		}
 
-	} else {
-		# decide how many times to permute according to the size of the data
-		if (is.null(perm.size)){
-			message("Permutation size not specified, using 100000 instead.")
-			perm.size <- 100000
-		}
+# 	} else {
+# 		# decide how many times to permute according to the size of the data
+# 		if (is.null(perm.size)){
+# 			message("Permutation size not specified, using 100000 instead.")
+# 			perm.size <- 100000
+# 		}
 
-		if (!is.numeric(perm.size)){
-			stop("perm.size must be a numeric value.")
-		}
+# 		if (!is.numeric(perm.size)){
+# 			stop("perm.size must be a numeric value.")
+# 		}
 
-		if (perm.size < ncol(dge.raw)){
-			message("Permutation size too small, using ", ncol(dge.raw), " instead.")
-			perm.size <- ncol(dge.raw)
-		}
+# 		if (perm.size < ncol(dge.raw)){
+# 			message("Permutation size too small, using ", ncol(dge.raw), " instead.")
+# 			perm.size <- ncol(dge.raw)
+# 		}
 		
-		times <- ceiling(perm.size / ncol(dge.raw))
-	}
+# 		times <- ceiling(perm.size / ncol(dge.raw))
+# 	}
 
-	message("Permuting whole dataset ", times, " times...")
+# 	message("Permuting whole dataset ", times, " times...")
 
-	null.cells.loc = cells.loc[sample(nrow(cells.loc)), ]
-	rownames(null.cells.loc) = rownames(cells.loc)
+# 	null.cells.loc = cells.loc[sample(nrow(cells.loc)), ]
+# 	rownames(null.cells.loc) = rownames(cells.loc)
 
-	# get a random graph for permuting
-	if (use.gau) {
-		param.eps <- object@parameters$r.diffuse.scale
-		param.sigma <- object@parameters$sigma.scale
+# 	# get a random graph for permuting
+# 	if (use.gau) {
+# 		param.eps <- object@parameters$r.diffuse.scale
+# 		param.sigma <- object@parameters$sigma.scale
 
-		null.eps.nb <- findNNGauEB.matrix(null.cells.loc, eps = param.eps, 
-						sigma = param.sigma, weight.sum = 2); gc()
+# 		null.eps.nb <- findNNGauEB.matrix(null.cells.loc, eps = param.eps, 
+# 						sigma = param.sigma, weight.sum = 2); gc()
 
-		null.graph <- imputeNiche.dgCMatrix(dge.raw, null.eps.nb$id, null.eps.nb$dist, 
-							weights = "none"); gc()
-	} else if (use.dt) {
-		null.nb.fac <- findNNDT.matrix(null.cells.loc)
-		null.graph <- imputeNiche.dgCMatrix(dge.raw, null.nb.fac$id, null.nb.fac$dist, 
-							weights = "none"); gc()
-	} else if (use.raw) {
-		cat("No need to generate a random graph for raw imputation.\n")
-	} else {
-		stop("Cannot find corresponding imputation method.")
-	}
+# 		null.graph <- imputeNiche.dgCMatrix(dge.raw, null.eps.nb$id, null.eps.nb$dist, 
+# 							weights = "none"); gc()
+# 	} else if (use.dt) {
+# 		null.nb.fac <- findNNDT.matrix(null.cells.loc)
+# 		null.graph <- imputeNiche.dgCMatrix(dge.raw, null.nb.fac$id, null.nb.fac$dist, 
+# 							weights = "none"); gc()
+# 	} else if (use.raw) {
+# 		cat("No need to generate a random graph for raw imputation.\n")
+# 	} else {
+# 		stop("Cannot find corresponding imputation method.")
+# 	}
 
-	cat("Permuting NULL expressions...\nTimes No.")
+# 	cat("Permuting NULL expressions...\nTimes No.")
 
-	null.dge.list <- lapply(1:times, function(i){
-		## MUST shuffule raw dge!!
-		cat(i, ", ", sep = "")
-		perm.index <- sample(ncol(dge.raw))
-		null.dge.raw <- dge.raw[, perm.index]
-		scale.fac <- object@parameters[["lib.size"]][perm.index]
+# 	null.dge.list <- lapply(1:times, function(i){
+# 		## MUST shuffule raw dge!!
+# 		cat(i, ", ", sep = "")
+# 		perm.index <- sample(ncol(dge.raw))
+# 		null.dge.raw <- dge.raw[, perm.index]
+# 		scale.fac <- object@parameters[["lib.size"]][perm.index]
 		
-		colnames(null.dge.raw) <- colnames(dge.raw)
-		names(scale.fac) <- colnames(dge.raw)
+# 		colnames(null.dge.raw) <- colnames(dge.raw)
+# 		names(scale.fac) <- colnames(dge.raw)
 
-		scale.fac <- Matrix::Matrix(scale.fac, nrow = 1, byrow = T, sparse = T) # computing scale factor
-		# null.dge.raw <- changeUniprot.matrix_like(null.dge.raw.all, object@intr.valid[["gene_to_uniprot"]])[[1]]
+# 		scale.fac <- Matrix::Matrix(scale.fac, nrow = 1, byrow = T, sparse = T) # computing scale factor
+# 		# null.dge.raw <- changeUniprot.matrix_like(null.dge.raw.all, object@intr.valid[["gene_to_uniprot"]])[[1]]
 
-		if (use.raw) {
-			null.dge.eps <- null.dge.raw
-			scale.fac.imp <- scale.fac
-		} else {
-			null.dge.eps <- null.dge.raw %*% null.graph; gc()
-			scale.fac.imp <- scale.fac %*% null.graph; gc()
-		}
+# 		if (use.raw) {
+# 			null.dge.eps <- null.dge.raw
+# 			scale.fac.imp <- scale.fac
+# 		} else {
+# 			null.dge.eps <- null.dge.raw %*% null.graph; gc()
+# 			scale.fac.imp <- scale.fac %*% null.graph; gc()
+# 		}
 		
-		null.dge.eps <- normCounts.list(list(mat=null.dge.eps, scale.fac=as.numeric(scale.fac.imp)), "default"); gc()
-		rm(null.dge.raw); gc()
+# 		null.dge.eps <- normCounts.list(list(mat=null.dge.eps, scale.fac=as.numeric(scale.fac.imp)), "default"); gc()
+# 		rm(null.dge.raw); gc()
 
-		return(null.dge.eps)
-	})
+# 		return(null.dge.eps)
+# 	})
 
-	cat("End.\nFinished!\n")
-
-
-	null.dge.eps.unpt = meanMat_cpp(null.dge.list, nrow(null.dge.list[[1]]), ncol(null.dge.list[[1]]))
-	dimnames(null.dge.eps.unpt) <- dimnames.list
-	rm(null.dge.list); gc()
-
-    object@imputation[[nn.type]]@imp.data.null <- null.dge.eps.unpt
-
-	return(object)
-
-}
+# 	cat("End.\nFinished!\n")
 
 
-#' Permute LR score for specific ligand-receptor imputation obj pairs
-#' 
-#' This function is a follow-up function of inferScoreLR. It computes the NUL LRscores 
-#' using the NULL imputation results and stores the results in the LR score object.
-#' The null distribution of the LR scores can be used to test the significance of the LR scores.
-#' 
-#' @param object A Cytosignal object
-#' @param slot.use The imputation method to use
-#' 
-#' @return A Cytosignal object
+# 	null.dge.eps.unpt = meanMat_cpp(null.dge.list, nrow(null.dge.list[[1]]), ncol(null.dge.list[[1]]))
+# 	dimnames(null.dge.eps.unpt) <- dimnames.list
+# 	rm(null.dge.list); gc()
 
-permuteScoreLR <- function(
-	object,
-	slot.use = NULL
-){
-	if (is.null(slot.use)){
-		slot.use <- object@lrscore[["default"]]
-	}
+#     object@imputation[[nn.type]]@imp.data.null <- null.dge.eps.unpt
 
-	message("Permuting scores on Score slot: ", slot.use, "...")
+# 	return(object)
 
-	# score.obj <- object@lrscore[[slot.use]]
-	lig.slot <- object@lrscore[[slot.use]]@lig.slot
-	recep.slot <- object@lrscore[[slot.use]]@recep.slot
-	cells.loc <- object@cells.loc
-	intr.valid <- object@lrscore[[slot.use]]@intr.list
+# }
 
-	null.dge.eps.unpt <- object@imputation[[lig.slot]]@imp.data.null
-	null.dge.dt.unpt <- object@imputation[[recep.slot]]@imp.data.null
 
-    # perm.index = sample(seq_len(nrow(cells.loc)), nrow(cells.loc), replace = F)
-    # null.cells.loc = cells.loc[perm.index,]
-    # rownames(null.cells.loc) = rownames(cells.loc)
-    # null.nb.fac = findNNDT.matrix(null.cells.loc); gc() # Mean num of neighbors: 44, median: 36
+# #' Permute LR score for specific ligand-receptor imputation obj pairs
+# #' 
+# #' This function is a follow-up function of inferScoreLR. It computes the NUL LRscores 
+# #' using the NULL imputation results and stores the results in the LR score object.
+# #' The null distribution of the LR scores can be used to test the significance of the LR scores.
+# #' 
+# #' @param object A Cytosignal object
+# #' @param slot.use The imputation method to use
+# #' 
+# #' @return A Cytosignal object
 
-	### test permuting NULL mtx again
-	# null.dge.eps.unpt = null.dge.eps.unpt[, sample(ncol(null.dge.eps.unpt))]
-	# null.dge.dt.unpt = null.dge.dt.unpt[, sample(ncol(null.dge.dt.unpt))]
+# permuteScoreLR <- function(
+# 	object,
+# 	slot.use = NULL
+# ){
+# 	if (is.null(slot.use)){
+# 		slot.use <- object@lrscore[["default"]]
+# 	}
 
-    null.lrscore.mtx = inferScoreLR.dgCMatrix(null.dge.eps.unpt, null.dge.dt.unpt,
-						intr.valid[["ligands"]], intr.valid[["receptors"]]); gc()
+# 	message("Permuting scores on Score slot: ", slot.use, "...")
 
-	# null.lrscore.mtx <- null.dge.eps.unpt * null.dge.dt.unpt
+# 	# score.obj <- object@lrscore[[slot.use]]
+# 	lig.slot <- object@lrscore[[slot.use]]@lig.slot
+# 	recep.slot <- object@lrscore[[slot.use]]@recep.slot
+# 	cells.loc <- object@cells.loc
+# 	intr.valid <- object@lrscore[[slot.use]]@intr.list
 
-    if (sum(Matrix::colSums(null.lrscore.mtx) == 0) != 0){
-        message("A total of ", sum(Matrix::colSums(null.lrscore.mtx) == 0), " intr are empty in NULL scores.")
-        null.lrscore.mtx = null.lrscore.mtx[, !Matrix::colSums(null.lrscore.mtx) == 0]
-    }
+# 	null.dge.eps.unpt <- object@imputation[[lig.slot]]@imp.data.null
+# 	null.dge.dt.unpt <- object@imputation[[recep.slot]]@imp.data.null
 
-	intr.both <- intersect(colnames(null.lrscore.mtx), colnames(object@lrscore[[slot.use]]@score))
+#     # perm.index = sample(seq_len(nrow(cells.loc)), nrow(cells.loc), replace = F)
+#     # null.cells.loc = cells.loc[perm.index,]
+#     # rownames(null.cells.loc) = rownames(cells.loc)
+#     # null.nb.fac = findNNDT.matrix(null.cells.loc); gc() # Mean num of neighbors: 44, median: 36
 
-	if (length(intr.both) != ncol(null.lrscore.mtx)) {
-		message("Removing ", ncol(null.lrscore.mtx) - length(intr.both), " more intr from NULL scores.")
-		null.lrscore.mtx = null.lrscore.mtx[, intr.both]
-	}
+# 	### test permuting NULL mtx again
+# 	# null.dge.eps.unpt = null.dge.eps.unpt[, sample(ncol(null.dge.eps.unpt))]
+# 	# null.dge.dt.unpt = null.dge.dt.unpt[, sample(ncol(null.dge.dt.unpt))]
 
-	if (length(intr.both) != ncol(object@lrscore[[slot.use]]@score)) {
-		message("Removing ", ncol(object@lrscore[[slot.use]]@score) - length(intr.both), " corresponding intr from REAL scores.")
-		object@lrscore[[slot.use]]@score = object@lrscore[[slot.use]]@score[, intr.both]
-	}
+#     null.lrscore.mtx = inferScoreLR.dgCMatrix(null.dge.eps.unpt, null.dge.dt.unpt,
+# 						intr.valid[["ligands"]], intr.valid[["receptors"]]); gc()
 
-	object@lrscore[[slot.use]]@score.null <- null.lrscore.mtx
+# 	# null.lrscore.mtx <- null.dge.eps.unpt * null.dge.dt.unpt
 
-    return(object)
-}
+#     if (sum(Matrix::colSums(null.lrscore.mtx) == 0) != 0){
+#         message("A total of ", sum(Matrix::colSums(null.lrscore.mtx) == 0), " intr are empty in NULL scores.")
+#         null.lrscore.mtx = null.lrscore.mtx[, !Matrix::colSums(null.lrscore.mtx) == 0]
+#     }
+
+# 	intr.both <- intersect(colnames(null.lrscore.mtx), colnames(object@lrscore[[slot.use]]@score))
+
+# 	if (length(intr.both) != ncol(null.lrscore.mtx)) {
+# 		message("Removing ", ncol(null.lrscore.mtx) - length(intr.both), " more intr from NULL scores.")
+# 		null.lrscore.mtx = null.lrscore.mtx[, intr.both]
+# 	}
+
+# 	if (length(intr.both) != ncol(object@lrscore[[slot.use]]@score)) {
+# 		message("Removing ", ncol(object@lrscore[[slot.use]]@score) - length(intr.both), " corresponding intr from REAL scores.")
+# 		object@lrscore[[slot.use]]@score = object@lrscore[[slot.use]]@score[, intr.both]
+# 	}
+
+# 	object@lrscore[[slot.use]]@score.null <- null.lrscore.mtx
+
+#     return(object)
+# }
 
 
 
