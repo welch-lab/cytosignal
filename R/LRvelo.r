@@ -62,7 +62,7 @@ imputeNicheVelo.CytoSignal <- function(
 	# weighted sum of scale factors as well
 	scale.fac <- Matrix::Matrix(object@parameters[["velo.lib.size"]], sparse = T, nrow = 1,
 						dimnames = list(NULL, names(object@parameters[["velo.lib.size"]])))
-	scale.fac.imp <- scale.fac %*% weights.mtx
+	scale.fac.imp <- scale.fac %*% nn.graph
 
 	scale.fac.imp <- as.numeric(scale.fac.imp)
 	names(scale.fac.imp) <- names(object@parameters[["velo.lib.size"]])

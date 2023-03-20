@@ -283,18 +283,43 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
 
 
 
-#' Plot the lrvelo results
+#' Plot 3D LR-velo ranked by the user-specified metric
 #' 
+#' @param object A cytosignal object
+#' @param num.plot Number of interactions to plot
+#' @param res_dir Directory to save the plots
+#' @param slot.use The LRscore slot to use for plotting
+#' @param signif.use The metric used to rank the interactions, by default "result.hq.pear"
+#' @param plot.clusters Whether to plot the clusters
+#' @param plot.velo Whether to plot the velocity
+#' @param colors.list A list of colors to use for plotting
+#' @param pt.size Size of the points
+#' @param pt.stroke Stroke of the points
+#' @param u_width Width of the plot
+#' @param u_hgt Height of the plot
+#' @param z.scaler Scaling factor for the z-axis
+#' @param use.cex Point size
+#' @param use.shape Point shape
+#' @param use_xbins Number of bins for the x-axis
+#' @param use_ybins Number of bins for the y-axis
+#' @param arrow.line.width Width of the arrow line
+#' @param arrow.width Width of the arrow
+#' @param use.phi Set view angel: phi the colatitude
+#' @param use.theta Set view angel: theta gives the azimuthal direction
+#' @param set.res Resolution of the plot
+#' @param return.plot Whether to return the plot
 #' 
-
+#' @return A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.
+#' 
+#' @export
 
 plotVelo <- function(
     object,
-    num.plot,
+    num.plot = NULL,
     plot_dir,
     plot.fmt,
     slot.use = NULL,
-    use.rank = NULL,
+    signif.use = NULL,
     plot.clusters = TRUE,
     colors.list = NULL,
     z.scaler = 0.03,
@@ -310,7 +335,15 @@ plotVelo <- function(
     use.theta = -17
 ) {
     if (is.null(slot.use)){
-        slot.use = object@lrvelo[["default"]]
+        slot.use <- object@lrvelo[["default"]]
+    }
+
+    if (!slot.use %in% names(object@lrvelo)){
+        stop("The slot.use is not in the lrvelo slot.\n")
+    }
+
+    if (!slot.use %in% names(object@lrscore)){
+        stop("The slot.use is not in the lrscore slot.\n")
     }
 
     velo.obj <- object@lrvelo[[slot.use]]
@@ -329,16 +362,16 @@ plotVelo <- function(
     col.fac = object@clusters
     levels(col.fac) = colors.list
 
-    if (is.null(use.rank)){
-        use.rank <- object@lrscore[["default"]]
-        use.res.list <- object@lrscore[[use.rank]]@res.list[["result.hq.pear"]]
+    if (is.null(signif.use)){
+        signif.use <- "result.hq.pear"
+        # use.res.list <- object@lrscore[[signif.use]]@res.list[["result.hq.pear"]]
     }
 
-    if (use.rank %in% names(object@lrscore)){
-        use.res.list <- object@lrscore[[use.rank]]@res.list[["result.hq.pear"]]
-    } else{
-        stop("The slot is not in the object@lrscore slot.\n")
+    if (!signif.use %in% names(object@lrscore[[slot.use]]@res.list)) {
+        stop("The rank is not in the corresponded object lrscore slot.\n")
     }
+
+    use.res.list <- object@lrscore[[slot.use]]@res.list[[signif.use]]
 
     # intrs that are in the lrscore@result.list
     # velo may lack some genes so the intrs may be different
@@ -347,6 +380,11 @@ plotVelo <- function(
 
     if (!plot.fmt %in% c("png", "pdf")){
         stop("The plot.fmt is not supported.\n")
+    }
+
+    if (is.null(num.plot)) {
+        index.len <- length(cs.obj@lrscore[[slot.use]]@res.list[[signif.use]])
+        num.plot <- intersect(union(1:20, (index.len-10):index.len), 1:index.len)
     }
 
     cat("Plotting the results...\n")

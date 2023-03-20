@@ -2,15 +2,15 @@
 % Please edit documentation in R/plotting.r
 \name{plotVelo}
 \alias{plotVelo}
-\title{Plot the lrvelo results}
+\title{Plot 3D LR-velo ranked by the user-specified metric}
 \usage{
 plotVelo(
   object,
-  num.plot,
+  num.plot = NULL,
   plot_dir,
   plot.fmt,
   slot.use = NULL,
-  use.rank = NULL,
+  signif.use = NULL,
   plot.clusters = TRUE,
   colors.list = NULL,
   z.scaler = 0.03,
@@ -26,6 +26,56 @@ plotVelo(
   use.theta = -17
 )
 }
+\arguments{
+\item{object}{A cytosignal object}
+
+\item{num.plot}{Number of interactions to plot}
+
+\item{slot.use}{The LRscore slot to use for plotting}
+
+\item{signif.use}{The metric used to rank the interactions, by default "result.hq.pear"}
+
+\item{plot.clusters}{Whether to plot the clusters}
+
+\item{colors.list}{A list of colors to use for plotting}
+
+\item{z.scaler}{Scaling factor for the z-axis}
+
+\item{use.cex}{Point size}
+
+\item{use.shape}{Point shape}
+
+\item{use_xbins}{Number of bins for the x-axis}
+
+\item{use_ybins}{Number of bins for the y-axis}
+
+\item{arrow.line.width}{Width of the arrow line}
+
+\item{arrow.width}{Width of the arrow}
+
+\item{use.phi}{Set view angel: phi the colatitude}
+
+\item{use.theta}{Set view angel: theta gives the azimuthal direction}
+
+\item{res_dir}{Directory to save the plots}
+
+\item{plot.velo}{Whether to plot the velocity}
+
+\item{pt.size}{Size of the points}
+
+\item{pt.stroke}{Stroke of the points}
+
+\item{u_width}{Width of the plot}
+
+\item{u_hgt}{Height of the plot}
+
+\item{set.res}{Resolution of the plot}
+
+\item{return.plot}{Whether to return the plot}
+}
+\value{
+A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.
+}
 \description{
-Plot the lrvelo results
+Plot 3D LR-velo ranked by the user-specified metric
 }
