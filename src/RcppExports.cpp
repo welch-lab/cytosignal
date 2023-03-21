@@ -94,6 +94,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// euclidean_cpp
+arma::mat euclidean_cpp(const arma::mat& x, const arma::mat& y);
+RcppExport SEXP _cytosignal_euclidean_cpp(SEXP xSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
+    rcpp_result_gen = Rcpp::wrap(euclidean_cpp(x, y));
+    return rcpp_result_gen;
+END_RCPP
+}
 // inferScoreLR_cpp
 arma::mat inferScoreLR_cpp(const arma::mat& dge_lig, const arma::mat& dge_recep, const arma::uvec& lig_index, const arma::uvec& lig_list, const arma::uvec& recep_index, const arma::uvec& recep_list);
 RcppExport SEXP _cytosignal_inferScoreLR_cpp(SEXP dge_ligSEXP, SEXP dge_recepSEXP, SEXP lig_indexSEXP, SEXP lig_listSEXP, SEXP recep_indexSEXP, SEXP recep_listSEXP) {
@@ -174,6 +186,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_pearson_col_cpp", (DL_FUNC) &_cytosignal_pearson_col_cpp, 2},
     {"_cytosignal_cbind_list", (DL_FUNC) &_cytosignal_cbind_list, 1},
     {"_cytosignal_rbind_list", (DL_FUNC) &_cytosignal_rbind_list, 1},
+    {"_cytosignal_euclidean_cpp", (DL_FUNC) &_cytosignal_euclidean_cpp, 2},
     {"_cytosignal_inferScoreLR_cpp", (DL_FUNC) &_cytosignal_inferScoreLR_cpp, 6},
     {"_cytosignal_inferVeloLR_cpp", (DL_FUNC) &_cytosignal_inferVeloLR_cpp, 8},
     {"_cytosignal_graphNicheLR_cpp", (DL_FUNC) &_cytosignal_graphNicheLR_cpp, 8},

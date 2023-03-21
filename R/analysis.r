@@ -219,12 +219,15 @@ findNNDT <- function(
 #' 
 #' @param cells.loc A matrix of cells location
 #' @param weight.sum The sum of the weights
+#' @param max.r The maximum radius of the edges, by default is the r.diffuse.scale
+#' 
 #' @importFrom RTriangle triangulate pslg
 #' @return A list of neighbors
 #' @export
 findNNDT.matrix <- function(
 	cells.loc,
-	weight.sum = 2
+	weight.sum = 2,
+	max.r = NULL
 ){
 	cat("Finding DT neighbors...\n")
 	# cells.loc <- pslg(P=cells.loc)
@@ -238,10 +241,16 @@ findNNDT.matrix <- function(
 	
 	index.loc = cells.loc[as.integer(nn.fac),]
 	nb.loc = cells.loc[as.integer(names(nn.fac)),]
+
+	dist.euc.list <- as.double(euclidean_cpp(index.loc, nb.loc))
+	nn.valid <- which(dist.euc.list <= max.r)
+	nn.fac <- nn.fac[nn.valid, drop = T]
+
+	message("Filtering out ", length(dist.euc.list) - length(nn.valid), " edges out of range.")
 	
 	# set distance for each niche, based on the cell number of each niche
 	nb.size <- table(nn.fac)
-	dist.list = lapply(levels(nn.fac), function(x){
+	dist.list <- lapply(levels(nn.fac), function(x){
 		use.size <- unname(nb.size[x])
 		if (weight.sum == 1){
 			# norm the sum to 1
@@ -276,12 +285,14 @@ findNNDT.matrix <- function(
 #' 
 #' @param object A Cytosignal object
 #' @param weight The weight of the Delaunay triangulation
+#' @param max.r The maximum radius of the edges, by default is the r.diffuse.scale
 #' 
 #' @return A Cytosignal object
 #' @export
 findNNDT.CytoSignal <- function(
 	object,
-	weight = 2
+	weight = 2,
+	max.r = NULL
 ){
 	tag <- "DT"
 
@@ -292,7 +303,19 @@ findNNDT.CytoSignal <- function(
 	message("Finding neighbors using DT with tag: ", tag, "...")
 
 	cells.loc <- object@cells.loc
-	nn <- findNNDT.matrix(cells.loc, weight.sum = weight)
+
+	# filter out the edges that are over given radius
+	if (is.null(max.r)) {
+		max.r <- object@parameters$r.diffuse.scale
+	}
+
+	if (!is.numeric(max.r)){
+		stop("max.r should be a numeric value.")
+	}
+
+	message("Filtering out the edges over given radius: ", max.r, "...")
+
+	nn <- findNNDT.matrix(cells.loc, weight.sum = weight, max.r = max.r)
 
 	nn.obj <- methods::new(
 		"ImpData",

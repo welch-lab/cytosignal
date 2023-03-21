@@ -98,6 +98,14 @@ arma::sp_mat rbind_list(List sparse_matrix_list) {
 }
 
 
+// compute euclidean distances in cpp
+// [[Rcpp::export]]
+arma::mat euclidean_cpp(const arma::mat& x, const arma::mat& y) {
+  arma::mat d = arma::sqrt(arma::sum(arma::pow(x - y, 2), 1));
+  return d;
+}
+
+
 // // compute variance of each column of a matrix in cpp
 // // [[Rcpp::export]]
 // arma::mat varMat_cpp(const arma::mat& x) {
@@ -209,14 +217,6 @@ arma::sp_mat rbind_list(List sparse_matrix_list) {
 //   }
   
 //   return sampled_matrix;
-// }
-
-
-// // compute euclidean distances in cpp
-// // [[Rcpp::export]]
-// arma::mat euclidean_cpp(const arma::mat& x, const arma::mat& y) {
-//   arma::mat d = arma::sqrt(arma::sum(arma::pow(x - y, 2), 1));
-//   return d;
 // }
 
 

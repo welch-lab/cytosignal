@@ -29,6 +29,10 @@ rbind_list <- function(sparse_matrix_list) {
     .Call('_cytosignal_rbind_list', PACKAGE = 'cytosignal', sparse_matrix_list)
 }
 
+euclidean_cpp <- function(x, y) {
+    .Call('_cytosignal_euclidean_cpp', PACKAGE = 'cytosignal', x, y)
+}
+
 inferScoreLR_cpp <- function(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list) {
     .Call('_cytosignal_inferScoreLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list)
 }

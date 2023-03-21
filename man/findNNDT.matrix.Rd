@@ -4,12 +4,14 @@
 \alias{findNNDT.matrix}
 \title{Sub function for findNNDT, input a matrix}
 \usage{
-\method{findNNDT}{matrix}(cells.loc, weight.sum = 2)
+\method{findNNDT}{matrix}(cells.loc, weight.sum = 2, max.r = NULL)
 }
 \arguments{
 \item{cells.loc}{A matrix of cells location}
 
 \item{weight.sum}{The sum of the weights}
+
+\item{max.r}{The maximum radius of the edges, by default is the r.diffuse.scale}
 }
 \value{
 A list of neighbors

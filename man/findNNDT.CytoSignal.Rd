@@ -4,12 +4,14 @@
 \alias{findNNDT.CytoSignal}
 \title{Sub function for findNNDT, input a Cytosignal object}
 \usage{
-\method{findNNDT}{CytoSignal}(object, weight = 2)
+\method{findNNDT}{CytoSignal}(object, weight = 2, max.r = NULL)
 }
 \arguments{
 \item{object}{A Cytosignal object}
 
 \item{weight}{The weight of the Delaunay triangulation}
+
+\item{max.r}{The maximum radius of the edges, by default is the r.diffuse.scale}
 }
 \value{
 A Cytosignal object
