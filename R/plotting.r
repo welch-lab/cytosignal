@@ -1,5 +1,5 @@
 #' Plot significant interactions ranked by the user-specified metric
-#' 
+#'
 #' @param object A cytosignal object
 #' @param num.plot Number of interactions to plot
 #' @param res_dir Directory to save the plots
@@ -15,9 +15,9 @@
 #' @param u_hgt Height of the plot
 #' @param set.res Resolution of the plot
 #' @param return.plot Whether to return the plot
-#' 
+#'
 #' @return A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.
-#' 
+#'
 #' @export
 
 plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.use = NULL, signif.use = NULL, plot.clusters = T,
@@ -44,7 +44,7 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
     }
 
     if (is.null(num.plot)) {
-        index.len <- length(cs.obj@lrscore[[slot.use]]@res.list[[signif.use]])
+        index.len <- length(object@lrscore[[slot.use]]@res.list[[signif.use]])
         num.plot <- intersect(union(1:20, (index.len-10):index.len), 1:index.len)
     }
 
@@ -54,7 +54,7 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
     recep.slot <- score.obj@recep.slot
     dge.lig <- object@imputation[[lig.slot]]@imp.data
     dge.recep <- object@imputation[[recep.slot]]@imp.data
-    
+
     # sample null values for plotting
     sample.index <- sample(ncol(score.obj@lig.null), ncol(dge.lig))
     null.dge.gau <- score.obj@lig.null[, sample.index]
@@ -284,7 +284,7 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
 
 
 #' Plot 3D LR-velo ranked by the user-specified metric
-#' 
+#'
 #' @param object A cytosignal object
 #' @param num.plot Number of interactions to plot
 #' @param res_dir Directory to save the plots
@@ -308,9 +308,9 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
 #' @param use.theta Set view angel: theta gives the azimuthal direction
 #' @param set.res Resolution of the plot
 #' @param return.plot Whether to return the plot
-#' 
+#'
 #' @return A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.
-#' 
+#'
 #' @export
 
 plotVelo <- function(
@@ -383,7 +383,7 @@ plotVelo <- function(
     }
 
     if (is.null(num.plot)) {
-        index.len <- length(cs.obj@lrscore[[slot.use]]@res.list[[signif.use]])
+        index.len <- length(object@lrscore[[slot.use]]@res.list[[signif.use]])
         num.plot <- intersect(union(1:20, (index.len-10):index.len), 1:index.len)
     }
 
@@ -393,7 +393,7 @@ plotVelo <- function(
         intr.rank <- velo.intr.index[i]
         cat("No.", intr.rank, ", ", sep = "")
         use.intr = names(use.res.list)[intr.rank]
-        
+
         # get value for the ranked #1 intr
         plot.df = as.data.frame(object@cells.loc)
         plot.df$velo = velo.obj@intr.velo[rownames(plot.df), use.intr]
@@ -443,7 +443,7 @@ plotVelo <- function(
             ars.zero.plot.df = data.frame(
                 x0 = ars.zero$x, y0 = ars.zero$y, z0 = z.hold,
                 col = "#f7f7f7"
-            ) 
+            )
         }
 
         intr.name = getIntrNames(use.intr, object@intr.valid$intr.index)
@@ -459,11 +459,11 @@ plotVelo <- function(
         }
 
         # cex: control size of points
-        plot3D::points3D(pt.df$x, pt.df$y, pt.df$z, 
-            xlim = c(min(pt.df$x) - x.scale*0.025, max(pt.df$x) + x.scale*0.025), 
+        plot3D::points3D(pt.df$x, pt.df$y, pt.df$z,
+            xlim = c(min(pt.df$x) - x.scale*0.025, max(pt.df$x) + x.scale*0.025),
             ylim = c(min(pt.df$y) - y.scale*0.025, max(pt.df$y) + y.scale*0.025),
             zlim = c(-0.01, 1.1), expand = 0.3,
-            theta = use.theta, phi = use.phi, d = 2, 
+            theta = use.theta, phi = use.phi, d = 2,
             colvar = NULL, col = pt.df$col,
             colkey = FALSE, pch = use.shape, cex = use.cex,
             main = "CytoSignalVelo", zlab = "velocity",
@@ -475,7 +475,7 @@ plotVelo <- function(
             ars.zero.plot.df = data.frame(
                 x0 = ars.zero$x, y0 = ars.zero$y, z0 = z.hold
             )
-            plot3D::points3D(ars.zero.plot.df$x0, ars.zero.plot.df$y0, ars.zero.plot.df$z0, 
+            plot3D::points3D(ars.zero.plot.df$x0, ars.zero.plot.df$y0, ars.zero.plot.df$z0,
                 colvar = NULL, col = "#f7f7f7",
                 colkey = FALSE, pch = 19, cex = use.cex, add = T)
         }
@@ -488,7 +488,7 @@ plotVelo <- function(
             plot3D::arrows3D(
                 x0 = ars.pos.plot.df$x0, y0 = ars.pos.plot.df$y0, z0 = ars.pos.plot.df$z0,
                 x1 = ars.pos.plot.df$x1, y1 = ars.pos.plot.df$y1, z1 = ars.pos.plot.df$z1,
-                colvar = NULL, col = "#d73027", lwd = arrow.line.width, length = arrow.width, 
+                colvar = NULL, col = "#d73027", lwd = arrow.line.width, length = arrow.width,
                 clab = intr.name, d = 3, add = T
             )
         }
@@ -498,14 +498,96 @@ plotVelo <- function(
             plot3D::arrows3D(
                 x0 = ars.neg.plot.df$x0, y0 = ars.neg.plot.df$y0, z0 = ars.neg.plot.df$z0,
                 x1 = ars.neg.plot.df$x1, y1 = ars.neg.plot.df$y1, z1 = ars.neg.plot.df$z1,
-                colvar = NULL, col = "#3c24f1", lwd = arrow.line.width, length = arrow.width, 
+                colvar = NULL, col = "#3c24f1", lwd = arrow.line.width, length = arrow.width,
                 clab = intr.name, d = 3, add = T
             )
         }
-
+        return(list(p = pt.df, a1 = ars.pos.plot.df, a2 = ars.neg.plot.df))
         dev.off()
 
     })
-
+    return(plot.list)
     cat("End.\nFinished!\n")
 }
+
+#' @importFrom rlang .data
+#' @export
+plotIntrValue <- function(
+        object,
+        intr.use = NULL,
+        type = c("ligand", "ligand_ori", "ligand_null",
+                 "receptor", "receptor_ori", "receptor_null",
+                 "score", "score_null"),
+        slot.use = NULL,
+        signif.use = NULL,
+        pt.size = 0.5,
+        pt.stroke = 0.2,
+        raster = NULL
+) {
+    values <- getIntrValue(object, intr.use = intr.use, type = type,
+                           slot.use = slot.use, signif.use = signif.use)
+    if (is.null(raster)) {
+        # Automatically determine whether to rasterize
+        if (utils::object.size(values) >= 1e7) {
+            warning("Too much information queried, rastering the output plot ",
+                    "automatically. To force vectorized plotting please set ",
+                    "`raster = FALSE`.", immediate. = TRUE)
+            raster <- TRUE
+        }
+        else raster <- FALSE
+    }
+    if (isTRUE(raster)) {
+        if (!requireNamespace("scattermore", quietly = TRUE)) {
+            stop("Package \"scattermore\" required for rastering the plots.\n",
+                 "Please install with command:\n",
+                 "install.packages(\"scattermore\")")
+        }
+    }
+
+    outputList <- list()
+    for (i in seq_along(values)) {
+        plotDF <- values[[i]]
+        intrName <- names(values)[i]
+        ligRec <- strsplit(intrName, "-")[[1]]
+        ligName <- ligRec[1]
+        recName <- ligRec[2]
+        plotList <- lapply(type, function(info) {
+            if (startsWith(info, "ligand")) {
+                title <- paste0(info, "\n", ligName)
+            } else if (startsWith(info, "receptor")) {
+                title <- paste0(info, "\n", recName)
+            } else {
+                title <- info
+            }
+            p <- ggplot2::ggplot(plotDF, ggplot2::aes(x = .data[["x"]],
+                                                      y = .data[["y"]],
+                                                      colour = .data[[info]]))
+
+            if (isFALSE(raster)) {
+                p <- p + ggplot2::geom_point(size = pt.size, stroke = pt.stroke)
+            } else (
+                p <- p + scattermore::geom_scattermore(pointsize = pt.size,
+                                                       stroke = pt.stroke)
+            )
+
+            p <- p +
+                ggplot2::scale_color_viridis_c(option = "plasma", direction = -1,
+                                               na.value = '#F5F5F5') +
+                ggplot2::labs(color = title, x = NULL, y = NULL) +
+                ggplot2::theme_classic() +
+                ggplot2::theme(
+                    axis.line.x = ggplot2::element_blank(),
+                    axis.line.y = ggplot2::element_blank(),
+                    axis.ticks.x = ggplot2::element_blank(),
+                    axis.ticks.y = ggplot2::element_blank(),
+                    axis.text.x = ggplot2::element_blank(),
+                    axis.text.y = ggplot2::element_blank(),
+                    panel.border = ggplot2::element_rect(fill = NA)
+                )
+        })
+        names(plotList) <- type
+        outputList[[intrName]] <- plotList
+    }
+    return(outputList)
+}
+
