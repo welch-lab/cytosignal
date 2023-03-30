@@ -150,26 +150,8 @@ plotEdge.CytoSignal <- function(object, plot_dir, intr, type = c("sender", "rece
 }
 
 #' Sub function for plotEdge
-#' @param cells.loc
-#' @param nn.graph.sig
-#' @param receiver.idx
-#' @param col.fac
-#' @param res.list
-#' @param intr
-#' @param title
-#' @param use.cex
-#' @param use.shape
-#' @param line.width
-#' @param use.phi
-#' @param use.theta
-#' @param z.scaler
-#' @param z.pt.interval
-#' @param pt.stroke
-#' @param u_width
-#' @param u_hgt
-#' @param set.res
 #' 
-#' @return
+#' @return a plist object
 #' 
 #' @export
 #' 
