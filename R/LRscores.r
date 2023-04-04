@@ -252,13 +252,14 @@ permuteLR <- function(
 		stop("perm.size must be a numeric value.")
 	}
 
+	dge.raw <- object@counts
+	
 	if (perm.size < ncol(dge.raw)){
 		message("Permutation size too small, using ", ncol(dge.raw), " instead.")
 		perm.size <- ncol(dge.raw)
 	}
 
 	#### get all data needed for permutation
-    dge.raw <- object@counts
 	lig.slot <- object@lrscore[[slot.use]]@lig.slot
 	recep.slot <- object@lrscore[[slot.use]]@recep.slot
 	# cells.loc <- object@cells.loc
