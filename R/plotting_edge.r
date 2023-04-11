@@ -1,13 +1,24 @@
 #' Plotting edge for a given interaction from a CytoSignal object
-#' 
-#' @param object CytoSignal object
-#' @param plot_dir Directory to save plots
-#' @param intr Interaction to plot
-#' @param type Type of plot, either "sender" or "receiver"
+#'
+#' @param object \code{\linkS4class{CytoSignal}} object.
+#' @param intr Interaction to plot. See available options with
+#' \code{\link{showIntr}}.
+#' @param type Type of plot, either \code{"sender"} or \code{"receiver"}.
+#' Default \code{"sender"}.
 #' @param slot.use Slot to use for plotting
 #' @param signif.use Significance level to use for plotting
 #' @param colors.list List of colors to use for plotting
-#' @param plot.fmt Format of plot, either "png" or "pdf"
+#' @param return.plot Whether to return "plist" object for figure organization.
+#' \code{TRUE} returns "plist" which can be shown on current display device with
+#' \code{plot()}. \code{FALSE} saves the figure to disk. Default \code{TRUE}.
+#' @param plot_dir Path where the figure will be saved when
+#' \code{return.plot = FALSE}. Default \code{"csEdgePlot/"} (under current
+#' working directory).
+#' @param filename Filename of the figure inside \code{plot_dir}. Please match
+#' extension name with \code{plot.fmt} and do not include path. Default
+#' \code{NULL} and the exact filename will be determined by interaction
+#' information and \code{plot.fmt}.
+#' @param plot.fmt Format of plot, either \code{"png"} or \code{"pdf"}.
 #' @param title Title of plot
 #' @param use.cex Size of points
 #' @param use.shape Shape of points
@@ -20,242 +31,203 @@
 #' @param u_width Width of plot
 #' @param u_hgt Height of plot
 #' @param set.res Resolution of plot
-#' @param return.plot Whether to return plot
-#' 
-#' @return Plot of edge
-#' 
+#' @return \code{plist} object when \code{return.plot = TRUE}, no in memory
+#' object is returned when \code{return.plot = FALSE} but the figure will be
+#' saved on disk.
 #' @export
-#' 
 plotEdge <- function(
-    object,
-    ...
-) {
-    UseMethod(generic = "plotEdge", object = object)
-}
-
-plotEdge.CytoSignal <- function(object, plot_dir, intr, type = c("sender", "receiver"), slot.use = NULL, signif.use = NULL,
-                    colors.list = NULL, plot.fmt = "png", title = NULL,
-                    use.cex = 0.1, use.shape = 16, line.width = 0.01,
-                    use.phi = 30, use.theta = -17,
-                    z.scaler = 0.03, z.pt.interval = 1,
-                    pt.stroke = 0.2, u_width = 6, u_hgt = 5, set.res = 400,
-                    return.plot = T
+        object, intr, type = c("sender", "receiver"), slot.use = NULL,
+        signif.use = NULL, colors.list = NULL,
+        return.plot = TRUE, plot_dir = "csEdgePlot/", filename = NULL,
+        plot.fmt = c("png", "pdf", "svg"),
+        title = NULL, edge.size = 500, use.cex = 0.1, use.shape = 16,
+        line.width = 0.01, use.phi = 30, use.theta = -17, z.scaler = 0.03,
+        z.pt.interval = 1, pt.stroke = 0.2, width = 5, height = 5,
+        set.res = 300
 ){
-    if (length(type)!=1 || !(type %in% c("sender", "receiver"))){
-        stop("type must be either 'sender' or 'receiver'!\n")
-    }
-
-    if (length(object@lrscore) == 0){
-        stop("No score matrix found!\n")
-    }
-
-    if (is.null(slot.use)){
-        slot.use = object@lrscore[["default"]]
-    }
-
-    score.obj = object@lrscore[[slot.use]]
-    intr.db <- object@intr.valid[[score.obj@intr.slot]]
-
-    if (is.null(signif.use)){
-        signif.use = "result.hq.pear"
-    }
-
-    if (!signif.use %in% names(score.obj@res.list)){
-        stop("No such significance level: ", signif.use, " found!\n")
-    }
-
-    if (!intr %in% names(score.obj@res.list[[signif.use]])){
-        stop("No such interaction: ", intr, " found!\n")
-    }
-
-    clusters <- object@clusters
-    lig.slot <- score.obj@lig.slot
-    recep.slot <- score.obj@recep.slot
+    type <- match.arg(type)
+    plot.fmt <- match.arg(plot.fmt)
+    slot.use <- .checkSlotUse(object, slot.use)
+    signif.use <- .checkSignifUse(object, signif.use, slot.use)
+    intr <- .checkIntrAvail(object, intr, slot.use, signif.use)
+    filename <- .checkArgLen(filename, length(intr))
+    title <- .checkArgLen(title, length(intr))
+    score.obj <- object@lrscore[[slot.use]]
     res.list <- score.obj@res.list[[signif.use]]
-    cells.loc = as.data.frame(object@cells.loc)
-    # nn.id = object@imputation[[lig.slot]]@nn.id
-    nn.graph = object@imputation[[lig.slot]]@nn.graph
 
-    # res.intr.list = names(res.list)
-    receiver.cells = res.list[[intr]]
-    receiver.idx = sort(match(receiver.cells, rownames(cells.loc)))
-    # nn.id.sig = nn.id[nn.id %in% as.character(receiver.idx), drop = T]
-    nn.graph.sig = nn.graph[, receiver.idx]
+    lig.slot <- score.obj@lig.slot
+    #recep.slot <- score.obj@recep.slot
 
-    if (is.null(colors.list)){
-        levels.use <- levels(clusters)
-        colors.list = as.character(paletteer::paletteer_d("ggsci::default_igv",
-                        n = length(levels.use)))
-        names(colors.list) = levels.use
-    }
-    col.fac = clusters
-    levels(col.fac) = colors.list
+    cells.loc <- as.data.frame(object@cells.loc)
+    # nn.id <- object@imputation[[lig.slot]]@nn.id
+    nn.graph <- object@imputation[[lig.slot]]@nn.graph
 
-    # get intr symbols
-    pair.index = which(object@intr.valid$intr.index$id_cp_interaction == intr)
+    col.fac <- .checkColorList(object, colors.list)
+    intr.names <- getIntrNames(object, intr)
+    plotList <- list()
+    for (i in seq_along(intr)) {
+        intrx <- intr[i]
+        receiver.cells <- res.list[[intrx]]
+        receiver.idx <- sort(match(receiver.cells, rownames(cells.loc)))
+        # nn.id.sig <- nn.id[nn.id %in% as.character(receiver.idx), drop = T]
+        nn.graph.sig <- nn.graph[, receiver.idx]
+        if (is.null(title)) {
+            titleIntr <- paste0("Edge", "-", intr.names[intrx])
+        } else {
+            titleIntr <- title[i]
+        }
 
-    ligand.name = object@intr.valid$intr.index[pair.index, 4]
-    if (ligand.name == ""){ # if complex
-        ligand.name = object@intr.valid$intr.index[pair.index, 2]
-    }
-    ligand.name = gsub("_HUMAN", "", ligand.name)
-
-    receptor.name = object@intr.valid$intr.index[pair.index, 5]
-    if (receptor.name == ""){
-        receptor.name = object@intr.valid$intr.index[pair.index, 3]
-    }
-    receptor.name = gsub("_HUMAN", "", receptor.name)
-
-    intr.name = paste0(ligand.name, "-", receptor.name)
-
-    message("Now plotting INTR: ", intr.name, " ...")
-
-    if (is.null(title)){
-        title = paste0("Edge", "-", intr.name)
-    }
-
-    if (type == "sender") {
-        p1 = plotEdgeSender.matrix_like(
-            cells.loc, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
-            title, use.cex, use.shape, line.width, use.phi, use.theta,
-            z.scaler, z.pt.interval, pt.stroke, u_width, u_hgt, set.res
+        message("Now plotting edges for interaction: ",
+                intr.names[intrx], " ...")
+        p1 <- .plotEdgeMatrix(
+            cells.loc = cells.loc, type = type, edge.size = edge.size,
+            nn.graph.sig = nn.graph.sig, receiver.idx = receiver.idx,
+            col.fac = col.fac, res.list = res.list, intr = intr,
+            title = titleIntr,
+            use.cex = use.cex, use.shape = use.shape, line.width = line.width,
+            use.phi = use.phi, use.theta = use.theta, z.scaler = z.scaler,
+            z.pt.interval = z.pt.interval, pt.stroke = pt.stroke
         )
-    } else if (type == "receiver") {
-        p1 = plotEdgeReceiver.matrix_like(
-            cells.loc, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
-            title, use.cex, use.shape, line.width, use.phi, use.theta,
-            z.scaler, z.pt.interval, pt.stroke, u_width, u_hgt, set.res
-        )
-    } else {
-        stop("Type not supported.\n")
+
+        if (isTRUE(return.plot)) {
+            plotList[[intrx]] <- p1
+        } else {
+            if (!dir.exists(plot_dir)) dir.create(plot_dir)
+            if (is.null(filename))
+                filenameIntr <- paste0(plot_dir, "/", titleIntr, ".", plot.fmt)
+            else
+                filenameIntr <- file.path(plot_dir, filename[i])
+
+            if (plot.fmt == "png") {
+                png(filenameIntr, width = width, height = height, units = "in",
+                    res = set.res)
+            } else if (plot.fmt == "pdf") {
+                pdf(filenameIntr, width = width, height = height)
+            } else if (plot.fmt == "svg") {
+                svg(filenameIntr, width = width, height = height)
+            }
+
+            graphics::par(mar = c(2, 2, 4, 2), oma = c(0, 0, 0, 0),
+                          mgp = c(0, 0, 0), xpd = TRUE)
+            plot(p1)
+            dev.off()
+            message("Interaction edge plot saved at: ",
+                    normalizePath(filenameIntr))
+        }
     }
-
-    if (return.plot){
-        return(p1)
+    if (isTRUE(return.plot)) {
+        if (length(plotList) == 1) return(plotList[[1]])
+        else return(plotList)
     }
-
-    if (plot.fmt == "png") {
-        png(paste0(plot_dir, "/", title, ".png"), width = width, height = height, units = "in", res = set.res)
-    } else if (plot.fmt == "pdf") {
-        pdf(paste0(plot_dir, "/", title, ".pdf"), width = width, height = height)
-    } else {
-        stop("Plotting format not supported.\n")
-    }
-
-    print(p1)
-
-    dev.off()
-    
-
+    else invisible()
 }
 
-#' Sub function for plotEdge
-#' 
-#' @return a plist object
-#' 
-#' @export
-#' 
-plotEdge.matrix_like <- function(
-        cells.loc, type = NULL, edge.size = 2000, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
-        title, use.cex, use.shape, line.width, use.phi, use.theta,
-        z.scaler, z.pt.interval, pt.stroke, u_width, u_hgt, set.res
+.plotEdgeMatrix <- function(
+        cells.loc, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
+        type = c("sender", "receiver"), edge.size = 500,
+        title = NULL, use.cex = 0.1, use.shape = 16, line.width = 0.01,
+        use.phi = 30, use.theta = -17, z.scaler = 0.03, z.pt.interval = 1,
+        pt.stroke = 0.2
 ){
-    pt.df = as.data.frame(cells.loc)
-    pt.df$z = 0
-    colnames(pt.df) = c("x", "y", "z")
-    pt.df$col = as.character(col.fac[rownames(pt.df)])
-    # pt.df$group = "beads"
-    # pt.df[res.list[[intr]], "group"] = "sig"
+    type <- match.arg(type)
+    pt.df <- as.data.frame(cells.loc)
+    pt.df$z <- 0
+    colnames(pt.df) <- c("x", "y", "z")
+    pt.df$col <- as.character(col.fac[rownames(pt.df)])
+    # pt.df$group <- "beads"
+    # pt.df[res.list[[intr]], "group"] <- "sig"
 
-    x.scale = max(pt.df$x) - min(pt.df$x)
-    y.scale = max(pt.df$y) - min(pt.df$y)
+    x.scale <- max(pt.df$x) - min(pt.df$x)
+    y.scale <- max(pt.df$y) - min(pt.df$y)
 
     # find sender
-    # senders = as.numeric(unique(names(nn.id.sig)))
-    senders = unique(nn.graph.sig@i)+1
-    sender.idx = nn.graph.sig@i+1
+    # senders <- as.numeric(unique(names(nn.id.sig)))
+    senders <- unique(nn.graph.sig@i) + 1
+    sender.idx <- nn.graph.sig@i + 1
 
     # cex: control size of points
-    pt.df.send = pt.df[senders, ]
-    pt.df.n_send = pt.df[-senders, ]
+    pt.df.send <- pt.df[senders, ]
+    pt.df.n_send <- pt.df[-senders, ]
 
-    pt.df.rec = pt.df[receiver.idx, ]
-    pt.df.n_rec = pt.df[-receiver.idx, ]
+    pt.df.rec <- pt.df[receiver.idx, ]
+    pt.df.n_rec <- pt.df[-receiver.idx, ]
 
-    xlim = c(min(pt.df$x) - x.scale*0.025, max(pt.df$x) + x.scale*0.025)
-    ylim = c(min(pt.df$y) - y.scale*0.025, max(pt.df$y) + y.scale*0.025)
+    xlim <- c(min(pt.df$x) - x.scale*0.025, max(pt.df$x) + x.scale*0.025)
+    ylim <- c(min(pt.df$y) - y.scale*0.025, max(pt.df$y) + y.scale*0.025)
 
-    recep.x = rep(cells.loc[receiver.idx, "x"], times = diff(nn.graph.sig@p))
-    recep.y = rep(cells.loc[receiver.idx, "y"], times = diff(nn.graph.sig@p))
-    # recep.z = rep(z.pt.interval, times = length(sender.idx)) - 0.01
+    recep.x <- rep(cells.loc[receiver.idx, "x"], times = diff(nn.graph.sig@p))
+    recep.y <- rep(cells.loc[receiver.idx, "y"], times = diff(nn.graph.sig@p))
+    # recep.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
     # recep.z <- rep(0, times = length(sender.idx))
 
-    sender.x = cells.loc[sender.idx, "x"]
-    sender.y = cells.loc[sender.idx, "y"]
-    # sender.z = rep(0, times = length(sender.idx))
-    # sender.z = rep(z.pt.interval, times = length(sender.idx)) - 0.01
+    sender.x <- cells.loc[sender.idx, "x"]
+    sender.y <- cells.loc[sender.idx, "y"]
+    # sender.z <- rep(0, times = length(sender.idx))
+    # sender.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
 
     if (type == "sender") {
         recep.z <- rep(0, times = length(sender.idx))
         sender.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
-    } else if (type == "receiver") {
+    } else {
         recep.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
         sender.z <- rep(0, times = length(sender.idx))
-    } else {
-        stop("Type not supported.\n")
     }
 
-    sample.idx = sample(1:length(sender.x), size = min(edge.size, length(sender.x)))
+    sample.idx <- sample(1:length(sender.x),
+                        size = min(edge.size, length(sender.x)))
+
+    grDevices::pdf(nullfile())
 
     # plot sender cells
-    plot3D::points3D(pt.df.rec$x, pt.df.rec$y, pt.df.rec$z, 
-        xlim = xlim, ylim = ylim, zlim = c(-0.01, z.pt.interval+0.1), expand = 0.7,
-        theta = use.theta, phi = use.phi, d = 5, 
+    plot3D::points3D(pt.df.rec$x, pt.df.rec$y, pt.df.rec$z,
+        xlim = xlim, ylim = ylim, zlim = c(-0.01, z.pt.interval + 0.1),
+        expand = 0.7, theta = use.theta, phi = use.phi, d = 5,
         colvar = NULL, col = pt.df.rec$col, alpha = 1,
         colkey = FALSE, pch = use.shape, cex = use.cex,
         main = title, zlab = "Inferred CCC",
-        xlab = "", ylab = "", plot = F
+        xlab = "", ylab = "", plot = FALSE
     )
 
     # plot non-sender cells
-    plot3D::points3D(pt.df.n_rec$x, pt.df.n_rec$y, pt.df.n_rec$z, 
+    plot3D::points3D(pt.df.n_rec$x, pt.df.n_rec$y, pt.df.n_rec$z,
         colvar = NULL, col = pt.df.n_rec$col, alpha = 0.2,
-        colkey = FALSE, pch = use.shape, cex = use.cex, 
-        plot = F, add = T
+        colkey = FALSE, pch = use.shape, cex = use.cex,
+        plot = FALSE, add = TRUE
     )
 
     plot3D::segments3D(
-        x0 = sender.x[sample.idx], y0 = sender.y[sample.idx], z0 = sender.z[sample.idx],
-        x1 = recep.x[sample.idx], y1 = recep.y[sample.idx], z1 = recep.z[sample.idx],
+        x0 = sender.x[sample.idx], y0 = sender.y[sample.idx],
+        z0 = sender.z[sample.idx],
+        x1 = recep.x[sample.idx], y1 = recep.y[sample.idx],
+        z1 = recep.z[sample.idx],
         col = "grey", lwd = 0.1, lty = 1,
-        plot = F, add = T
+        plot = FALSE, add = TRUE
     )
 
     # plot receiver cells
-    plot3D::points3D(pt.df.send$x, pt.df.send$y, pt.df.send$z + z.pt.interval, 
-        colvar = NULL, col = pt.df.send$col, alpha = 1,
-        colkey = FALSE, pch = use.shape, cex = use.cex, 
-        plot = F, add = T
-    )
+    plot3D::points3D(pt.df.send$x, pt.df.send$y, pt.df.send$z + z.pt.interval,
+                     colvar = NULL, col = pt.df.send$col, alpha = 1,
+                     colkey = FALSE, pch = use.shape, cex = use.cex,
+                     plot = FALSE, add = TRUE)
 
     # plot non-receiver cells
-    plot3D::points3D(pt.df.n_send$x, pt.df.n_send$y, pt.df.n_send$z + z.pt.interval, 
-        colvar = NULL, col = pt.df.n_send$col, alpha = 0.2,
-        colkey = FALSE, pch = use.shape, cex = use.cex, 
-        plot = F, add = T
-    )
-
-    p1 = plot3D::getplist()
-
+    plot3D::points3D(x = pt.df.n_send$x, y = pt.df.n_send$y,
+                     z = pt.df.n_send$z + z.pt.interval,
+                     colvar = NULL, col = pt.df.n_send$col, alpha = 0.2,
+                     colkey = FALSE, pch = use.shape, cex = use.cex,
+                     plot = FALSE, add = TRUE)
+    #pr <- grDevices::recordPlot()
+    p1 <- plot3D::getplist()
+    dev.off()
     return(p1)
 }
 
 
 
 #' Plot edges by each cluster as sender or receiver cells
-#' 
+#'
 #' By default ranked by the number of significant cells in each cluster
-#' 
+#'
 #' @param object A \code{CytoSignal} object
 #' @param plot_dir Directory to save plots
 #' @param cluster.list A list of clusters to plot
@@ -281,11 +253,11 @@ plotEdge.matrix_like <- function(
 #' @param set.res Resolution of plot
 #' @param return.plot Return plot object
 #' @param ... Other arguments
-#' 
+#'
 #' @return A list of plots
-#' 
+#'
 #' @export
-#' 
+#'
 plotSigCluster <- function(object, plot_dir, cluster.list = NULL, intr.num = 10, type = c("sender", "receiver"), slot.use = NULL, signif.use = NULL,
                     colors.list = NULL, plot.fmt = "png", edge.size = 2000, all.in.one = T, plot.all.sig = F,
                     use.cex = 0.1, use.shape = 16, line.width = 0.02,
@@ -307,7 +279,7 @@ plotSigCluster <- function(object, plot_dir, cluster.list = NULL, intr.num = 10,
     }
 
     score.obj = object@lrscore[[slot.use]]
-    intr.db <- object@intr.valid[[score.obj@intr.slot]]
+    # intr.db <- object@intr.valid[[score.obj@intr.slot]]
 
     if (is.null(signif.use)){
         signif.use = "result.hq.pear"
@@ -326,7 +298,7 @@ plotSigCluster <- function(object, plot_dir, cluster.list = NULL, intr.num = 10,
     }
     col.fac = clusters
     levels(col.fac) = colors.list
-    
+
     if (is.null(cluster.list)){
         cluster.list = names(sort(table(clusters), decreasing = T))[1:5]
     }
@@ -369,7 +341,7 @@ plotSigCluster <- function(object, plot_dir, cluster.list = NULL, intr.num = 10,
 
     intr.rank.clust = Reduce(cbind, intr.rank.clust)
     dimnames(intr.rank.clust) = list(levels(clusters), intr.list)
-    
+
     intr.symbols = lapply(intr.list, function(intr) {
         pair.index = which(object@intr.valid$intr.index$id_cp_interaction == intr)
 
@@ -459,7 +431,7 @@ plotSigCluster <- function(object, plot_dir, cluster.list = NULL, intr.num = 10,
         names(p.intr) = intr.symbols[names(intr.order)[1:intr.num]]
         return(p.intr)
     })
-    
+
     # rename plots with cluster names
     names(p.list) = cluster.list
 
@@ -516,7 +488,7 @@ plotSigCluster <- function(object, plot_dir, cluster.list = NULL, intr.num = 10,
         if (!dir.exists(plot_dir)){
             dir.create(plot_dir, showWarnings = F)
         }
-        
+
         do.plot <- lapply(names(p.list), function(clust) {
             message("Now plotting cluster: ", clust, " ...")
 

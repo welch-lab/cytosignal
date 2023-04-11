@@ -1,6 +1,6 @@
 getIntrValue <- function(
         object,
-        intr.use = NULL,
+        intr,
         type = c("ligand", "ligand_ori", "ligand_null",
                  "receptor", "receptor_ori", "receptor_null",
                  "score", "score_null"),
@@ -8,22 +8,20 @@ getIntrValue <- function(
         signif.use = NULL,
         ...
 ) {
-    if (length(object@lrscore) == 0) stop("No score matrix found!")
-    if (is.null(slot.use)) slot.use <- object@lrscore[["default"]]
+    slot.use <- .checkSlotUse(object, slot.use)
+    signif.use <- .checkSignifUse(object, signif.use, slot.use)
+    intr <- .checkIntrAvail(object, intr, slot.use, signif.use)
+
     score.obj <- object@lrscore[[slot.use]]
     intr.db <- object@intr.valid[[score.obj@intr.slot]]
-    if (is.null(signif.use)) signif.use <- "result.hq.pear"
-    if (!signif.use %in% names(score.obj@res.list)) {
-        stop("No such significance level: ", signif.use, " found!")
-    }
 
     # Identify which interactions are queried
-    if (is.null(intr.use)) {
-        index.len <- length(score.obj@res.list[[signif.use]])
-        # By default use the first 20 and last 10 if more than 30, otherwise all
-        intr.use <- intersect(union(seq(20), seq(index.len - 9, index.len)),
-                              seq(index.len))
-    }
+    # if (is.null(intr)) {
+    #     index.len <- length(score.obj@res.list[[signif.use]])
+    #     # By default use the first 20 and last 10 if more than 30, otherwise all
+    #     intr <- intersect(union(seq(20), seq(index.len - 9, index.len)),
+    #                           seq(index.len))
+    # }
 
     # Initialize data.frame with location
     cells.loc <- as.data.frame(object@cells.loc)
@@ -50,17 +48,17 @@ getIntrValue <- function(
 
     # For each interaction, update the data.frame with queried information
     intrList <- list()
-    for (i in intr.use) {
+    for (intrx in intr) {
         scoreDF <- cells.loc
         for (info in type) {
             if (!startsWith(info, "score")) {
                 if (startsWith(info, "ligand")) {
-                    idx <- names(intr.db[[2]][intr.db[[2]] == res.intr.list[i]])
+                    idx <- names(intr.db[[2]][intr.db[[2]] == intrx])
                     if (info == "ligand") value <- dge.lig[idx, ]
                     if (info == "ligand_ori") value <- dge.raw[idx, ]
                     if (info == "ligand_null") value <- null.dge.gau[idx, ]
                 } else if (startsWith(info, "recep")) {
-                    idx <- names(intr.db[[3]][intr.db[[3]] == res.intr.list[i]])
+                    idx <- names(intr.db[[3]][intr.db[[3]] == intrx])
                     if (info == "receptor") value <- dge.recep[idx, ]
                     if (info == "receptor_ori") value <- dge.raw[idx, ]
                     if (info == "receptor_null") value <- null.dge.dt[idx, ]
@@ -68,20 +66,20 @@ getIntrValue <- function(
                 if (!is.null(nrow(value))) value = Matrix::colSums(value)
                 scoreDF[[info]] <- value
             } else {
-                scoreDF[[info]] = 0
+                scoreDF[[info]] <- 0
                 if (info == "score") {
                     scoreDF[rownames(score.mtx), info] <-
-                        score.mtx[, res.intr.list[i]]
+                        score.mtx[, intrx]
                 }
                 if (info == "score_null") {
                     scoreDF[rownames(null.lrscore.mtx), info] <-
-                        null.lrscore.mtx[, res.intr.list[i]]
+                        null.lrscore.mtx[, intrx]
                 }
             }
         }
         # Identify ligand-recepter names
         pair.index <- which(object@intr.valid$intr.index$id_cp_interaction ==
-                                res.intr.list[i])
+                                intrx)
 
         ligand.name <- object@intr.valid$intr.index[pair.index, 4]
         if (ligand.name == "") {

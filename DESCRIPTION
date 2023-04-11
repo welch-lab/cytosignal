@@ -14,15 +14,15 @@ Depends:
   methods,
   Rcpp,
   RcppArmadillo,
-  stats,
-  ggplot2,
-  cowplot
+  stats
 Imports:
   dbscan,
   ggsci,
   paletteer,
   RANN,
-  RTriangle
+  RTriangle,
+  ggplot2,
+  cowplot
 Suggests:
   cowplot,
   patchwork

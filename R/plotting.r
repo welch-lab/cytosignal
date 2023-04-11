@@ -281,240 +281,47 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
     if (return.plot){return(plots.list)}
 }
 
-
-
-#' Plot 3D LR-velo ranked by the user-specified metric
-#'
-#' @param object A cytosignal object
-#' @param num.plot Number of interactions to plot
-#' @param res_dir Directory to save the plots
-#' @param slot.use The LRscore slot to use for plotting
-#' @param signif.use The metric used to rank the interactions, by default "result.hq.pear"
-#' @param plot.clusters Whether to plot the clusters
-#' @param plot.velo Whether to plot the velocity
-#' @param colors.list A list of colors to use for plotting
-#' @param pt.size Size of the points
-#' @param pt.stroke Stroke of the points
-#' @param u_width Width of the plot
-#' @param u_hgt Height of the plot
-#' @param z.scaler Scaling factor for the z-axis
-#' @param use.cex Point size
-#' @param use.shape Point shape
-#' @param use_xbins Number of bins for the x-axis
-#' @param use_ybins Number of bins for the y-axis
-#' @param arrow.line.width Width of the arrow line
-#' @param arrow.width Width of the arrow
-#' @param use.phi Set view angel: phi the colatitude
-#' @param use.theta Set view angel: theta gives the azimuthal direction
-#' @param set.res Resolution of the plot
-#' @param return.plot Whether to return the plot
-#'
-#' @return A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.
-#'
-#' @export
-
-plotVelo <- function(
-    object,
-    num.plot = NULL,
-    plot_dir,
-    plot.fmt,
-    slot.use = NULL,
-    signif.use = NULL,
-    plot.clusters = TRUE,
-    colors.list = NULL,
-    z.scaler = 0.03,
-    use.cex = 0.1,
-    use.shape = 16,
-    use_xbins = 15,
-    use_ybins = 15,
-    arrow.line.width = 0.6,
-    arrow.width = 0.06,
-    width = 3,
-    height = 3,
-    use.phi = 45,
-    use.theta = -17
+plotCluster <- function(
+        object,
+        colors.list = NULL,
+        pt.size = 0.5,
+        pt.stroke = 0.2,
+        legendNCol = 2,
+        legendNRow = NULL
 ) {
-    if (is.null(slot.use)){
-        slot.use <- object@lrvelo[["default"]]
-    }
-
-    if (!slot.use %in% names(object@lrvelo)){
-        stop("The slot.use is not in the lrvelo slot.\n")
-    }
-
-    if (!slot.use %in% names(object@lrscore)){
-        stop("The slot.use is not in the lrscore slot.\n")
-    }
-
-    velo.obj <- object@lrvelo[[slot.use]]
-
-    if (is.null(colors.list)){
-        levels.use <- levels(object@clusters)
-        colors.list = as.character(paletteer::paletteer_d("ggsci::default_igv",
-                        n = length(levels.use)))
-        names(colors.list) = levels.use
-    }
-
-    if (length(colors.list) != length(levels(object@clusters))){
-        stop("The length of colors.list is not equal to the length of levels(clusters).\n")
-    }
-
-    col.fac = object@clusters
-    levels(col.fac) = colors.list
-
-    if (is.null(signif.use)){
-        signif.use <- "result.hq.pear"
-        # use.res.list <- object@lrscore[[signif.use]]@res.list[["result.hq.pear"]]
-    }
-
-    if (!signif.use %in% names(object@lrscore[[slot.use]]@res.list)) {
-        stop("The rank is not in the corresponded object lrscore slot.\n")
-    }
-
-    use.res.list <- object@lrscore[[slot.use]]@res.list[[signif.use]]
-
-    # intrs that are in the lrscore@result.list
-    # velo may lack some genes so the intrs may be different
-
-    velo.intr.index <- which(names(use.res.list) %in% colnames(velo.obj@intr.velo))
-
-    if (!plot.fmt %in% c("png", "pdf")){
-        stop("The plot.fmt is not supported.\n")
-    }
-
-    if (is.null(num.plot)) {
-        index.len <- length(object@lrscore[[slot.use]]@res.list[[signif.use]])
-        num.plot <- intersect(union(1:20, (index.len-10):index.len), 1:index.len)
-    }
-
-    cat("Plotting the results...\n")
-
-    plot.list <- lapply(num.plot, function(i){
-        intr.rank <- velo.intr.index[i]
-        cat("No.", intr.rank, ", ", sep = "")
-        use.intr = names(use.res.list)[intr.rank]
-
-        # get value for the ranked #1 intr
-        plot.df = as.data.frame(object@cells.loc)
-        plot.df$velo = velo.obj@intr.velo[rownames(plot.df), use.intr]
-
-        pt.df = plot.df[, c(1,2)]
-        pt.df$z = 0
-
-        pt.df$col = as.character(col.fac[rownames(pt.df)])
-        x.scale = max(pt.df$x) - min(pt.df$x)
-        y.scale = max(pt.df$y) - min(pt.df$y)
-
-        #------------------------------------- plotting df for arrows -------------------------------------#
-        # weight -> cell counts in each bin; var4 -> average velo in each bin
-        bin = hex_bin(plot.df$x, plot.df$y, var4=plot.df$velo, var4.to.color = T, xbins = use_xbins, ybins = use_ybins)
-
-        arrows.df = as.data.frame(bin[, c(1,2,3)])
-        colnames(arrows.df) = c("x", "y", "bin_velo")
-
-        ars.pos = arrows.df[arrows.df$bin_velo > 0, ]
-        ars.neg = arrows.df[arrows.df$bin_velo < 0, ]
-        ars.zero = arrows.df[arrows.df$bin_velo == 0, ]
-        # use.scale = max(abs(arrows.df$bin_velo))
-        z.scale = max(arrows.df$bin_velo) - min(arrows.df$bin_velo)
-
-        # scale the length of each arrow by the maximum abs(bin_velo)
-        # overall, scale by each intr
-
-        z.hold = z.scale*z.scaler # set the interval between arrows and points
-
-        if (nrow(ars.pos) > 0){
-            ars.pos$length = abs(ars.pos$bin_velo)/z.scale
-            ars.pos.plot.df = data.frame(
-                x0 = ars.pos$x, y0 = ars.pos$y, z0 = z.hold,
-                x1 = ars.pos$x, y1 = ars.pos$y, z1 = ars.pos$length+z.hold
-            )
-        }
-
-        if (nrow(ars.neg) > 0){
-            ars.neg$length = abs(ars.neg$bin_velo)/z.scale
-            ars.neg.plot.df = data.frame(
-                x0 = ars.neg$x, y0 = ars.neg$y, z0 = ars.neg$length+z.hold,
-                x1 = ars.neg$x, y1 = ars.neg$y, z1 = z.hold
-            )
-        }
-
-        if (nrow(ars.zero) > 0) {
-            ars.zero.plot.df = data.frame(
-                x0 = ars.zero$x, y0 = ars.zero$y, z0 = z.hold,
-                col = "#f7f7f7"
-            )
-        }
-
-        intr.name = getIntrNames(use.intr, object@intr.valid$intr.index)
-
-        sig.len <- lengths(use.res.list)[intr.rank]
-
-        if (plot.fmt == "png") {
-            png(paste0(plot_dir, "/", "Rank_", intr.rank, "_", intr.name, "-n_", sig.len, "-3D.png"), width = width, height = height, units = "in", res = 400)
-        } else if (plot.fmt == "pdf") {
-            pdf(paste0(plot_dir, "/", "Rank_", intr.rank, "_", intr.name, "-n_", sig.len, "-3D.pdf"), width = width, height = height)
-        } else {
-            stop("Plotting format not supported.\n")
-        }
-
-        # cex: control size of points
-        plot3D::points3D(pt.df$x, pt.df$y, pt.df$z,
-            xlim = c(min(pt.df$x) - x.scale*0.025, max(pt.df$x) + x.scale*0.025),
-            ylim = c(min(pt.df$y) - y.scale*0.025, max(pt.df$y) + y.scale*0.025),
-            zlim = c(-0.01, 1.1), expand = 0.3,
-            theta = use.theta, phi = use.phi, d = 2,
-            colvar = NULL, col = pt.df$col,
-            colkey = FALSE, pch = use.shape, cex = use.cex,
-            main = "CytoSignalVelo", zlab = "velocity",
-            xlab = "", ylab = ""
+    colors.list <- .checkColorList(object, colors.list)
+    plotDF <- as.data.frame(object@cells.loc)
+    colnames(plotDF) <- c("x", "y")
+    clusters <- object@clusters
+    clusters <- clusters[rownames(plotDF)]
+    plotDF$clusters = clusters
+    ggplot2::ggplot(plotDF,
+                    ggplot2::aes(.data[["x"]], .data[["y"]],
+                                 color = .data[["clusters"]])) +
+        ggplot2::geom_point(size = pt.size, stroke = pt.stroke) +
+        ggplot2::scale_colour_manual(values = levels(colors.list)) +
+        ggplot2::guides(
+            color = ggplot2::guide_legend(override.aes = list(size = 4),
+                                          ncol = legendNCol, nrow = legendNRow)
+        ) +
+        ggplot2::labs(x = NULL, y = NULL) +
+        ggplot2::theme_classic() +
+        ggplot2::theme(
+            axis.line.x = ggplot2::element_blank(),
+            axis.line.y = ggplot2::element_blank(),
+            axis.ticks.x = ggplot2::element_blank(),
+            axis.ticks.y = ggplot2::element_blank(),
+            axis.text.x = ggplot2::element_blank(),
+            axis.text.y = ggplot2::element_blank(),
+            panel.border = ggplot2::element_rect(fill = NA)
         )
-
-        # plot points with velo = 0 to be grey points
-        if (nrow(ars.zero) > 0) {
-            ars.zero.plot.df = data.frame(
-                x0 = ars.zero$x, y0 = ars.zero$y, z0 = z.hold
-            )
-            plot3D::points3D(ars.zero.plot.df$x0, ars.zero.plot.df$y0, ars.zero.plot.df$z0,
-                colvar = NULL, col = "#f7f7f7",
-                colkey = FALSE, pch = 19, cex = use.cex, add = T)
-        }
-
-        ### parameters for plotting arrows
-        ### lwd: line width; length: arrow edge length; angle: arrow angle
-
-        # positive arrows
-        if (nrow(ars.pos) > 0 ){
-            plot3D::arrows3D(
-                x0 = ars.pos.plot.df$x0, y0 = ars.pos.plot.df$y0, z0 = ars.pos.plot.df$z0,
-                x1 = ars.pos.plot.df$x1, y1 = ars.pos.plot.df$y1, z1 = ars.pos.plot.df$z1,
-                colvar = NULL, col = "#d73027", lwd = arrow.line.width, length = arrow.width,
-                clab = intr.name, d = 3, add = T
-            )
-        }
-
-        # negative arrows
-        if (nrow(ars.neg) > 0){
-            plot3D::arrows3D(
-                x0 = ars.neg.plot.df$x0, y0 = ars.neg.plot.df$y0, z0 = ars.neg.plot.df$z0,
-                x1 = ars.neg.plot.df$x1, y1 = ars.neg.plot.df$y1, z1 = ars.neg.plot.df$z1,
-                colvar = NULL, col = "#3c24f1", lwd = arrow.line.width, length = arrow.width,
-                clab = intr.name, d = 3, add = T
-            )
-        }
-        return(list(p = pt.df, a1 = ars.pos.plot.df, a2 = ars.neg.plot.df))
-        dev.off()
-
-    })
-    return(plot.list)
-    cat("End.\nFinished!\n")
 }
 
 #' @importFrom rlang .data
 #' @export
 plotIntrValue <- function(
         object,
-        intr.use = NULL,
+        intr = NULL,
         type = c("ligand", "ligand_ori", "ligand_null",
                  "receptor", "receptor_ori", "receptor_null",
                  "score", "score_null"),
@@ -524,7 +331,7 @@ plotIntrValue <- function(
         pt.stroke = 0.2,
         raster = NULL
 ) {
-    values <- getIntrValue(object, intr.use = intr.use, type = type,
+    values <- getIntrValue(object, intr = intr, type = type,
                            slot.use = slot.use, signif.use = signif.use)
     if (is.null(raster)) {
         # Automatically determine whether to rasterize
@@ -552,28 +359,35 @@ plotIntrValue <- function(
         ligName <- ligRec[1]
         recName <- ligRec[2]
         plotList <- lapply(type, function(info) {
+            legendTitle <- info
             if (startsWith(info, "ligand")) {
-                title <- paste0(info, "\n", ligName)
+                title <- ligName
+                #title <- paste0(info, "\n", ligName)
             } else if (startsWith(info, "receptor")) {
-                title <- paste0(info, "\n", recName)
+                title <- recName
+                #title <- paste0(info, "\n", recName)
             } else {
-                title <- info
+                title <- intrName
+                #title <- info
             }
             p <- ggplot2::ggplot(plotDF, ggplot2::aes(x = .data[["x"]],
                                                       y = .data[["y"]],
                                                       colour = .data[[info]]))
 
             if (isFALSE(raster)) {
-                p <- p + ggplot2::geom_point(size = pt.size, stroke = pt.stroke)
+                p <- p + ggplot2::geom_point(size = pt.size,
+                                             stroke = pt.stroke)
             } else (
                 p <- p + scattermore::geom_scattermore(pointsize = pt.size,
                                                        stroke = pt.stroke)
             )
 
             p <- p +
-                ggplot2::scale_color_viridis_c(option = "plasma", direction = -1,
+                ggplot2::scale_color_viridis_c(option = "plasma",
+                                               direction = -1,
                                                na.value = '#F5F5F5') +
-                ggplot2::labs(color = title, x = NULL, y = NULL) +
+                ggplot2::labs(color = legendTitle, title = title,
+                              x = NULL, y = NULL) +
                 ggplot2::theme_classic() +
                 ggplot2::theme(
                     axis.line.x = ggplot2::element_blank(),
@@ -582,7 +396,13 @@ plotIntrValue <- function(
                     axis.ticks.y = ggplot2::element_blank(),
                     axis.text.x = ggplot2::element_blank(),
                     axis.text.y = ggplot2::element_blank(),
-                    panel.border = ggplot2::element_rect(fill = NA)
+                    panel.border = ggplot2::element_rect(fill = NA),
+                    plot.title = ggplot2::element_text(face = "bold", hjust = 0.5),
+                    legend.title.align = 1,
+                    legend.title = ggplot2::element_text(vjust = 0.8),
+                    legend.position = "bottom",
+                    legend.justification = 0.9,
+                    legend.margin = ggplot2::margin(t = 0)
                 )
         })
         names(plotList) <- type
@@ -591,3 +411,148 @@ plotIntrValue <- function(
     return(outputList)
 }
 
+plotSignif2 <- function(
+        object,
+        intr,
+        edge = FALSE,
+        velo = FALSE,
+        slot.use = NULL,
+        signif.use = NULL,
+        colors.list = NULL,
+        pt.size = 0.5,
+        pt.stroke = 0.2,
+        return.plot = FALSE,
+        plot_dir = "csSignifPlot/",
+        plot.fmt = c("png", "pdf", "svg"),
+        ...) {
+    plot.fmt <- match.arg(plot.fmt)
+    col.fac <- .checkColorList(object, colors.list)
+    intrNames <- getIntrNames(object, intr)
+
+    ggs <- plotIntrValue(object, intr = intr, slot.use = NULL,
+                         signif.use = NULL, pt.size = pt.size,
+                         pt.stroke = pt.stroke)
+    edgePaths <- NULL
+    veloPaths <- NULL
+    if (isTRUE(edge)) {
+        plotEdge(object, intr, slot.use = slot.use,
+                 signif.use = signif.use, return.plot = FALSE,
+                 colors.list = levels(col.fac), width = 6, height = 6)
+        edgePaths <- file.path("csEdgePlot", paste0("Edge-", intrNames, ".png"))
+        names(edgePaths) <- intr
+    }
+    if (isTRUE(velo)) {
+        plotVelo(object, intr, slot.use = slot.use,
+                 signif.use = signif.use, return.plot = FALSE,
+                 colors.list = levels(col.fac), width = 6, height = 6)
+        veloPaths <- file.path("csVeloPlot", paste0("Velo-", intrNames, ".png"))
+        names(veloPaths) <- intr
+    }
+    plotList <- list()
+    if (isFALSE(edge) && isFALSE(velo)) legendNCol <- 1 else legendNCol <- 2
+    pclust <- plotCluster(object, colors.list = levels(col.fac),
+                          legendNCol = legendNCol, pt.size = pt.size,
+                          pt.stroke = pt.stroke)
+    clustLegend <- cowplot::get_legend(pclust)
+    if (!dir.exists(plot_dir)) dir.create(plot_dir)
+    for (intrx in intr) {
+        intrName <- getIntrNames(object, intrx)
+
+        if (isFALSE(return.plot)) {
+
+        }
+        gglist <- ggs[[intrName]]
+        if (isFALSE(edge) && isFALSE(velo)) {
+            main <- cowplot::plot_grid(
+                grid::textGrob(getLigandNames(object, intrx),
+                               gp = grid::gpar(fontface = "bold")),
+                gglist$ligand + ggplot2::ggtitle(NULL),
+                gglist$ligand_ori + ggplot2::ggtitle(NULL),
+                grid::textGrob(getReceptorNames(object, intrx),
+                               gp = grid::gpar(fontface = "bold")),
+                gglist$receptor + ggplot2::ggtitle(NULL),
+                gglist$receptor_ori + ggplot2::ggtitle(NULL),
+                grid::textGrob(intrName,
+                               gp = grid::gpar(fontface = "bold")),
+                gglist$score + ggplot2::ggtitle(NULL),
+                pclust + ggplot2::theme(legend.position = "none"),
+                nrow = 3, byrow = FALSE,
+                align = "hv", axis = "lrtb",
+                rel_heights = c(0.12, 1, 1)
+            )
+            combine <- cowplot::plot_grid(main,
+                                          clustLegend,
+                                          rel_widths = c(4, 1))
+        } else {
+            main <- cowplot::plot_grid(
+                grid::textGrob(getLigandNames(object, intrx),
+                               gp = grid::gpar(fontface = "bold")),
+                gglist$ligand + ggplot2::ggtitle(NULL),
+                gglist$ligand_ori + ggplot2::ggtitle(NULL),
+                grid::textGrob(getReceptorNames(object, intrx),
+                               gp = grid::gpar(fontface = "bold")),
+                gglist$receptor + ggplot2::ggtitle(NULL),
+                gglist$receptor_ori + ggplot2::ggtitle(NULL),
+                grid::textGrob(intrName,
+                               gp = grid::gpar(fontface = "bold")),
+                gglist$score + ggplot2::ggtitle(NULL),
+                clustLegend,
+                nrow = 3, byrow = FALSE,
+                align = "hv", axis = "lrtb",
+                rel_heights = c(0.12, 1, 1)
+            )
+            if (isTRUE(edge) && isTRUE(velo)) {
+                edgeGrob <- png_as_grob(edgePaths[intrx])
+                veloGrob <- png_as_grob(veloPaths[intrx])
+
+                lower <- cowplot::plot_grid(
+                    edgeGrob, veloGrob, nrow = 1
+                )
+                combine <- cowplot::plot_grid(main, lower, nrow = 2,
+                                              rel_heights = c(2, 1.2))
+            } else if (isTRUE(edge) && isFALSE(velo)) {
+                edgeGrob <- png_as_grob(edgePaths[intrx])
+                combine <- cowplot::plot_grid(main, edgeGrob,
+                                              nrow = 1,
+                                              rel_widths = c(3, 2))
+            } else if (isFALSE(edge) && isTRUE(velo)) {
+                veloGrob <- png_as_grob(veloPaths[intrx])
+                combine <- cowplot::plot_grid(main, veloGrob,
+                                              nrow = 1,
+                                              rel_widths = c(3, 2))
+            }
+        }
+        if (isTRUE(return.plot)) {
+            plotList[[intrName]] <- combine
+        } else {
+            filenameIntr <- paste0(plot_dir, "/", intrName)
+            if (isFALSE(edge) && isFALSE(velo)) {
+                width <- 1100
+                height <- 750
+                filenameIntr <- paste0(filenameIntr, ".", plot.fmt)
+            } else if (isTRUE(edge) && isTRUE(velo)) {
+                width <- 1000
+                height <- 1300
+                filenameIntr <- paste0(filenameIntr, "_edge_velo.", plot.fmt)
+            } else {
+                width <- 1600
+                height <- 750
+                filenameIntr <- paste0(filenameIntr, "_",
+                                       ifelse(edge, "edge", "velo"),
+                                       ".", plot.fmt)
+            }
+            if (plot.fmt == "png") {
+                png(filenameIntr, width = width, height = height, res = 100)
+            } else if (plot.fmt == "pdf") {
+                pdf(filenameIntr, width = width, height = height)
+            } else if (plot.fmt == "svg") {
+                svg(filenameIntr, width = width, height = height)
+            }
+            print(combine)
+            dev.off()
+            message("Combined figure saved at: ", normalizePath(filenameIntr))
+        }
+    }
+    if (isFALSE(return.plot)) return(invisible())
+    else return(plotList)
+}
