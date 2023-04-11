@@ -33,7 +33,14 @@ plotEdge <- function(
     UseMethod(generic = "plotEdge", object = object)
 }
 
-plotEdge.CytoSignal <- function(object, plot_dir, intr, type = c("sender", "receiver"), slot.use = NULL, signif.use = NULL,
+#' Plotting edge for a given interaction from a CytoSignal object
+#' 
+#' @return Plot of edge
+#' 
+#' @export
+#' 
+plotEdge.CytoSignal <- function(object, plot_dir, intr, type = c("sender", "receiver"), edge.size = 1000,
+                    slot.use = NULL, signif.use = NULL,
                     colors.list = NULL, plot.fmt = "png", title = NULL,
                     use.cex = 0.1, use.shape = 16, line.width = 0.01,
                     use.phi = 30, use.theta = -17,
@@ -112,17 +119,19 @@ plotEdge.CytoSignal <- function(object, plot_dir, intr, type = c("sender", "rece
 
     if (is.null(title)){
         title = paste0("Edge", "-", intr.name)
+    } else {
+        title = paste0(title, "Edge", "-", intr.name)
     }
 
     if (type == "sender") {
-        p1 = plotEdgeSender.matrix_like(
-            cells.loc, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
+        p1 = plotEdge.matrix_like(
+            cells.loc, type = type, edge.size = edge.size, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
             title, use.cex, use.shape, line.width, use.phi, use.theta,
             z.scaler, z.pt.interval, pt.stroke, u_width, u_hgt, set.res
         )
     } else if (type == "receiver") {
-        p1 = plotEdgeReceiver.matrix_like(
-            cells.loc, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
+        p1 = plotEdge.matrix_like(
+            cells.loc, type = type, edge.size = edge.size, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
             title, use.cex, use.shape, line.width, use.phi, use.theta,
             z.scaler, z.pt.interval, pt.stroke, u_width, u_hgt, set.res
         )
@@ -135,14 +144,15 @@ plotEdge.CytoSignal <- function(object, plot_dir, intr, type = c("sender", "rece
     }
 
     if (plot.fmt == "png") {
-        png(paste0(plot_dir, "/", title, ".png"), width = width, height = height, units = "in", res = set.res)
+        png(paste0(plot_dir, "/", title, ".png"), width = u_width, height = u_hgt, units = "in", res = set.res)
     } else if (plot.fmt == "pdf") {
-        pdf(paste0(plot_dir, "/", title, ".pdf"), width = width, height = height)
+        pdf(paste0(plot_dir, "/", title, ".pdf"), width = u_width, height = u_hgt)
     } else {
         stop("Plotting format not supported.\n")
     }
-
-    print(p1)
+    
+    par(mfrow = c(1, 1), mar = c(1, 1, 1 ,1), oma = c(0, 0, 0, 0), mgp = c(0, 0, 0), xpd = T)
+    plot(p1)
 
     dev.off()
     
