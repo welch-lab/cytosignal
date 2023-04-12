@@ -17,13 +17,13 @@ plotEdge(
   plot.fmt = c("png", "pdf", "svg"),
   title = NULL,
   edge.size = 500,
-  use.cex = 0.1,
   use.shape = 16,
   line.width = 0.01,
   use.phi = 30,
   use.theta = -17,
   z.scaler = 0.03,
   z.pt.interval = 1,
+  pt.size = 0.1,
   pt.stroke = 0.2,
   width = 5,
   height = 5,
@@ -62,8 +62,6 @@ information and \code{plot.fmt}.}
 
 \item{title}{Title of plot}
 
-\item{use.cex}{Size of points}
-
 \item{use.shape}{Shape of points}
 
 \item{line.width}{Width of lines}
@@ -79,6 +77,8 @@ information and \code{plot.fmt}.}
 \item{pt.stroke}{Width of points}
 
 \item{set.res}{Resolution of plot}
+
+\item{use.cex}{Size of points}
 
 \item{u_width}{Width of plot}
 

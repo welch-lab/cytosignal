@@ -17,7 +17,7 @@ plotVelo(
   colors.list = NULL,
   z.scaler = 0.03,
   title = NULL,
-  use.cex = 0.1,
+  pt.size = 0.1,
   use.shape = 16,
   use_xbins = 15,
   use_ybins = 15,
@@ -26,8 +26,8 @@ plotVelo(
   pt.stroke = 0.2,
   use.phi = 30,
   use.theta = -17,
-  width = 5,
-  height = 5,
+  width = 6,
+  height = 6,
   set.res = 300
 )
 }
@@ -46,7 +46,7 @@ plotVelo(
 
 \item{z.scaler}{Scaling factor for the z-axis}
 
-\item{use.cex}{Point size}
+\item{pt.size}{Point size}
 
 \item{use.shape}{Point shape}
 
@@ -75,8 +75,6 @@ plotVelo(
 \item{res_dir}{Directory to save the plots}
 
 \item{plot.velo}{Whether to plot the velocity}
-
-\item{pt.size}{Size of the points}
 }
 \value{
 A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.

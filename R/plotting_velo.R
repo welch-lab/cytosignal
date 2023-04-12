@@ -13,7 +13,7 @@
 #' @param width Width of the plot
 #' @param height Height of the plot
 #' @param z.scaler Scaling factor for the z-axis
-#' @param use.cex Point size
+#' @param pt.size Point size
 #' @param use.shape Point shape
 #' @param use_xbins Number of bins for the x-axis
 #' @param use_ybins Number of bins for the y-axis
@@ -40,7 +40,7 @@ plotVelo <- function(
     colors.list = NULL,
     z.scaler = 0.03,
     title = NULL,
-    use.cex = 0.1,
+    pt.size = 0.1,
     use.shape = 16,
     use_xbins = 15,
     use_ybins = 15,
@@ -49,8 +49,8 @@ plotVelo <- function(
     pt.stroke = 0.2,
     use.phi = 30,
     use.theta = -17,
-    width = 5,
-    height = 5,
+    width = 6,
+    height = 6,
     set.res = 300
 ) {
   plot.fmt <- match.arg(plot.fmt)
@@ -81,7 +81,7 @@ plotVelo <- function(
     p1 <- .plotVeloMatrix(
       cells.loc = cells.loc, intr = intrx, velo = velo, col.fac = col.fac,
       use_xbins = use_xbins, use_ybins = use_ybins, title = titleIntr,
-      use.cex = use.cex, use.shape = use.shape,
+      pt.size = pt.size, use.shape = use.shape,
       arrow.line.width = arrow.line.width, arrow.width = arrow.width,
       use.phi = use.phi, use.theta = use.theta, z.scaler = z.scaler,
       pt.stroke = pt.stroke
@@ -121,7 +121,7 @@ plotVelo <- function(
 
 .plotVeloMatrix <- function(
     cells.loc, intr, velo, col.fac, use_xbins = 15, use_ybins = 15,
-    title = "CytoSignalVelo", use.cex = 0.1, use.shape = 16,
+    title = "CytoSignalVelo", pt.size = 0.1, use.shape = 16,
     arrow.line.width = 0.6, arrow.width = 0.06,
     use.phi = 30, use.theta = -17, z.scaler = 0.03,
     pt.stroke = 0.2
@@ -189,7 +189,7 @@ plotVelo <- function(
                    zlim = c(-0.01, 1.1), expand = 0.3, pt.stroke = pt.stroke,
                    theta = use.theta, phi = use.phi, d = 2,
                    colvar = NULL, col = pt.df$col,
-                   colkey = FALSE, pch = use.shape, cex = use.cex,
+                   colkey = FALSE, pch = use.shape, cex = pt.size,
                    main = title, zlab = "velocity",
                    xlab = "", ylab = "", plot = FALSE
   )
@@ -203,7 +203,7 @@ plotVelo <- function(
                      ars.zero.plot.df$y0,
                      ars.zero.plot.df$z0,
                      colvar = NULL, col = "#f7f7f7",
-                     colkey = FALSE, pch = 19, cex = use.cex,
+                     colkey = FALSE, pch = 19, cex = pt.size,
                      add = TRUE, plot = FALSE)
   }
 

@@ -40,9 +40,9 @@ plotEdge <- function(
         signif.use = NULL, colors.list = NULL,
         return.plot = TRUE, plot_dir = "csEdgePlot/", filename = NULL,
         plot.fmt = c("png", "pdf", "svg"),
-        title = NULL, edge.size = 500, use.cex = 0.1, use.shape = 16,
+        title = NULL, edge.size = 500, use.shape = 16,
         line.width = 0.01, use.phi = 30, use.theta = -17, z.scaler = 0.03,
-        z.pt.interval = 1, pt.stroke = 0.2, width = 5, height = 5,
+        z.pt.interval = 1, pt.size = 0.1, pt.stroke = 0.2, width = 5, height = 5,
         set.res = 300
 ){
     type <- match.arg(type)
@@ -84,7 +84,7 @@ plotEdge <- function(
             nn.graph.sig = nn.graph.sig, receiver.idx = receiver.idx,
             col.fac = col.fac, res.list = res.list, intr = intr,
             title = titleIntr,
-            use.cex = use.cex, use.shape = use.shape, line.width = line.width,
+            pt.size = pt.size, use.shape = use.shape, line.width = line.width,
             use.phi = use.phi, use.theta = use.theta, z.scaler = z.scaler,
             z.pt.interval = z.pt.interval, pt.stroke = pt.stroke
         )
@@ -125,7 +125,7 @@ plotEdge <- function(
 .plotEdgeMatrix <- function(
         cells.loc, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
         type = c("sender", "receiver"), edge.size = 500,
-        title = NULL, use.cex = 0.1, use.shape = 16, line.width = 0.01,
+        title = NULL, pt.size = 0.1, use.shape = 16, line.width = 0.01,
         use.phi = 30, use.theta = -17, z.scaler = 0.03, z.pt.interval = 1,
         pt.stroke = 0.2
 ){
@@ -183,7 +183,7 @@ plotEdge <- function(
         xlim = xlim, ylim = ylim, zlim = c(-0.01, z.pt.interval + 0.1),
         expand = 0.7, theta = use.theta, phi = use.phi, d = 5,
         colvar = NULL, col = pt.df.rec$col, alpha = 1,
-        colkey = FALSE, pch = use.shape, cex = use.cex,
+        colkey = FALSE, pch = use.shape, cex = pt.size,
         main = title, zlab = "Inferred CCC",
         xlab = "", ylab = "", plot = FALSE
     )
@@ -191,7 +191,7 @@ plotEdge <- function(
     # plot non-sender cells
     plot3D::points3D(pt.df.n_rec$x, pt.df.n_rec$y, pt.df.n_rec$z,
         colvar = NULL, col = pt.df.n_rec$col, alpha = 0.2,
-        colkey = FALSE, pch = use.shape, cex = use.cex,
+        colkey = FALSE, pch = use.shape, cex = pt.size,
         plot = FALSE, add = TRUE
     )
 
@@ -207,14 +207,14 @@ plotEdge <- function(
     # plot receiver cells
     plot3D::points3D(pt.df.send$x, pt.df.send$y, pt.df.send$z + z.pt.interval,
                      colvar = NULL, col = pt.df.send$col, alpha = 1,
-                     colkey = FALSE, pch = use.shape, cex = use.cex,
+                     colkey = FALSE, pch = use.shape, cex = pt.size,
                      plot = FALSE, add = TRUE)
 
     # plot non-receiver cells
     plot3D::points3D(x = pt.df.n_send$x, y = pt.df.n_send$y,
                      z = pt.df.n_send$z + z.pt.interval,
                      colvar = NULL, col = pt.df.n_send$col, alpha = 0.2,
-                     colkey = FALSE, pch = use.shape, cex = use.cex,
+                     colkey = FALSE, pch = use.shape, cex = pt.size,
                      plot = FALSE, add = TRUE)
     #pr <- grDevices::recordPlot()
     p1 <- plot3D::getplist()
@@ -240,7 +240,7 @@ plotEdge <- function(
 #' @param edge.size Number of edges to plot
 #' @param all.in.one Plot all clusters in one plot
 #' @param plot.all.sig Plot all significant edges
-#' @param use.cex Size of points
+#' @param pt.size Size of points
 #' @param use.shape Shape of points
 #' @param line.width Width of lines
 #' @param use.phi Angle of view
