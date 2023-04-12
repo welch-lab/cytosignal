@@ -21,7 +21,7 @@
 #' @export
 
 plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.use = NULL, signif.use = NULL, plot.clusters = T,
-                    plot.velo = F, colors.list = NULL, pt.size=0.5, pt.stroke = 0.2, u_width = 6, u_hgt = 5, set.res = 200,
+                    plot.velo = F, colors.list = NULL, pt.size=0.1, pt.stroke = 0.2, u_width = 6, u_hgt = 5, set.res = 200,
                     return.plot = F
 ){
     if (length(object@lrscore) == 0){
@@ -419,11 +419,12 @@ plotSignif2 <- function(
         slot.use = NULL,
         signif.use = NULL,
         colors.list = NULL,
-        pt.size = 0.5,
+        pt.size = 0.1,
         pt.stroke = 0.2,
         return.plot = FALSE,
         plot_dir = "csSignifPlot/",
         plot.fmt = c("png", "pdf", "svg"),
+        resolution = 100,
         ...) {
     plot.fmt <- match.arg(plot.fmt)
     col.fac <- .checkColorList(object, colors.list)
@@ -435,17 +436,19 @@ plotSignif2 <- function(
     edgePaths <- NULL
     veloPaths <- NULL
     if (isTRUE(edge)) {
-        plotEdge(object, intr, slot.use = slot.use,
+        plotEdge(object, intr, slot.use = slot.use, plot_dir = plot_dir,
                  signif.use = signif.use, return.plot = FALSE,
-                 colors.list = levels(col.fac), width = 6, height = 6)
-        edgePaths <- file.path("csEdgePlot", paste0("Edge-", intrNames, ".png"))
+                 colors.list = levels(col.fac), width = 6, height = 6,
+                 pt.size = pt.size, pt.stroke = pt.stroke)
+        edgePaths <- file.path(plot_dir, paste0("Edge-", intrNames, ".png"))
         names(edgePaths) <- intr
     }
     if (isTRUE(velo)) {
-        plotVelo(object, intr, slot.use = slot.use,
+        plotVelo(object, intr, slot.use = slot.use, plot_dir = plot_dir,
                  signif.use = signif.use, return.plot = FALSE,
-                 colors.list = levels(col.fac), width = 6, height = 6)
-        veloPaths <- file.path("csVeloPlot", paste0("Velo-", intrNames, ".png"))
+                 colors.list = levels(col.fac), width = 6, height = 6,
+                 pt.size = pt.size, pt.stroke = pt.stroke)
+        veloPaths <- file.path(plot_dir, paste0("Velo-", intrNames, ".png"))
         names(veloPaths) <- intr
     }
     plotList <- list()
@@ -527,22 +530,23 @@ plotSignif2 <- function(
         } else {
             filenameIntr <- paste0(plot_dir, "/", intrName)
             if (isFALSE(edge) && isFALSE(velo)) {
-                width <- 1100
-                height <- 750
+                width <- 12
+                height <- 8
                 filenameIntr <- paste0(filenameIntr, ".", plot.fmt)
             } else if (isTRUE(edge) && isTRUE(velo)) {
-                width <- 1000
-                height <- 1300
+                width <- 10
+                height <- 13
                 filenameIntr <- paste0(filenameIntr, "_edge_velo.", plot.fmt)
             } else {
-                width <- 1600
-                height <- 750
+                width <- 16
+                height <- 8
                 filenameIntr <- paste0(filenameIntr, "_",
                                        ifelse(edge, "edge", "velo"),
                                        ".", plot.fmt)
             }
             if (plot.fmt == "png") {
-                png(filenameIntr, width = width, height = height, res = 100)
+                png(filenameIntr, width = width, height = height,
+                    res = resolution, units = "in")
             } else if (plot.fmt == "pdf") {
                 pdf(filenameIntr, width = width, height = height)
             } else if (plot.fmt == "svg") {

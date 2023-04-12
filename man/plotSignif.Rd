@@ -14,7 +14,7 @@ plotSignif(
   plot.clusters = T,
   plot.velo = F,
   colors.list = NULL,
-  pt.size = 0.5,
+  pt.size = 0.1,
   pt.stroke = 0.2,
   u_width = 6,
   u_hgt = 5,

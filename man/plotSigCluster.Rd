@@ -56,8 +56,6 @@ plotSigCluster(
 
 \item{plot.all.sig}{Plot all significant edges}
 
-\item{use.cex}{Size of points}
-
 \item{use.shape}{Shape of points}
 
 \item{line.width}{Width of lines}
@@ -79,6 +77,8 @@ plotSigCluster(
 \item{set.res}{Resolution of plot}
 
 \item{return.plot}{Return plot object}
+
+\item{pt.size}{Size of points}
 
 \item{...}{Other arguments}
 }
