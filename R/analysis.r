@@ -717,6 +717,7 @@ inferSignif.matrix_like <- function(
 	reads.thresh = 100,
 	sig.thresh = 100
 ){
+	correctBy <- match.arg(correctBy)
 	# if Cell numbers in pvalue mtx and nb.fac do not match
 	cellsNN = as.integer(levels(nb.fac[["id"]]))
 	if (!identical(nrow(lrscore.mtx), length(cellsNN))) {
@@ -780,6 +781,7 @@ inferSignif.matrix_like <- function(
 #' @export
 inferSignif.CytoSignal <- function(
     object,
+	correctBy = c("cell", "intr"),
 	p.value = 0.05, 
 	reads.thresh = 100,
 	sig.thresh = 100,
@@ -827,7 +829,7 @@ inferSignif.CytoSignal <- function(
 	use.intr.db <- object@intr.valid[[use.intr.slot.name]]
 
     res.list = inferSignif.matrix_like(object@counts, object@lrscore[[slot.use]]@score, 
-				object@lrscore[[slot.use]]@score.null, nb.fac,
+				object@lrscore[[slot.use]]@score.null, correctBy, nb.fac,
 				use.intr.db, object@intr.valid[["gene_to_uniprot"]], p.value,
 				reads.thresh, sig.thresh)
 
@@ -981,6 +983,77 @@ inferSpatialCorr <- function(
 	return(object)
 }
 
+
+
+#' Infer the correspondence between LR-scores and Significance
+#' 
+#' Min-max the LRscores, substract the significant ones, sum and average.
+#' 
+#' @param object A Cytosignal object
+#' @param 
+#'
+#' @return A Cytosignal object
+#' @export
+#' 
+inferCorrScore <- function(
+	object,
+	correctBy = c("cell", "intr"),
+	slot.use = NULL,
+	...
+) {
+	if (is.null(slot.use)){
+		slot.use = object@lrscore[["default"]]
+	}
+
+	lrscore.mtx = object@lrscore[[slot.use]]@score
+	null.lrscore.mtx = object@lrscore[[slot.use]]@score.null
+	nb.index = object@imputation[["DT"]]@nn.id
+
+	# if Cell numbers in pvalue mtx and nb.fac do not match
+	cellsNN = as.integer(levels(nb.index))
+	if (!identical(nrow(lrscore.mtx), length(cellsNN))) {
+		cellsNoNN <- setdiff(1:nrow(lrscore.mtx), cellsNN)
+		lrscore.mtx <- lrscore.mtx[-cellsNoNN, ]
+	}
+
+	pval.mtx = getPvalues(lrscore.mtx, null.lrscore.mtx)
+
+	if (correctBy == "cell"){
+		pval.spatial = graphSpatialFDR(nb.fac, pval.mtx)
+    	dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
+	} else if (correctBy == "intr"){
+		pval.spatial = sapply(1:nrow(pval.mtx), function(i) {
+			p.adjust(pval.mtx[i, ], method = "BH")
+		})
+		pval.spatial = t(pval.spatial)
+		dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
+	}
+
+	pval.spatial[pval.spatial > 0.05] = 0
+	pval.spatial[pval.spatial > 0] = 1
+
+	# norm lrscore
+	lrscore.mtx.filter = lrscore.mtx
+	lrscore.mtx.filter@x <- 
+	lrscore.mtx.filter = lrscore.mtx * pval.spatial
+
+	# compute pearson correlation
+	pearson.cor = as.double(pearson_col_cpp(pval.spatial.imp, lrscore.mtx.imp))
+	names(pearson.cor) = colnames(lrscore.mtx)
+	pearson.cor = pearson.cor[!is.na(pearson.cor)]
+	pearson.cor = pearson.cor^2
+	pearson.cor = pearson.cor[order(pearson.cor, decreasing = T)]
+
+	res.list.corr = object@lrscore[[slot.use]]@res.list[["result.hq"]]
+	intr.use = intersect(names(pearson.cor), names(res.list.corr))
+	pearson.corr.use = pearson.cor[intr.use]
+	pearson.corr.use = pearson.corr.use[order(pearson.corr.use, decreasing = T)]
+	res.list.corr = res.list.corr[names(pearson.corr.use)]
+
+	object@lrscore[[slot.use]]@res.list[["result.hq.corr"]] = res.list.corr
+
+	return(object)
+}
 
 
 
