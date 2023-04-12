@@ -9,6 +9,7 @@
   plot_dir,
   intr,
   type = c("sender", "receiver"),
+  edge.size = 1000,
   slot.use = NULL,
   signif.use = NULL,
   colors.list = NULL,

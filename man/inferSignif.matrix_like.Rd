@@ -8,6 +8,7 @@
   dge.raw,
   lrscore.mtx,
   null.lrscore.mtx,
+  correctBy = c("cell", "intr"),
   nb.fac,
   intr.db,
   gene_to_uniprot,

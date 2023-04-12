@@ -166,7 +166,7 @@ graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT
     # pvalues = pval.mtx
 
     if (length(levels(nn.index)) != nrow(pval.mtx)){
-        warning("Cell numbers in pvalue mtx and neighbor factor do not match!!\n")
+        stop("Cell numbers in pvalue mtx and neighbor factor do not match!!\n")
     }
 
     if (weighting == "DT"){
@@ -177,8 +177,9 @@ graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT
         #     return(max(nb.dist))
         # })
 
-        t.connect <- sapply(split(as.double(names(nn.dist)), nn.dist), function(x){
-            return(max(x))
+        t.connect <- sapply(split(as.numeric(names(nn.dist)), nn.dist), function(x){
+            # return(max(x))
+            return(max(x[-which(x == max(x))[1]]))
         })
 
     } else if (weighting == "EB"){

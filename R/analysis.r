@@ -244,9 +244,17 @@ findNNDT.matrix <- function(
 
 	dist.euc.list <- as.double(euclidean_cpp(index.loc, nb.loc))
 	nn.valid <- which(dist.euc.list <= max.r)
+	nn.fac.old <- nn.fac
 	nn.fac <- nn.fac[nn.valid, drop = T]
 
 	message("Filtering out ", length(dist.euc.list) - length(nn.valid), " edges out of range.")
+	noNN <- as.numeric(setdiff(levels(nn.fac.old), levels(nn.fac)))
+
+	if (length(noNN) > 0){
+		message("A total of ", length(noNN), " beads do not have NNs!\n")
+	} else {
+		cat("All beads have NNs.\n")
+	}
 	
 	# set distance for each niche, based on the cell number of each niche
 	nb.size <- table(nn.fac)
@@ -701,6 +709,7 @@ inferSignif.matrix_like <- function(
     dge.raw,
     lrscore.mtx,
     null.lrscore.mtx,
+	correctBy = c("cell", "intr"),
     nb.fac,
 	intr.db,
 	gene_to_uniprot,
@@ -708,10 +717,25 @@ inferSignif.matrix_like <- function(
 	reads.thresh = 100,
 	sig.thresh = 100
 ){
-    pval.mtx = getPvalues(lrscore.mtx, null.lrscore.mtx)
-    pval.spatial = graphSpatialFDR(nb.fac, pval.mtx)
-    # pval.spatial = graphSpatialFDR(nb.fac, pval.mtx, null.lrscore.mtx, reciprocal = F)
-    dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
+	# if Cell numbers in pvalue mtx and nb.fac do not match
+	cellsNN = as.integer(levels(nb.fac[["id"]]))
+	if (!identical(nrow(lrscore.mtx), length(cellsNN))) {
+		cellsNoNN <- setdiff(1:nrow(lrscore.mtx), cellsNN)
+		lrscore.mtx <- lrscore.mtx[-cellsNoNN, ]
+	}
+
+	pval.mtx = getPvalues(lrscore.mtx, null.lrscore.mtx)
+
+	if (correctBy == "cell"){
+		pval.spatial = graphSpatialFDR(nb.fac, pval.mtx)
+    	dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
+	} else if (correctBy == "intr"){
+		pval.spatial = sapply(1:nrow(pval.mtx), function(i) {
+			p.adjust(pval.mtx[i, ], method = "BH")
+		})
+		pval.spatial = t(pval.spatial)
+		dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
+	}
 
     res.list = lapply(colnames(pval.spatial), function(cp){
         bead.index = names(which(pval.spatial[, cp] < p.thresh))
@@ -874,6 +898,94 @@ runPears.std <- function(
 
 	return(object)
 }
+
+
+#' Infer the correspondence between LR-scores and Significance
+#' 
+#' Use DT neighbors to impute the p-value and LR-score for each cell, then compute the pearson 
+#' correlation between the imputed LR-score and p-value.
+#' 
+#' @param object A Cytosignal object
+#' @param 
+#'
+#' @return A Cytosignal object
+#' @export
+#' 
+inferSpatialCorr <- function(
+	object,
+	correctBy = c("cell", "intr"),
+	slot.use = NULL,
+	...
+) {
+	if (is.null(slot.use)){
+		signif.use = object@lrscore[["default"]]
+	}
+
+	lrscore.mtx = object@lrscore[[slot.use]]@score
+	null.lrscore.mtx = object@lrscore[[slot.use]]@score.null
+	nb.index = object@imputation[["DT"]]@nn.id
+
+	# if Cell numbers in pvalue mtx and nb.fac do not match
+	cellsNN = as.integer(levels(nb.index))
+	if (!identical(nrow(lrscore.mtx), length(cellsNN))) {
+		cellsNoNN <- setdiff(1:nrow(lrscore.mtx), cellsNN)
+		lrscore.mtx <- lrscore.mtx[-cellsNoNN, ]
+	}
+
+	pval.mtx = getPvalues(lrscore.mtx, null.lrscore.mtx)
+
+	if (correctBy == "cell"){
+		pval.spatial = graphSpatialFDR(nb.fac, pval.mtx)
+    	dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
+	} else if (correctBy == "intr"){
+		pval.spatial = sapply(1:nrow(pval.mtx), function(i) {
+			p.adjust(pval.mtx[i, ], method = "BH")
+		})
+		pval.spatial = t(pval.spatial)
+		dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
+	}
+
+	pval.spatial[pval.spatial > 0.05] = 0
+	pval.spatial[pval.spatial > 0] = 1
+
+	nn.graph = object@imputation[["DT"]]@nn.graph
+	nn.graph = nn.graph[-cellsNoNN, -cellsNoNN]
+	nn.graph = to_mean(nn.graph)
+
+	# impute pval and lrscore
+	# pval.spatial = as(t(pval.spatial), "CsparseMatrix")
+	# pval.spatial.imp = t(pval.spatial) %*% nn.graph
+	# pval.spatial.imp = as.matrix(t(pval.spatial.imp))
+
+	# lrscore.mtx.imp = t(lrscore.mtx) %*% nn.graph
+	# lrscore.mtx.imp = as.matrix(t(lrscore.mtx.imp))
+
+	pval.spatial.imp = pval.spatial
+	lrscore.mtx.imp = as(lrscore.mtx, "matrix")
+
+	# compute pearson correlation
+	pearson.cor = as.double(pearson_col_cpp(pval.spatial.imp, lrscore.mtx.imp))
+	names(pearson.cor) = colnames(lrscore.mtx)
+	pearson.cor = pearson.cor[!is.na(pearson.cor)]
+	pearson.cor = pearson.cor^2
+	pearson.cor = pearson.cor[order(pearson.cor, decreasing = T)]
+
+	res.list.corr = object@lrscore[[slot.use]]@res.list[["result.hq"]]
+	intr.use = intersect(names(pearson.cor), names(res.list.corr))
+	pearson.corr.use = pearson.cor[intr.use]
+	pearson.corr.use = pearson.corr.use[order(pearson.corr.use, decreasing = T)]
+	res.list.corr = res.list.corr[names(pearson.corr.use)]
+
+	object@lrscore[[slot.use]]@res.list[["result.hq.corr"]] = res.list.corr
+
+	return(object)
+}
+
+
+
+
+
+
 
 
 
