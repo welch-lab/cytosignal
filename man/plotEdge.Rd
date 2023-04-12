@@ -4,16 +4,40 @@
 \alias{plotEdge}
 \title{Plotting edge for a given interaction from a CytoSignal object}
 \usage{
-plotEdge(object, ...)
+plotEdge(
+  object,
+  intr,
+  type = c("sender", "receiver"),
+  slot.use = NULL,
+  signif.use = NULL,
+  colors.list = NULL,
+  return.plot = TRUE,
+  plot_dir = "csEdgePlot/",
+  filename = NULL,
+  plot.fmt = c("png", "pdf", "svg"),
+  title = NULL,
+  edge.size = 500,
+  use.cex = 0.1,
+  use.shape = 16,
+  line.width = 0.01,
+  use.phi = 30,
+  use.theta = -17,
+  z.scaler = 0.03,
+  z.pt.interval = 1,
+  pt.stroke = 0.2,
+  width = 5,
+  height = 5,
+  set.res = 300
+)
 }
 \arguments{
-\item{object}{CytoSignal object}
+\item{object}{\code{\linkS4class{CytoSignal}} object.}
 
-\item{plot_dir}{Directory to save plots}
+\item{intr}{Interaction to plot. See available options with
+\code{\link{showIntr}}.}
 
-\item{intr}{Interaction to plot}
-
-\item{type}{Type of plot, either "sender" or "receiver"}
+\item{type}{Type of plot, either \code{"sender"} or \code{"receiver"}.
+Default \code{"sender"}.}
 
 \item{slot.use}{Slot to use for plotting}
 
@@ -21,7 +45,20 @@ plotEdge(object, ...)
 
 \item{colors.list}{List of colors to use for plotting}
 
-\item{plot.fmt}{Format of plot, either "png" or "pdf"}
+\item{return.plot}{Whether to return "plist" object for figure organization.
+\code{TRUE} returns "plist" which can be shown on current display device with
+\code{plot()}. \code{FALSE} saves the figure to disk. Default \code{TRUE}.}
+
+\item{plot_dir}{Path where the figure will be saved when
+\code{return.plot = FALSE}. Default \code{"csEdgePlot/"} (under current
+working directory).}
+
+\item{filename}{Filename of the figure inside \code{plot_dir}. Please match
+extension name with \code{plot.fmt} and do not include path. Default
+\code{NULL} and the exact filename will be determined by interaction
+information and \code{plot.fmt}.}
+
+\item{plot.fmt}{Format of plot, either \code{"png"} or \code{"pdf"}.}
 
 \item{title}{Title of plot}
 
@@ -41,16 +78,16 @@ plotEdge(object, ...)
 
 \item{pt.stroke}{Width of points}
 
+\item{set.res}{Resolution of plot}
+
 \item{u_width}{Width of plot}
 
 \item{u_hgt}{Height of plot}
-
-\item{set.res}{Resolution of plot}
-
-\item{return.plot}{Whether to return plot}
 }
 \value{
-Plot of edge
+\code{plist} object when \code{return.plot = TRUE}, no in memory
+object is returned when \code{return.plot = FALSE} but the figure will be
+saved on disk.
 }
 \description{
 Plotting edge for a given interaction from a CytoSignal object
