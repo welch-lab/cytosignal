@@ -197,7 +197,7 @@ graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT
     }
     # w <- 1/t.connect
     w[is.infinite(w)] <- 1
-    
+
     # Compute a adjusted pvalues for every interaction
     padj.mtx = sapply(1:ncol(pval.mtx), function(intr){
         pvalues = unname(pval.mtx[ ,intr])
@@ -243,7 +243,7 @@ graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT
 # in the cells, 2) low number of significant interactions.
 filterRes <- function(dge.raw, res.list, intr.db, gene_to_uniprot, reads.thresh = 100, sig.thresh = 100){
     low_genes = diff(Matrix::t(dge.raw)@p)
-    
+
     # # if dge.raw is genes X cell
     # low_genes = toupper(rownames(dge.raw)[which(low_genes < reads.thresh)])
     # low_genes = intersect(low_genes, gene_to_uniprot$gene_name)
@@ -271,10 +271,10 @@ filterRes <- function(dge.raw, res.list, intr.db, gene_to_uniprot, reads.thresh 
 
 # impute data using KNN
 dataImpKNN <- function(
-    data, 
-    cells.loc, 
-    # density = 0.05, 
-    k = NULL, 
+    data,
+    cells.loc,
+    # density = 0.05,
+    k = NULL,
     weight = 2
 ) {
     # standard version 1: if alpha% of cells < 500, use 500; otherwise use alpha = 5%
@@ -306,10 +306,10 @@ dataImpKNN <- function(
     } else if (weight == 1) {
         nn.dist <- matrix(1/(k), nrow = k, ncol = ncol(nn.idx)) # k X N
     }
-    
+
     rm(nn); gc()
     # cat("Finished!\n")
-    
+
     # cat("Creating weight matrix...")
     # construct the weight matrix direcly
     i <- c(nn.idx) # join each column and convert to int vector
@@ -335,7 +335,7 @@ dataImpKNN <- function(
     cat("Finished!\n")
 
     dimnames(data.imp) <- list(
-        colnames(data), 
+        colnames(data),
         rownames(data)
     )
 
@@ -345,29 +345,39 @@ dataImpKNN <- function(
 }
 
 
-getIntrNames <- function(res.intr.list, inter.index){
-    intr.names = sapply(seq_along(res.intr.list), function(i){
-        pair.index = which(inter.index$id_cp_interaction == res.intr.list[i])
-
-        ligand.name = inter.index[pair.index, 4]
-        if (ligand.name == ""){ # if complex
-            ligand.name = inter.index[pair.index, 2]
-        }
-        ligand.name = gsub("_HUMAN", "", ligand.name)
-
-        receptor.name = inter.index[pair.index, 5]
-        if (receptor.name == ""){
-            receptor.name = inter.index[pair.index, 3]
-        }
-        receptor.name = gsub("_HUMAN", "", receptor.name)
-
-        # generate interaction names
-        # intr.name = paste0(gsub("_HUMAN", "", ligand.name), "-", gsub("_HUMAN", "", receptor.name))
-        intr.name = paste0(ligand.name, "-", receptor.name)
-    })
-
-    return(intr.names)
+getIntrNames <- function(object, intr){
+  ligandNames <- getLigandNames(object, intr)
+  receptorNames <- getReceptorNames(object, intr)
+  intrName <- paste0(ligandNames, "-", receptorNames)
+  names(intrName) <- intr
+  return(intrName)
 }
+
+getLigandNames <- function(object, intr){
+  inter.index <- object@intr.valid$intr.index
+  sapply(intr, function(x) {
+    pair.index <- which(inter.index$id_cp_interaction == x)
+
+    ligand.name <- inter.index[pair.index, 4]
+    if (ligand.name == "") { # if complex
+      ligand.name <- inter.index[pair.index, 2]
+    }
+    gsub("_HUMAN", "", ligand.name)
+  })
+}
+
+getReceptorNames <- function(object, intr){
+  inter.index <- object@intr.valid$intr.index
+  sapply(intr, function(x) {
+    pair.index <- which(inter.index$id_cp_interaction == x)
+    receptor.name <- inter.index[pair.index, 5]
+    if (receptor.name == "") {
+      receptor.name <- inter.index[pair.index, 3]
+    }
+    gsub("_HUMAN", "", receptor.name)
+  })
+}
+
 
 
 # x is the new column names of the sparse matrix
@@ -375,21 +385,21 @@ getIntrNames <- function(res.intr.list, inter.index){
 increase_columns_sparse <- function(x, y) {
 	# Get the column names of the sparse matrix
     colnames_y <- colnames(y)
-	
+
 	# Determine which columns are missing
 	missing_cols <- setdiff(x, colnames_y)
-	
+
 	# Add missing columns filled with 0s
 	if (length(missing_cols) > 0) {
 		n_missing_cols <- length(missing_cols)
 		n_rows <- nrow(y)
-		y_new <- cbind(y, sparseMatrix(i = integer(0), j = integer(0), x = double(0), 
-										dims = c(n_rows, n_missing_cols), 
+		y_new <- cbind(y, sparseMatrix(i = integer(0), j = integer(0), x = double(0),
+										dims = c(n_rows, n_missing_cols),
 										dimnames = list(NULL, missing_cols)))
 	} else {
 		y_new <- y
 	}
-	
+
 	# Reorder columns to match x
 	y_new[, x]
 }
@@ -401,10 +411,10 @@ increase_columns_sparse <- function(x, y) {
 increase_columns <- function(x, y) {
 	# Get the column names of the matrix
 	colnames_y <- colnames(y)
-	
+
 	# Determine which columns are missing
 	missing_cols <- setdiff(x, colnames_y)
-	
+
 	# Add missing columns filled with 0s
 	if (length(missing_cols) > 0) {
 		n_missing_cols <- length(missing_cols)
@@ -414,7 +424,7 @@ increase_columns <- function(x, y) {
 	} else {
 		y_new <- y
 	}
-	
+
 	# Reorder columns to match x
 	y_new[, x]
 }
@@ -422,10 +432,10 @@ increase_columns <- function(x, y) {
 increase_rows <- function(x, y) {
     # Get the row names of the matrix
     rownames_y <- rownames(y)
-    
+
     # Determine which rows are missing
     missing_rows <- setdiff(x, rownames_y)
-    
+
     # Add missing rows filled with 0s
     if (length(missing_rows) > 0) {
         n_missing_rows <- length(missing_rows)
@@ -435,7 +445,7 @@ increase_rows <- function(x, y) {
     } else {
         y_new <- y
     }
-    
+
     # Reorder rows to match x
     y_new[x, ]
 }
@@ -480,16 +490,16 @@ shuffleEdgeRandomNB <- function(mat) {
         end   <- mat@p[j+1]
         indx  <- start:end
         len <- length(indx)
-        
+
         # sample a new set of cells to be the new sender cells
         new.i <- sample(size, len)
         keep.idx <- which(mat@i[indx] %in% new.i)
-        
+
         # if no new sender cells are found, return NULL
         if (length(keep.idx) == 0){
             return(list(x = NULL, i = NULL, j = NULL))
         }
-        
+
         # if new sender cells are found, return the new @x, @i, @j
         keep.x <- mat@x[keep.idx]
         keep.i <- mat@i[keep.idx]
@@ -536,3 +546,52 @@ to_mean <- function(mat) {
 #     return(null.data)
 # }
 
+.checkSlotUse <- function(object, slot.use = NULL, velo = FALSE) {
+    if (is.null(slot.use)) {
+        slot.use <- object@lrscore[["default"]]
+    }
+    # Assuming there'll always be a "default"
+    avail <- names(object@lrscore)[-1]
+    if (isTRUE(velo)) avail <- intersect(avail, names(object@lrvelo))
+    if (!slot.use %in% avail) {
+        stop("Invalid `slot.use`. Available options: ",
+             paste(avail, collapse = ", "))
+    }
+    return(slot.use)
+}
+
+.checkSignifUse <- function(object, signif.use, slot.use) {
+    if (is.null(signif.use)) {
+        signif.use <- "result.hq.pear"
+    }
+
+    if (!signif.use %in% names(object@lrscore[[slot.use]]@res.list)) {
+        stop("Invalid `signif.use`. Available options: ",
+             paste(names(object@lrscore[[slot.use]]@res.list), collapse = ", "))
+    }
+    return(signif.use)
+}
+
+.checkIntrAvail <- function(object, intr, slot.use, signif.use) {
+  intrList <- showIntr(object, slot.use, signif.use)
+  if (!all(intr %in% intrList)) {
+    nf <- intr[!intr %in% intrList]
+    stop("Specified interaction not found, see available options with ",
+         "`showIntr(object)`. \nUnavailable ones: ",
+         paste(nf, collapse = ", "))
+  }
+  return(intr)
+}
+
+.checkArgLen <- function(arg, len) {
+    argname <- deparse(substitute(arg))
+    if (!is.null(arg)) {
+        if (!is.character(arg)) {
+          stop("`", argname, "` has to be character vector/scalar.")
+        }
+        if (length(arg) != len) {
+          stop("`", argname, "` has to be a vector of length ", len)
+        }
+    }
+    return(arg)
+}

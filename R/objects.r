@@ -75,12 +75,12 @@ setClassUnion(
 #' @slot nn.id nearest neighbor id
 #' @slot nn.dist nearest neighbor distance
 #' @slot log Log of each main steps
-#' 
+#'
 #' @name ImpData-class
 #' @rdname ImpData-class
 #' @aliases ImpData-class
 #' @exportClass ImpData
- 
+
 
 ImpData <- setClass(
 	Class = "ImpData",
@@ -103,14 +103,14 @@ ImpData <- setClass(
 
 
 #' The lrScores Class
-#' 
+#'
 #' The lrScores object is created from one ST dataset. User could choose two imputation methods to calculate
 #' the ligand-receptor scores. The class stores the ligand, receptor, and interaction database, the ligand-receptor
 #' scores, the ligand-receptor scores for permuted data, the ligand-receptor scores for permuted data, and the
 #' log of each main steps.
-#' 
+#'
 #' The key slots used in the lrScores object are described below.
-#' 
+#'
 #' @slot lig.slot ligand database
 #' @slot recep.slot receptor database
 #' @slot intr.slot interaction database
@@ -119,7 +119,7 @@ ImpData <- setClass(
 #' @slot score.null permuted ligand-receptor scores
 #' @slot res.list list of results
 #' @slot log Log of each main steps
-#' 
+#'
 #' @name lrScores-class
 #' @rdname lrScores-class
 #' @aliases lrScores-class
@@ -144,13 +144,13 @@ lrScores <- setClass(
 
 
 #' The lrvelo Class
-#' 
+#'
 #' The lrvelo object is created from one ST dataset. User could choose two imputation methods to calculate
 #' the ligand-receptor scores. The class stores the index of ligand, receptor, and interaction database, inferred
 #' lrvelo for each interaction, and the log of each main steps.
-#' 
+#'
 #' The key slots used in the lrVelo object are described below.
-#' 
+#'
 #' @slot lig.slot ligand database
 #' @slot recep.slot receptor database
 #' @slot intr.slot interaction database
@@ -161,7 +161,7 @@ lrScores <- setClass(
 #' @slot nn.id A factor of nearest neighbor id. Re-do findNN since the order of cells may change!
 #' @slot nn.dist A factor of nearest neighbor distance. Re-do findNN since the order of cells may change!
 #' @slot log Log of each main steps
-#' 
+#'
 #' @name lrVelo-class
 #' @rdname lrVelo-class
 #' @aliases lrVelo-class
@@ -211,10 +211,10 @@ setMethod(
 
 
 #' show method for ImpData
-#' 
+#'
 #' @param object CytoSignal object
 #' @param slot.use slot to use
-#' @export 
+#' @export
 
 showImp <- function(object, slot.use = NULL) {
 	 if (is.null(slot.use)){
@@ -237,11 +237,11 @@ showImp <- function(object, slot.use = NULL) {
 }
 
 #' show intr.data in ImpData
-#' 
+#'
 #' @param object CytoSignal object
 #' @param slot.use slot to use
 #' @export
-#' 
+#'
 showUnpt <- function(object, slot.use = NULL){
 	 if (is.null(slot.use)){
 		 slot.use <- object@imputation[["default"]]
@@ -264,10 +264,10 @@ showUnpt <- function(object, slot.use = NULL){
 
 
 #' show method for lrScores
-#' 
+#'
 #' @param object CytoSignal object
 #' @param slot.use slot to use
-#' 
+#'
 #' @export
 showScore <- function(object, slot.use = NULL){
 	 if (is.null(slot.use)){
@@ -292,10 +292,10 @@ showScore <- function(object, slot.use = NULL){
 
 
 #' show method for lrVelo
-#' 
+#'
 #' @param object CytoSignal object
 #' @param slot.use slot to use
-#' 
+#'
 #' @export
 showVelo <- function(object, slot.use = NULL) {
 	if (is.null(slot.use)){
@@ -318,11 +318,23 @@ showVelo <- function(object, slot.use = NULL) {
 	}
 }
 
+#' show method for CytoSignal
+#'
+#' @param object CytoSignal object
+#' @param slot.use slot to use
+#' @param signif.use Significance level to use for plotting
+#' @export
+showIntr <- function(object, slot.use = NULL, signif.use = NULL) {
+  slot.use <- .checkSlotUse(object, slot.use)
+  signif.use <- .checkSignifUse(object, signif.use, slot.use)
+  score.obj <- object@lrscore[[slot.use]]
+  return(names(score.obj@res.list[[signif.use]]))
+}
 
 #' show all current logs
-#' 
+#'
 #' @param object CytoSignal object
-#' 
+#'
 #' @export
 showLog <- function(object){
 	cat("Pre-processing Log: \n")
@@ -344,7 +356,7 @@ showLog <- function(object){
 }
 
 #' show method for cytosignal obj
-#' 
+#'
 setMethod(
   f = "show",
   signature = "ImpData",
@@ -364,7 +376,7 @@ setMethod(
 )
 
 #' Create a CytoSignal object
-#' 
+#'
 #' @param raw.data raw data matrix
 #' @param cells.loc cells location matrix
 #' @param clusters cluster information
@@ -372,11 +384,11 @@ setMethod(
 #' @param parameters parameters used
 #' @param log log of the processing
 #' @param version version of the package
-#' 
+#'
 #' @return a CytoSignal object
-#' 
+#'
 #' @export
-#' 
+#'
 createCytoSignal <- function(
 	raw.data,
 	cells.loc,
@@ -431,15 +443,15 @@ createCytoSignal <- function(
 }
 
 #' Add interaction database to CytoSignal object
-#' 
+#'
 #' @param object CytoSignal object
 #' @param gene_to_uniprot df, gene to uniprot symbols mapping
 #' @param intr.db.diff_dep intr.db for diffusable ligands + non-diffusable receptors
 #' @param intr.db.cont_dep intr.db for contact dependent ligands + receptors
 #' @param inter.index df, collection of intraction information
-#' 
+#'
 #' @return a CytoSignal object
-#' 
+#'
 #' @export
 addIntrDB <- function(
 	object,
@@ -461,13 +473,13 @@ addIntrDB <- function(
 
 
 #' Remove low quality cells and genes from raw counts
-#' 
+#'
 #' @param object CytoSignal object
 #' @param counts.thresh threshold for cell counts
 #' @param gene.thresh threshold for gene counts
-#' 
+#'
 #' @return a CytoSignal object
-#' 
+#'
 #' @export
 removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 	dge.raw.filter <- object@raw.counts
@@ -529,14 +541,14 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 
 
 #' Subset the imputed data (intr.data) by the specified intr index
-#' 
+#'
 #' @param object A Cytosignal object
 #' @param intr.index The intr index to use for subsetting
 #' @param slot.use The slot to use for subsetting
-#' 
+#'
 #' @return A Cytosignal object
 #' @export
-#' 
+#'
 changeUniprot <- function(
   object,
   ...
@@ -545,16 +557,16 @@ changeUniprot <- function(
 }
 
 #' Sub function for changeUniprot, input a sparse matrix
-#' 
+#'
 #' @param dge.raw A sparse matrix
 #' @param gene_to_uniprot A data frame with gene name and uniprot id
 #' @param verbose Whether to print out the progress
-#' 
+#'
 #' @return A sparse matrix
 #' @export
-#' 
+#'
 changeUniprot.matrix_like <- function(
-    dge.raw, 
+    dge.raw,
     gene_to_uniprot,
     # mode = "unpt",
     verbose = T
@@ -570,7 +582,7 @@ changeUniprot.matrix_like <- function(
 		dup.num = sum(unique.check > 1)
 		stop(paste0("Must remove duplicated Uniprot items: ", dup.num, " genes."))
 	}
-    
+
     uniprot.genes = rownames(dge.raw)[rownames(dge.raw) %in% gene_to_uniprot$gene_name] # 738/22683
 
     if (verbose){
@@ -580,7 +592,7 @@ changeUniprot.matrix_like <- function(
     uniprot.names = sapply(uniprot.genes, function(x){
         unique(gene_to_uniprot$uniprot[which(gene_to_uniprot$gene_name == x)])
     })
-    
+
     dge.raw = dge.raw[uniprot.genes, ]
 
     # rownames(dge.raw) = unname(lowwords(rownames(dge.raw)))
@@ -603,7 +615,7 @@ changeUniprot.matrix_like <- function(
 		uniprot.names = uniprot.names[-dup.index]
 		uniprot.genes = uniprot.genes[-dup.index]
     }
-    
+
 	names(uniprot.names) <- lowwords(uniprot.genes)
 
     return(list(
@@ -614,10 +626,10 @@ changeUniprot.matrix_like <- function(
 
 
 #' Sub function for changeUniprot, input a cytosignal object
-#' 
+#'
 #' @param object A Cytosignal object
 #' @param verbose Whether to print out the progress
-#' 
+#'
 #' @return A Cytosignal object
 #' @export
 changeUniprot.CytoSignal <- function(
@@ -630,7 +642,7 @@ changeUniprot.CytoSignal <- function(
 	# check duplicate items exists in database
 
 	unpt.list <- changeUniprot.matrix_like(dge.raw, gene_to_uniprot, verbose = verbose)
-	
+
 	object@counts <- unpt.list[[1]]
 	object@cells.loc <- object@cells.loc[colnames(unpt.list[[1]]), ]
 	object@intr.valid[["symbols"]][["intr"]] <- unpt.list[[2]]
@@ -641,11 +653,11 @@ changeUniprot.CytoSignal <- function(
 
 
 #' Remove imputed data and normalized imputed data from CytoSignal object to save disk space
-#' 
+#'
 #' @param object CytoSignal object
-#' 
+#'
 #' @return a CytoSignal object
-#' 
+#'
 #' @export
 purgeBeforeSave <- function(object, purge.raw = T, purge.null = F) {
 	# get slot names
@@ -665,14 +677,14 @@ purgeBeforeSave <- function(object, purge.raw = T, purge.null = F) {
 }
 
 #' Suggest cell intervels for scaling
-#' 
+#'
 #' This function is used to estimate the actual cell intervel in cells.loc after scaling
 #' returns the top 5 least intervels, users can choose to which to use.
-#' 
+#'
 #' @param object CytoSignal object
-#' 
+#'
 #' @return a vector of intervels
-#' 
+#'
 #' @export
 suggestInterval <- function(object) {
 	nn = RANN::nn2(object@cells.loc, object@cells.loc, k = 6, searchtype = "priority")
@@ -689,13 +701,13 @@ suggestInterval <- function(object) {
 
 
 #' Add velocity data to CytoSignal object
-#' 
+#'
 #' @param object CytoSignal object
 #' @param velo.s matrix of spliced velo
 #' @param velo.u matrix of unspliced velo
-#' 
-#' @export 
-#' 
+#'
+#' @export
+#'
 addVelo <- function(
 	object,
 	velo.s,
@@ -742,5 +754,26 @@ addVelo <- function(
 	object@parameters[["velo.lib.size"]] <- Matrix::colSums(velo.s.intr) + Matrix::colSums(velo.u.intr)
 
 	return(object)
+}
+
+
+
+setOldClass("plist")
+#' @export
+setMethod("show", "plist", function(object) {
+    graphics::plot.new()
+    graphics::par(mar = c(2, 2, 4, 2), oma = c(0, 0, 0, 0),
+                  mgp = c(0, 0, 0), xpd = TRUE)
+    plot(object)
+  }
+)
+
+#' @method print plist
+#' @export
+print.plist <- function(x, ...) {
+    graphics::plot.new()
+    graphics::par(mar = c(2, 2, 4, 2), oma = c(0, 0, 0, 0),
+                  mgp = c(0, 0, 0), xpd = TRUE)
+    plot(x, ...)
 }
 
