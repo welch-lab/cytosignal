@@ -908,10 +908,8 @@ runPears.std <- function(
 #' correlation between the imputed LR-score and p-value.
 #' 
 #' @param object A Cytosignal object
-#' @param 
 #'
 #' @return A Cytosignal object
-#' @export
 #' 
 inferSpatialCorr <- function(
 	object,
@@ -990,7 +988,6 @@ inferSpatialCorr <- function(
 #' Min-max the LRscores, substract the significant ones, sum and average.
 #' 
 #' @param object A Cytosignal object
-#' @param 
 #'
 #' @return A Cytosignal object
 #' @export
@@ -1001,6 +998,7 @@ inferCorrScore <- function(
 	slot.use = NULL,
 	...
 ) {
+	correctBy <- match.arg(correctBy)
 	if (is.null(slot.use)){
 		slot.use = object@lrscore[["default"]]
 	}
@@ -1019,6 +1017,10 @@ inferCorrScore <- function(
 	pval.mtx = getPvalues(lrscore.mtx, null.lrscore.mtx)
 
 	if (correctBy == "cell"){
+		nb.fac = list(
+			id = object@imputation[["DT"]]@nn.id,
+			dist = object@imputation[["DT"]]@nn.dist
+		)
 		pval.spatial = graphSpatialFDR(nb.fac, pval.mtx)
     	dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
 	} else if (correctBy == "intr"){
@@ -1029,28 +1031,27 @@ inferCorrScore <- function(
 		dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
 	}
 
-	pval.spatial[pval.spatial > 0.05] = 0
-	pval.spatial[pval.spatial > 0] = 1
+	pval.sig <- pval.spatial
+	pval.sig[pval.sig >= 0.05] <- 1
+	pval.sig[pval.sig < 0.05] <- 0
 
 	# norm lrscore
-	lrscore.mtx.filter = lrscore.mtx
-	lrscore.mtx.filter@x <- 
-	lrscore.mtx.filter = lrscore.mtx * pval.spatial
+	l.m.norm <- lrscore.mtx
+	l.m.norm@x <- l.m.norm@x / rep.int(Matrix::colSums(l.m.norm), diff(l.m.norm@p))
+	l.m.norm <- l.m.norm * pval.sig
 
-	# compute pearson correlation
-	pearson.cor = as.double(pearson_col_cpp(pval.spatial.imp, lrscore.mtx.imp))
-	names(pearson.cor) = colnames(lrscore.mtx)
-	pearson.cor = pearson.cor[!is.na(pearson.cor)]
-	pearson.cor = pearson.cor^2
-	pearson.cor = pearson.cor[order(pearson.cor, decreasing = T)]
+	# sum and average
+	l.m.norm@x <- l.m.norm@x / nrow(l.m.norm)
+	corr.s <- Matrix::colSums(l.m.norm)
 
 	res.list.corr = object@lrscore[[slot.use]]@res.list[["result.hq"]]
-	intr.use = intersect(names(pearson.cor), names(res.list.corr))
-	pearson.corr.use = pearson.cor[intr.use]
-	pearson.corr.use = pearson.corr.use[order(pearson.corr.use, decreasing = T)]
-	res.list.corr = res.list.corr[names(pearson.corr.use)]
+	intr.use = intersect(names(corr.s), names(res.list.corr))
+	corr.s.hq = corr.s[intr.use]
+	corr.s.hq = corr.s.hq[order(corr.s.hq)]
+	res.list.corr = res.list.corr[names(corr.s.hq)]
 
-	object@lrscore[[slot.use]]@res.list[["result.hq.corr"]] = res.list.corr
+	object@lrscore[[slot.use]]@res.list[["result.hq.corr"]] <- res.list.corr
+	object@lrscore[[slot.use]]@res.list[["hq.corr.score"]] <- corr.s.hq
 
 	return(object)
 }

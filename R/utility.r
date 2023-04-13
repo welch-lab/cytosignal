@@ -380,6 +380,37 @@ getReceptorNames <- function(object, intr){
 }
 
 
+getIntrRanks <- function(object, intr.list, slot.use=NULL, signif.use=NULL){
+    slot.use <- .checkSlotUse(object, slot.use)
+    signif.use <- .checkSignifUse(object, signif.use, slot.use)
+    intr.list <- .checkIntrAvail(object, intr.list, slot.use, signif.use)
+
+    rank.list <- lapply(intr.list, function(intr) {
+        match(intr, names(object@lrscore[[slot.use]]@res.list[[signif.use]]))
+    })
+    names(rank.list) <- intr.list
+
+    return(rank.list)
+}
+
+getCPIs <- function(object, intr.idx, slot.use=NULL, signif.use=NULL){
+    if (!is.numeric(intr.idx)) {
+        stop("intr.idx must be numeric")
+    }
+
+    slot.use <- .checkSlotUse(object, slot.use)
+    signif.use <- .checkSignifUse(object, signif.use, slot.use)
+    intr.list <- names(object@lrscore[[slot.use]]@res.list[[signif.use]])
+
+    if (max(intr.idx) > length(intr.list)) {
+        stop("intr.idx contains index out of range")
+    }
+
+    intr.list <- intr.list[intr.idx]
+
+    return(intr.list)
+}
+
 
 # x is the new column names of the sparse matrix
 # y is the sparse matrix

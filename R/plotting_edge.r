@@ -36,14 +36,14 @@
 #' saved on disk.
 #' @export
 plotEdge <- function(
-        object, intr, type = c("sender", "receiver"), slot.use = NULL,
+        object, intr, type = c("receiver", "sender"), slot.use = NULL,
         signif.use = NULL, colors.list = NULL,
         return.plot = TRUE, plot_dir = "csEdgePlot/", filename = NULL,
         plot.fmt = c("png", "pdf", "svg"),
         title = NULL, edge.size = 500, use.shape = 16,
         line.width = 0.01, use.phi = 30, use.theta = -17, z.scaler = 0.03,
         z.pt.interval = 1, pt.size = 0.1, pt.stroke = 0.2, width = 5, height = 5,
-        set.res = 300
+        set.res = 300, verbose = TRUE
 ){
     type <- match.arg(type)
     plot.fmt <- match.arg(plot.fmt)
@@ -76,9 +76,11 @@ plotEdge <- function(
         } else {
             titleIntr <- title[i]
         }
+        if (isTRUE(verbose)) {
+            message("Now plotting edges for interaction: ",
+                    intr.names[intrx], " ...")
+        }
 
-        message("Now plotting edges for interaction: ",
-                intr.names[intrx], " ...")
         p1 <- .plotEdgeMatrix(
             cells.loc = cells.loc, type = type, edge.size = edge.size,
             nn.graph.sig = nn.graph.sig, receiver.idx = receiver.idx,
@@ -111,8 +113,11 @@ plotEdge <- function(
                           mgp = c(0, 0, 0), xpd = TRUE)
             plot(p1)
             dev.off()
-            message("Interaction edge plot saved at: ",
-                    normalizePath(filenameIntr))
+            if (isTRUE(verbose)) {
+                message("Interaction edge plot saved at: ",
+                        normalizePath(filenameIntr))
+            }
+
         }
     }
     if (isTRUE(return.plot)) {
@@ -140,80 +145,112 @@ plotEdge <- function(
     x.scale <- max(pt.df$x) - min(pt.df$x)
     y.scale <- max(pt.df$y) - min(pt.df$y)
 
-    # find sender
-    # senders <- as.numeric(unique(names(nn.id.sig)))
-    senders <- unique(nn.graph.sig@i) + 1
-    sender.idx <- nn.graph.sig@i + 1
-
-    # cex: control size of points
-    pt.df.send <- pt.df[senders, ]
-    pt.df.n_send <- pt.df[-senders, ]
-
-    pt.df.rec <- pt.df[receiver.idx, ]
-    pt.df.n_rec <- pt.df[-receiver.idx, ]
-
     xlim <- c(min(pt.df$x) - x.scale*0.025, max(pt.df$x) + x.scale*0.025)
     ylim <- c(min(pt.df$y) - y.scale*0.025, max(pt.df$y) + y.scale*0.025)
 
-    recep.x <- rep(cells.loc[receiver.idx, "x"], times = diff(nn.graph.sig@p))
-    recep.y <- rep(cells.loc[receiver.idx, "y"], times = diff(nn.graph.sig@p))
-    # recep.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
-    # recep.z <- rep(0, times = length(sender.idx))
+    # find sender
+    senders <- unique(nn.graph.sig@i) + 1
+    sender.idx <- nn.graph.sig@i + 1
 
-    sender.x <- cells.loc[sender.idx, "x"]
-    sender.y <- cells.loc[sender.idx, "y"]
-    # sender.z <- rep(0, times = length(sender.idx))
-    # sender.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
+    # pt.df.send <- pt.df[senders, ]
+    # pt.df.n_send <- pt.df[-senders, ]
 
-    if (type == "sender") {
-        recep.z <- rep(0, times = length(sender.idx))
-        sender.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
-    } else {
-        recep.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
-        sender.z <- rep(0, times = length(sender.idx))
+    # sender.x <- cells.loc[sender.idx, "x"]
+    # sender.y <- cells.loc[sender.idx, "y"]
+
+    # pt.df.rec <- pt.df[receiver.idx, ]
+    # pt.df.n_rec <- pt.df[-receiver.idx, ]
+
+    # recep.x <- rep(cells.loc[receiver.idx, "x"], times = diff(nn.graph.sig@p))
+    # recep.y <- rep(cells.loc[receiver.idx, "y"], times = diff(nn.graph.sig@p))
+
+    if (type == "sender") { # sender cells on the top panel
+
+        up.df <- pt.df[senders, ]
+        up.df$z <- up.df$z + z.pt.interval
+        up.df.transp <- pt.df[-senders, ]
+        up.df.transp$z <- up.df.transp$z + z.pt.interval
+
+        down.df <- pt.df[receiver.idx, ]
+        down.df.transp <- pt.df[-receiver.idx, ]
+
+        seg.up.x <- cells.loc[sender.idx, "x"]
+        seg.up.y <- cells.loc[sender.idx, "y"]
+        seg.up.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
+
+        seg.down.x <- rep(cells.loc[receiver.idx, "x"], times = diff(nn.graph.sig@p))
+        seg.down.y <- rep(cells.loc[receiver.idx, "y"], times = diff(nn.graph.sig@p))
+        seg.down.z <- rep(0, times = length(sender.idx))
+
+        # recep.z <- rep(0, times = length(sender.idx))
+        # sender.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
+        zlab.use <- "Sender  ->  Receiver"
+
+    } else { # receiver cells on the top panel
+
+        up.df <- pt.df[receiver.idx, ]
+        up.df$z <- up.df$z + z.pt.interval
+        up.df.transp <- pt.df[-receiver.idx, ]
+        up.df.transp$z <- up.df.transp$z + z.pt.interval
+        
+        down.df <- pt.df[senders, ]
+        down.df.transp <- pt.df[-senders, ]
+
+        seg.up.x <- rep(cells.loc[receiver.idx, "x"], times = diff(nn.graph.sig@p))
+        seg.up.y <- rep(cells.loc[receiver.idx, "y"], times = diff(nn.graph.sig@p))
+        seg.up.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
+
+        seg.down.x <- cells.loc[sender.idx, "x"]
+        seg.down.y <- cells.loc[sender.idx, "y"]
+        seg.down.z <- rep(0, times = length(sender.idx))
+
+        # recep.z <- rep(z.pt.interval, times = length(sender.idx)) - 0.01
+        # sender.z <- rep(0, times = length(sender.idx))
+        zlab.use <- "Receiver  <-  Sender"
     }
 
-    sample.idx <- sample(1:length(sender.x),
-                        size = min(edge.size, length(sender.x)))
+    sample.idx <- sample(1:length(sender.idx),
+                        size = min(edge.size, length(sender.idx)))
 
     grDevices::pdf(nullfile())
 
-    # plot sender cells
-    plot3D::points3D(pt.df.rec$x, pt.df.rec$y, pt.df.rec$z,
+    # plot down panel, involved cells
+    plot3D::points3D(
+        down.df$x, down.df$y, down.df$z,
         xlim = xlim, ylim = ylim, zlim = c(-0.01, z.pt.interval + 0.1),
         expand = 0.7, theta = use.theta, phi = use.phi, d = 5,
-        colvar = NULL, col = pt.df.rec$col, alpha = 1,
+        colvar = NULL, col = down.df$col, alpha = 1,
         colkey = FALSE, pch = use.shape, cex = pt.size,
-        main = title, zlab = "Inferred CCC",
+        main = title, zlab = zlab.use,
         xlab = "", ylab = "", plot = FALSE
     )
 
-    # plot non-sender cells
-    plot3D::points3D(pt.df.n_rec$x, pt.df.n_rec$y, pt.df.n_rec$z,
-        colvar = NULL, col = pt.df.n_rec$col, alpha = 0.2,
+    # plot down panel, non-involved cells
+    plot3D::points3D(down.df.transp$x, down.df.transp$y, down.df.transp$z,
+        colvar = NULL, col = down.df.transp$col, alpha = 0.2,
         colkey = FALSE, pch = use.shape, cex = pt.size,
         plot = FALSE, add = TRUE
     )
 
     plot3D::segments3D(
-        x0 = sender.x[sample.idx], y0 = sender.y[sample.idx],
-        z0 = sender.z[sample.idx],
-        x1 = recep.x[sample.idx], y1 = recep.y[sample.idx],
-        z1 = recep.z[sample.idx],
+        x0 = seg.down.x[sample.idx], y0 = seg.down.y[sample.idx],
+        z0 = seg.down.z[sample.idx],
+        x1 = seg.up.x[sample.idx], y1 = seg.up.y[sample.idx],
+        z1 = seg.up.z[sample.idx],
         col = "grey", lwd = 0.1, lty = 1,
         plot = FALSE, add = TRUE
     )
 
     # plot receiver cells
-    plot3D::points3D(pt.df.send$x, pt.df.send$y, pt.df.send$z + z.pt.interval,
-                     colvar = NULL, col = pt.df.send$col, alpha = 1,
+    plot3D::points3D(up.df$x, up.df$y, up.df$z,
+                     colvar = NULL, col = up.df$col, alpha = 1,
                      colkey = FALSE, pch = use.shape, cex = pt.size,
                      plot = FALSE, add = TRUE)
 
     # plot non-receiver cells
-    plot3D::points3D(x = pt.df.n_send$x, y = pt.df.n_send$y,
-                     z = pt.df.n_send$z + z.pt.interval,
-                     colvar = NULL, col = pt.df.n_send$col, alpha = 0.2,
+    plot3D::points3D(x = up.df.transp$x, y = up.df.transp$y,
+                     z = up.df.transp$z,
+                     colvar = NULL, col = up.df.transp$col, alpha = 0.2,
                      colkey = FALSE, pch = use.shape, cex = pt.size,
                      plot = FALSE, add = TRUE)
     #pr <- grDevices::recordPlot()

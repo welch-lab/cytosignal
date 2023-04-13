@@ -51,7 +51,8 @@ plotVelo <- function(
     use.theta = -17,
     width = 6,
     height = 6,
-    set.res = 300
+    set.res = 300,
+    verbose = TRUE
 ) {
   plot.fmt <- match.arg(plot.fmt)
   slot.use <- .checkSlotUse(object, slot.use, velo = TRUE)
@@ -76,8 +77,10 @@ plotVelo <- function(
     } else {
       titleIntr <- title[i]
     }
-    message("Now plotting velocity for interaction: ",
-            intr.names[intrx], " ...")
+    if (isTRUE(verbose)) {
+      message("Now plotting velocity for interaction: ",
+              intr.names[intrx], " ...")
+    }
     p1 <- .plotVeloMatrix(
       cells.loc = cells.loc, intr = intrx, velo = velo, col.fac = col.fac,
       use_xbins = use_xbins, use_ybins = use_ybins, title = titleIntr,
@@ -108,8 +111,10 @@ plotVelo <- function(
                     mgp = c(0, 0, 0), xpd = TRUE)
       plot(p1)
       dev.off()
-      message("Interaction velocity plot saved at: ",
-              normalizePath(filenameIntr))
+      if (isTRUE(verbose)) {
+        message("Interaction velocity plot saved at: ",
+                normalizePath(filenameIntr))
+      }
     }
   }
   if (isTRUE(return.plot)) {

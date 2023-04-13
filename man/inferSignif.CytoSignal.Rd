@@ -6,6 +6,7 @@
 \usage{
 \method{inferSignif}{CytoSignal}(
   object,
+  correctBy = c("cell", "intr"),
   p.value = 0.05,
   reads.thresh = 100,
   sig.thresh = 100,

@@ -7,7 +7,7 @@
 plotEdge(
   object,
   intr,
-  type = c("sender", "receiver"),
+  type = c("receiver", "sender"),
   slot.use = NULL,
   signif.use = NULL,
   colors.list = NULL,
@@ -27,7 +27,8 @@ plotEdge(
   pt.stroke = 0.2,
   width = 5,
   height = 5,
-  set.res = 300
+  set.res = 300,
+  verbose = TRUE
 )
 }
 \arguments{

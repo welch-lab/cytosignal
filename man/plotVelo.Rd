@@ -28,7 +28,8 @@ plotVelo(
   use.theta = -17,
   width = 6,
   height = 6,
-  set.res = 300
+  set.res = 300,
+  verbose = TRUE
 )
 }
 \arguments{

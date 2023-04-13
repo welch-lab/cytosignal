@@ -136,40 +136,40 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
         null.sub.df$ligands_null = ligands.null
         null.sub.df$receptors_null = receps.null
 
-        p.lig = ggplot(sub.df, aes(x, y, color = ligands))+
-            geom_point(size = pt.size, stroke = pt.stroke)+
-            scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
-            theme_cowplot(12)+
+        p.lig = ggplot2::ggplot(sub.df, ggplot2::aes(x, y, color = ligands))+
+            ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+            ggplot2::scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
+            cowplot::theme_cowplot(12)+
             labs(color = paste0("Ligand \n", ligand.name), x = NULL, y = NULL)
 
-        p.lig.ori = ggplot(sub.df, aes(x, y, color = ligands_ori))+
-            geom_point(size = pt.size, stroke = pt.stroke)+
-            scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
-            theme_cowplot(12)+
+        p.lig.ori = ggplot2::ggplot(sub.df, ggplot2::aes(x, y, color = ligands_ori))+
+            ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+            ggplot2::scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
+            cowplot::theme_cowplot(12)+
             labs(color = paste0("Ligand-ori \n", ligand.name), x = NULL, y = NULL)
 
-        p.lig.null = ggplot(null.sub.df, aes(x, y, color = ligands_null))+
-            geom_point(size = pt.size, stroke = pt.stroke)+
-            scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
-            theme_cowplot(12)+
+        p.lig.null = ggplot2::ggplot(null.sub.df, ggplot2::aes(x, y, color = ligands_null))+
+            ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+            ggplot2::scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
+            cowplot::theme_cowplot(12)+
             labs(color = paste0("Ligand-null \n", ligand.name), x = NULL, y = NULL)
 
-        p.recep = ggplot(sub.df, aes(x, y, color = receptors))+
-            geom_point(size = pt.size, stroke = pt.stroke)+
-            scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
-            theme_cowplot(12)+
+        p.recep = ggplot2::ggplot(sub.df, ggplot2::aes(x, y, color = receptors))+
+            ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+            ggplot2::scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
+            cowplot::theme_cowplot(12)+
             labs(color = paste0("Receptor \n", receptor.name), x = NULL, y = NULL)
 
-        p.recep.ori = ggplot(sub.df, aes(x, y, color = receptors_ori))+
-            geom_point(size = pt.size, stroke = pt.stroke)+
-            scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
-            theme_cowplot(12)+
+        p.recep.ori = ggplot2::ggplot(sub.df, ggplot2::aes(x, y, color = receptors_ori))+
+            ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+            ggplot2::scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
+            cowplot::theme_cowplot(12)+
             labs(color = paste0("Receptor-ori \n", receptor.name), x = NULL, y = NULL)
 
-        p.recep.null = ggplot(null.sub.df, aes(x, y, color = receptors_null))+
-            geom_point(size = pt.size, stroke = pt.stroke)+
-            scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
-            theme_cowplot(12)+
+        p.recep.null = ggplot2::ggplot(null.sub.df, ggplot2::aes(x, y, color = receptors_null))+
+            ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+            ggplot2::scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
+            cowplot::theme_cowplot(12)+
             labs(color = paste0("Receptor-null \n", receptor.name), x = NULL, y = NULL)
 
         p.list = list(p.lig, p.lig.ori, p.lig.null, p.recep, p.recep.ori, p.recep.null)
@@ -190,18 +190,18 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
 
         }
 
-        p.score = ggplot(sub.df, aes(x, y, color = scores))+
-            geom_point(size = pt.size, stroke = pt.stroke)+
-            scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
-            theme_cowplot(12)+
+        p.score = ggplot2::ggplot(sub.df, ggplot2::aes(x, y, color = scores))+
+            ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+            ggplot2::scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
+            cowplot::theme_cowplot(12)+
             labs(x = NULL, y = NULL)
 
         p.list[["score"]] = p.score
 
-        p.score.null = ggplot(null.sub.df, aes(x, y, color = null_scores))+
-            geom_point(size = pt.size, stroke = pt.stroke)+
-            scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
-            theme_cowplot(12)+
+        p.score.null = ggplot2::ggplot(null.sub.df, ggplot2::aes(x, y, color = null_scores))+
+            ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+            ggplot2::scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
+            cowplot::theme_cowplot(12)+
             labs(x = NULL, y = NULL)
 
         p.list[["score.null"]] = p.score.null
@@ -212,11 +212,11 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
         # sub.df$group[res.list[[i]]] = "significant"
         sub.df[res.list[[i]], "group"] = "significant"
 
-        p.sig = ggplot(sub.df, aes(x, y, color = group))+
-            geom_point(size = pt.size, stroke = pt.stroke)+
-            # geom_segment(aes(xend = xend, yend = yend), data = edges.df, color = "red", size = 0.2)+
+        p.sig = ggplot2::ggplot(sub.df, ggplot2::aes(x, y, color = group))+
+            ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+            # geom_segment(ggplot2::aes(xend = xend, yend = yend), data = edges.df, color = "red", size = 0.2)+
             scale_colour_manual(values = c("beads" = "grey", "significant" = "red"))+
-            theme_cowplot(12)+
+            cowplot::theme_cowplot(12)+
             labs(x = NULL, y = NULL)
 
         p.list[["sig"]] = p.sig
@@ -227,14 +227,14 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
 
             sig.sub.df = sub.df[sub.df$group == "significant", ]
 
-            p.clust = ggplot(sub.df, aes(x, y, color = clusters))+
-                geom_point(size = pt.size, stroke = pt.stroke)+
+            p.clust = ggplot2::ggplot(sub.df, ggplot2::aes(x, y, color = clusters))+
+                ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
                 # scale_colour_viridis_d(direction = -1)+
                 # ggsci::scale_color_nejm()+
                 # ggsci::scale_color_igv(palette = "default")+
                 scale_colour_discrete(type = colors.list, breaks = levels.use) +
-                geom_point(data = sig.sub.df, aes(x, y), color = "red", size = pt.size*3, alpha = 0.15)+
-                theme_cowplot(12)+
+                ggplot2::geom_point(data = sig.sub.df, ggplot2::aes(x, y), color = "red", size = pt.size*3, alpha = 0.15)+
+                cowplot::theme_cowplot(12)+
                 guides(color = guide_legend(override.aes = list(size = 4)))+
                 labs(x = NULL, y = NULL)
 
@@ -244,10 +244,10 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
         if (plot.velo){
             sub.df$velo = velo.mtx[, res.intr.list[i]]
 
-            p.velo = ggplot(sub.df, aes(x, y, color = velo))+
-                geom_point(size = pt.size, stroke = pt.stroke)+
-                scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
-                theme_cowplot(12)+
+            p.velo = ggplot2::ggplot(sub.df, ggplot2::aes(x, y, color = velo))+
+                ggplot2::geom_point(size = pt.size, stroke = pt.stroke)+
+                ggplot2::scale_color_viridis_c(option = "plasma", direction = -1, na.value = '#F5F5F5')+
+                cowplot::theme_cowplot(12)+
                 labs(x = NULL, y = NULL)
 
             p.list[["velo"]] = p.velo
@@ -414,6 +414,7 @@ plotIntrValue <- function(
 plotSignif2 <- function(
         object,
         intr,
+        intr.rank,
         edge = FALSE,
         velo = FALSE,
         slot.use = NULL,
@@ -425,10 +426,24 @@ plotSignif2 <- function(
         plot_dir = "csSignifPlot/",
         plot.fmt = c("png", "pdf", "svg"),
         resolution = 100,
+        verbose = FALSE,
         ...) {
+    if ( (m.intr <- missing(intr)) + (m.intr.rank <- missing(intr.rank)) != 1) {
+        stop("Either intr or intr.rank should be provided, but not both.")
+    }
+    if (m.intr) {
+        intr <- getCPIs(object, intr.rank, slot.use = slot.use,
+                                 signif.use = signif.use)
+        intrRanks <- intr.rank
+        names(intrRanks) <- intr                               
+    } else {
+        intrRanks <- getIntrRanks(object, intr, slot.use = slot.use,
+                            signif.use = signif.use)
+    }
     plot.fmt <- match.arg(plot.fmt)
     col.fac <- .checkColorList(object, colors.list)
     intrNames <- getIntrNames(object, intr)
+
 
     ggs <- plotIntrValue(object, intr = intr, slot.use = NULL,
                          signif.use = NULL, pt.size = pt.size,
@@ -436,19 +451,21 @@ plotSignif2 <- function(
     edgePaths <- NULL
     veloPaths <- NULL
     if (isTRUE(edge)) {
-        plotEdge(object, intr, slot.use = slot.use, plot_dir = plot_dir,
+        edgePaths <- file.path(plot_dir, "Edge_plots")
+        plotEdge(object, intr, slot.use = slot.use, plot_dir = edgePaths,
                  signif.use = signif.use, return.plot = FALSE,
                  colors.list = levels(col.fac), width = 6, height = 6,
-                 pt.size = pt.size, pt.stroke = pt.stroke)
-        edgePaths <- file.path(plot_dir, paste0("Edge-", intrNames, ".png"))
+                 pt.size = pt.size, pt.stroke = pt.stroke, verbose = FALSE)
+        edgePaths <- file.path(edgePaths, paste0("Edge-", intrNames, ".png"))
         names(edgePaths) <- intr
     }
     if (isTRUE(velo)) {
-        plotVelo(object, intr, slot.use = slot.use, plot_dir = plot_dir,
+        veloPaths <- file.path(plot_dir, "Velo_plots")
+        plotVelo(object, intr, slot.use = slot.use, plot_dir = veloPaths,
                  signif.use = signif.use, return.plot = FALSE,
                  colors.list = levels(col.fac), width = 6, height = 6,
-                 pt.size = pt.size, pt.stroke = pt.stroke)
-        veloPaths <- file.path(plot_dir, paste0("Velo-", intrNames, ".png"))
+                 pt.size = pt.size, pt.stroke = pt.stroke, verbose = FALSE)
+        veloPaths <- file.path(veloPaths, paste0("Velo-", intrNames, ".png"))
         names(veloPaths) <- intr
     }
     plotList <- list()
@@ -458,8 +475,10 @@ plotSignif2 <- function(
                           pt.stroke = pt.stroke)
     clustLegend <- cowplot::get_legend(pclust)
     if (!dir.exists(plot_dir)) dir.create(plot_dir)
+    cat("Now plotting INTRs: ")
     for (intrx in intr) {
         intrName <- getIntrNames(object, intrx)
+        cat(paste0(intrName, ", "))
 
         if (isFALSE(return.plot)) {
 
@@ -528,7 +547,7 @@ plotSignif2 <- function(
         if (isTRUE(return.plot)) {
             plotList[[intrName]] <- combine
         } else {
-            filenameIntr <- paste0(plot_dir, "/", intrName)
+            filenameIntr <- paste0(plot_dir, "/Rank_", intrRanks[intrx], "_", intrName)
             if (isFALSE(edge) && isFALSE(velo)) {
                 width <- 12
                 height <- 8
@@ -554,9 +573,12 @@ plotSignif2 <- function(
             }
             print(combine)
             dev.off()
-            message("Combined figure saved at: ", normalizePath(filenameIntr))
+            if (isTRUE(verbose)) {
+                message("Combined figure saved at: ", normalizePath(filenameIntr))
+            }
         }
     }
+    cat("Finished!\n")
     if (isFALSE(return.plot)) return(invisible())
     else return(plotList)
 }
