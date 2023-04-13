@@ -425,9 +425,10 @@ plotSignif2 <- function(
         return.plot = FALSE,
         plot_dir = "csSignifPlot/",
         plot.fmt = c("png", "pdf", "svg"),
-        resolution = 100,
+        resolution = 200,
         verbose = FALSE,
-        ...) {
+        ...
+) {
     if ( (m.intr <- missing(intr)) + (m.intr.rank <- missing(intr.rank)) != 1) {
         stop("Either intr or intr.rank should be provided, but not both.")
     }
@@ -440,31 +441,77 @@ plotSignif2 <- function(
         intrRanks <- getIntrRanks(object, intr, slot.use = slot.use,
                             signif.use = signif.use)
     }
-    plot.fmt <- match.arg(plot.fmt)
+
+    # check before plotting to avoid wasting time
+    if (isTRUE(velo)) {
+        slot.use <- .checkSlotUse(object, slot.use, velo = TRUE)
+    } else {
+        slot.use <- .checkSlotUse(object, slot.use)
+    }
+    signif.use <- .checkSignifUse(object, signif.use, slot.use)
+    intr <- .checkIntrAvail(object, intr, slot.use, signif.use)
     col.fac <- .checkColorList(object, colors.list)
     intrNames <- getIntrNames(object, intr)
+    plot.fmt <- match.arg(plot.fmt)
 
-
-    ggs <- plotIntrValue(object, intr = intr, slot.use = NULL,
-                         signif.use = NULL, pt.size = pt.size,
+    ggs <- plotIntrValue(object, intr = intr, slot.use = slot.use,
+                         signif.use = signif.use, pt.size = pt.size,
                          pt.stroke = pt.stroke)
     edgePaths <- NULL
     veloPaths <- NULL
     if (isTRUE(edge)) {
+        # check possible existence of edge plots
         edgePaths <- file.path(plot_dir, "Edge_plots")
-        plotEdge(object, intr, slot.use = slot.use, plot_dir = edgePaths,
-                 signif.use = signif.use, return.plot = FALSE,
-                 colors.list = levels(col.fac), width = 6, height = 6,
-                 pt.size = pt.size, pt.stroke = pt.stroke, verbose = FALSE)
+
+        if (dir.exists(edgePaths)) {
+            testFiles <- list.files(edgePaths, pattern = "Edge-.*.png")
+            trueFiles <- paste0("Edge-", intrNames, ".png")
+            if (all(trueFiles %in% testFiles)) {
+                message("Edge plots already exist. Skip plotting edges.")
+                do.plotEdge <- FALSE
+            } else {
+                message("Edge plots exist but not for all interactions. ",
+                        "Replotting edges.")
+                do.plotEdge <- TRUE
+            }
+        } else {
+            do.plotEdge <- TRUE
+        }
+        if (isTRUE(do.plotEdge)) {
+            plotEdge(object, intr, slot.use = slot.use, plot_dir = edgePaths,
+            signif.use = signif.use, return.plot = FALSE,
+            colors.list = levels(col.fac), width = 6, height = 6,
+            pt.size = pt.size, pt.stroke = pt.stroke, verbose = FALSE)
+        }
+
         edgePaths <- file.path(edgePaths, paste0("Edge-", intrNames, ".png"))
         names(edgePaths) <- intr
     }
     if (isTRUE(velo)) {
         veloPaths <- file.path(plot_dir, "Velo_plots")
-        plotVelo(object, intr, slot.use = slot.use, plot_dir = veloPaths,
-                 signif.use = signif.use, return.plot = FALSE,
-                 colors.list = levels(col.fac), width = 6, height = 6,
-                 pt.size = pt.size, pt.stroke = pt.stroke, verbose = FALSE)
+
+        if (dir.exists(veloPaths)) {
+            testFiles <- list.files(veloPaths, pattern = "Velo-.*.png")
+            trueFiles <- paste0("Velo-", intrNames, ".png")
+            if (all(trueFiles %in% testFiles)) {
+                message("Velocity plots already exist. Skip plotting velocities.")
+                do.plotVelo <- FALSE
+            } else {
+                message("Velocity plots exist but not for all interactions. ",
+                        "Replotting velocities.")
+                do.plotVelo <- TRUE
+            }
+        } else {
+            do.plotVelo <- TRUE
+        }
+
+        if (isTRUE(do.plotVelo)) {
+            plotVelo(object, intr, slot.use = slot.use, plot_dir = veloPaths,
+                     signif.use = signif.use, return.plot = FALSE,
+                     colors.list = levels(col.fac), width = 6, height = 6,
+                     pt.size = pt.size, pt.stroke = pt.stroke, verbose = FALSE)
+        }
+
         veloPaths <- file.path(veloPaths, paste0("Velo-", intrNames, ".png"))
         names(veloPaths) <- intr
     }
@@ -506,6 +553,7 @@ plotSignif2 <- function(
                                           clustLegend,
                                           rel_widths = c(4, 1))
         } else {
+            # add another sanity check 
             main <- cowplot::plot_grid(
                 grid::textGrob(getLigandNames(object, intrx),
                                gp = grid::gpar(fontface = "bold")),
