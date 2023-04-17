@@ -426,8 +426,7 @@ plotSignif2 <- function(
         plot_dir = "csSignifPlot/",
         plot.fmt = c("png", "pdf", "svg"),
         resolution = 200,
-        verbose = FALSE,
-        ...
+        verbose = FALSE
 ) {
     if ( (m.intr <- missing(intr)) + (m.intr.rank <- missing(intr.rank)) != 1) {
         stop("Either intr or intr.rank should be provided, but not both.")
