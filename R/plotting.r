@@ -435,7 +435,7 @@ plotSignif2 <- function(
         intr <- getCPIs(object, intr.rank, slot.use = slot.use,
                                  signif.use = signif.use)
         intrRanks <- intr.rank
-        names(intrRanks) <- intr                               
+        names(intrRanks) <- intr
     } else {
         intrRanks <- getIntrRanks(object, intr, slot.use = slot.use,
                             signif.use = signif.use)
@@ -515,9 +515,9 @@ plotSignif2 <- function(
         names(veloPaths) <- intr
     }
     plotList <- list()
-    if (isFALSE(edge) && isFALSE(velo)) legendNCol <- 1 else legendNCol <- 2
+    # if (isFALSE(edge) && isFALSE(velo)) legendNCol <- 1 else legendNCol <- 2
     pclust <- plotCluster(object, colors.list = levels(col.fac),
-                          legendNCol = legendNCol, pt.size = pt.size,
+                          legendNCol = 1, pt.size = pt.size,
                           pt.stroke = pt.stroke)
     clustLegend <- cowplot::get_legend(pclust)
     if (!dir.exists(plot_dir)) dir.create(plot_dir)
@@ -530,67 +530,68 @@ plotSignif2 <- function(
 
         }
         gglist <- ggs[[intrName]]
+        main <- cowplot::plot_grid(
+            grid::textGrob(getLigandNames(object, intrx),
+                           gp = grid::gpar(fontface = "bold")),
+            gglist$ligand + ggplot2::ggtitle(NULL),
+            gglist$ligand_ori + ggplot2::ggtitle(NULL),
+            grid::textGrob(getReceptorNames(object, intrx),
+                           gp = grid::gpar(fontface = "bold")),
+            gglist$receptor + ggplot2::ggtitle(NULL),
+            gglist$receptor_ori + ggplot2::ggtitle(NULL),
+            grid::textGrob(intrName,
+                           gp = grid::gpar(fontface = "bold")),
+            gglist$score + ggplot2::ggtitle(NULL),
+            pclust + ggplot2::theme(legend.position = "none"),
+            nrow = 3, byrow = FALSE,
+            align = "hv", axis = "lrtb",
+            rel_heights = c(0.12, 1, 1)
+        )
+        main <- cowplot::plot_grid(main,
+                                      clustLegend,
+                                      rel_widths = c(4, 1))
         if (isFALSE(edge) && isFALSE(velo)) {
-            main <- cowplot::plot_grid(
-                grid::textGrob(getLigandNames(object, intrx),
-                               gp = grid::gpar(fontface = "bold")),
-                gglist$ligand + ggplot2::ggtitle(NULL),
-                gglist$ligand_ori + ggplot2::ggtitle(NULL),
-                grid::textGrob(getReceptorNames(object, intrx),
-                               gp = grid::gpar(fontface = "bold")),
-                gglist$receptor + ggplot2::ggtitle(NULL),
-                gglist$receptor_ori + ggplot2::ggtitle(NULL),
-                grid::textGrob(intrName,
-                               gp = grid::gpar(fontface = "bold")),
-                gglist$score + ggplot2::ggtitle(NULL),
-                pclust + ggplot2::theme(legend.position = "none"),
-                nrow = 3, byrow = FALSE,
-                align = "hv", axis = "lrtb",
-                rel_heights = c(0.12, 1, 1)
-            )
-            combine <- cowplot::plot_grid(main,
-                                          clustLegend,
-                                          rel_widths = c(4, 1))
-        } else {
-            # add another sanity check 
-            main <- cowplot::plot_grid(
-                grid::textGrob(getLigandNames(object, intrx),
-                               gp = grid::gpar(fontface = "bold")),
-                gglist$ligand + ggplot2::ggtitle(NULL),
-                gglist$ligand_ori + ggplot2::ggtitle(NULL),
-                grid::textGrob(getReceptorNames(object, intrx),
-                               gp = grid::gpar(fontface = "bold")),
-                gglist$receptor + ggplot2::ggtitle(NULL),
-                gglist$receptor_ori + ggplot2::ggtitle(NULL),
-                grid::textGrob(intrName,
-                               gp = grid::gpar(fontface = "bold")),
-                gglist$score + ggplot2::ggtitle(NULL),
-                clustLegend,
-                nrow = 3, byrow = FALSE,
-                align = "hv", axis = "lrtb",
-                rel_heights = c(0.12, 1, 1)
-            )
-            if (isTRUE(edge) && isTRUE(velo)) {
-                edgeGrob <- png_as_grob(edgePaths[intrx])
-                veloGrob <- png_as_grob(veloPaths[intrx])
+            combine <- main
+        } #else {
+            # add another sanity check
+            # main <- cowplot::plot_grid(
+            #     grid::textGrob(getLigandNames(object, intrx),
+            #                    gp = grid::gpar(fontface = "bold")),
+            #     gglist$ligand + ggplot2::ggtitle(NULL),
+            #     gglist$ligand_ori + ggplot2::ggtitle(NULL),
+            #     grid::textGrob(getReceptorNames(object, intrx),
+            #                    gp = grid::gpar(fontface = "bold")),
+            #     gglist$receptor + ggplot2::ggtitle(NULL),
+            #     gglist$receptor_ori + ggplot2::ggtitle(NULL),
+            #     grid::textGrob(intrName,
+            #                    gp = grid::gpar(fontface = "bold")),
+            #     gglist$score + ggplot2::ggtitle(NULL),
+            #     clustLegend,
+            #     nrow = 3, byrow = FALSE,
+            #     align = "hv", axis = "lrtb",
+            #     rel_heights = c(0.12, 1, 1)
+            # )
+        if (isTRUE(edge) && isTRUE(velo)) {
+            edgeGrob <- png_as_grob(edgePaths[intrx])
+            veloGrob <- png_as_grob(veloPaths[intrx])
 
-                lower <- cowplot::plot_grid(
-                    edgeGrob, veloGrob, nrow = 1
-                )
-                combine <- cowplot::plot_grid(main, lower, nrow = 2,
-                                              rel_heights = c(2, 1.2))
-            } else if (isTRUE(edge) && isFALSE(velo)) {
-                edgeGrob <- png_as_grob(edgePaths[intrx])
-                combine <- cowplot::plot_grid(main, edgeGrob,
-                                              nrow = 1,
-                                              rel_widths = c(3, 2))
-            } else if (isFALSE(edge) && isTRUE(velo)) {
-                veloGrob <- png_as_grob(veloPaths[intrx])
-                combine <- cowplot::plot_grid(main, veloGrob,
-                                              nrow = 1,
-                                              rel_widths = c(3, 2))
-            }
+            lower <- cowplot::plot_grid(
+                edgeGrob, veloGrob, nrow = 1
+            )
+            combine <- cowplot::plot_grid(main, lower, nrow = 2,
+                                          rel_heights = c(2, 1.2))
+        } else if (isTRUE(edge) && isFALSE(velo)) {
+            edgeGrob <- png_as_grob(edgePaths[intrx])
+            combine <- cowplot::plot_grid(main, edgeGrob,
+                                          nrow = 1,
+                                          rel_widths = c(3, 2))
+        } else if (isFALSE(edge) && isTRUE(velo)) {
+            veloGrob <- png_as_grob(veloPaths[intrx])
+            combine <- cowplot::plot_grid(main, veloGrob,
+                                          nrow = 1,
+                                          rel_widths = c(3, 2))
         }
+        # }
         if (isTRUE(return.plot)) {
             plotList[[intrName]] <- combine
         } else {
@@ -600,11 +601,11 @@ plotSignif2 <- function(
                 height <- 8
                 filenameIntr <- paste0(filenameIntr, ".", plot.fmt)
             } else if (isTRUE(edge) && isTRUE(velo)) {
-                width <- 10
+                width <- 12
                 height <- 13
                 filenameIntr <- paste0(filenameIntr, "_edge_velo.", plot.fmt)
             } else {
-                width <- 16
+                width <- 18
                 height <- 8
                 filenameIntr <- paste0(filenameIntr, "_",
                                        ifelse(edge, "edge", "velo"),
