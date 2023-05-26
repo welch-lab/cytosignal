@@ -19,7 +19,6 @@
 #' @return A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.
 #'
 #' @export
-
 plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.use = NULL, signif.use = NULL, plot.clusters = T,
                     plot.velo = F, colors.list = NULL, pt.size=0.1, pt.stroke = 0.2, u_width = 6, u_hgt = 5, set.res = 200,
                     return.plot = F
@@ -411,6 +410,25 @@ plotIntrValue <- function(
     return(outputList)
 }
 
+#' Plot significant interactions ranked by the user-specified metric
+#' @param object A cytosignal object
+#' @param intr,intr.rank Specify interactions to be plotted. \code{intr} for
+#' names \code{intr.rank} for numeric index.
+#' @param edge,velo Logical, whether to plot edge or velocity, respectively.
+#' @param slot.use The LRscore slot to use for plotting
+#' @param signif.use The metric used to rank the interactions, by default "result.hq.pear"
+#' @param colors.list A list of colors to use for plotting
+#' @param plot_dir Directory to save the plots
+#' @param pt.size Size of the points
+#' @param pt.stroke Stroke of the points
+#' @param return.plot Whether to return the plot
+#' @param plot.fmt Format of output file. "png", "pdf", or "svg".
+#' @param resolution Resolution of the output figure.
+#' @param verbose Logical, whether to show progress.
+#'
+#' @return A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.
+#'
+#' @export
 plotSignif2 <- function(
         object,
         intr,
