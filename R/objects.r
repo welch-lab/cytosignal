@@ -417,7 +417,7 @@ createCytoSignal <- function(
 		raw.data <- as(raw.data, "CsparseMatrix")
 	}
 
-	cells.loc <- as.matrix(cells.loc)[colnames(raw.data), ]
+	# cells.loc <- as.matrix(cells.loc)[colnames(raw.data), ]
 	if (!all.equal(colnames(raw.data), rownames(cells.loc))) {
 		stop("The cell names in raw.data and cells.loc are not the same.")
 	}
