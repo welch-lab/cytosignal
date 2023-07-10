@@ -17,12 +17,11 @@ Depends:
   stats
 Imports:
   dbscan,
-  ggsci,
-  paletteer,
   RANN,
   RTriangle,
   ggplot2,
-  cowplot
+  plyr,
+  rlang
 Suggests:
   cowplot,
   patchwork,

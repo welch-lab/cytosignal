@@ -76,8 +76,9 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
 
     if (is.null(colors.list)){
         levels.use <- levels(clusters)
-        colors.list = as.character(paletteer::paletteer_d("ggsci::default_igv",
-                        n = length(levels.use)))
+        colors.list <- uniqueColors(length(levels.use))
+        # as.character(paletteer::paletteer_d("ggsci::default_igv",
+                        #n = length(levels.use)))
         names(colors.list) = levels.use
     }
 

@@ -192,7 +192,7 @@ plotEdge <- function(
         up.df$z <- up.df$z + z.pt.interval
         up.df.transp <- pt.df[-receiver.idx, ]
         up.df.transp$z <- up.df.transp$z + z.pt.interval
-        
+
         down.df <- pt.df[senders, ]
         down.df.transp <- pt.df[-senders, ]
 
@@ -329,8 +329,9 @@ plotSigCluster <- function(object, plot_dir, cluster.list = NULL, intr.num = 10,
     clusters <- object@clusters
     if (is.null(colors.list)){
         levels.use <- levels(clusters)
-        colors.list = as.character(paletteer::paletteer_d("ggsci::default_igv",
-                        n = length(levels.use)))
+        colors.list <- uniqueColors(length(levels.use))
+        #as.character(paletteer::paletteer_d("ggsci::default_igv",
+        #                n = length(levels.use)))
         names(colors.list) = levels.use
     }
     col.fac = clusters
