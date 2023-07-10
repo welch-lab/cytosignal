@@ -307,16 +307,77 @@ png_as_grob <- function(filename) {
     grid::rasterGrob(image, interpolate = TRUE)
 }
 
+
+#' Adaptive palette (discrete)
+#'
+#' Create a discrete palette that will use the first `n` colors from
+#' the supplied color values when the palette has enough colors.
+#' Otherwise, use an interpolated color palette.
+#'
+#' @param values Color values.
+pal_ramp <- function(values, force.interp = FALSE) {
+  force(values)
+  color.func <- function(n) {
+    if (force.interp) {
+      grDevices:::colorRampPalette(values, alpha = TRUE)(n)
+    } else {
+        if (n <= length(values)) {
+            values[seq_len(n)]
+        } else {
+            grDevices:::colorRampPalette(values, alpha = TRUE)(n)
+        }
+    }
+
+  }
+  return(color.func)
+}
+
+
+#' Adaptive color palette generator
+#'
+#' Adaptive color palette generator for ggsci color palettes using `pal_ramp()`.
+#'
+#' @param name Color palette name in ggsci
+#' @param palette Color palette type in ggsci
+#' @param alpha Transparency level, a real number in (0, 1].
+#'
+#' @details See `names(ggsci:::ggsci_db)` for all color palette names in ggsci.
+#' See `names(ggsci:::ggsci_db$"pal")` for available palette types under
+#' the palette `pal`.
+pal_adaptive <- function(name, palette, alpha = 1, force.interp = FALSE) {
+  if (alpha > 1L | alpha <= 0L) stop("alpha must be in (0, 1]")
+
+  raw_cols <- ggsci:::ggsci_db[[name]][[palette]]
+  raw_cols_rgb <- grDevices:::col2rgb(raw_cols)
+  alpha_cols <- grDevices:::rgb(
+    raw_cols_rgb[1L, ], raw_cols_rgb[2L, ], raw_cols_rgb[3L, ],
+    alpha = alpha * 255L, names = names(raw_cols),
+    maxColorValue = 255L
+  )
+
+  pal_ramp(unname(alpha_cols), force.interp)
+}
+
+
 .checkColorList <- function(object, colors.list = NULL) {
   if (is.null(colors.list)) {
     levels.use <- levels(object@clusters)
-    colors.list <- as.character(paletteer::paletteer_d("ggsci::default_igv",
-                                                       n = length(levels.use)))
-    names(colors.list) <- levels.use
+    color.func <- pal_adaptive("igv", "default")
+    # color.func <- pal_adaptive("nejm", "default")
+
+    color.list <- color.func(length(levels.use))
+    names(color.list) <- levels.use
+    # colors.list <- as.character(paletteer::paletteer_d("ggsci::default_igv",
+    #                                                    n = length(levels.use)))
+    # names(colors.list) <- levels.use
+    return(colors.list)
   }
 
-  if (length(colors.list) != length(levels(object@clusters))) {
-    stop("The length of `colors.list` is not equal to the number of clusters.")
+  col.len <- length(unique(colors.list))
+  
+  # if (length(colors.list) != length(levels(object@clusters))) {
+  if (!identical(col.len, length(levels(object@clusters)))) {
+      stop("The length of `colors.list` is not equal to the number of clusters.")
   }
 
   col.fac <- object@clusters
@@ -324,3 +385,4 @@ png_as_grob <- function(filename) {
 
   return(col.fac)
 }
+
