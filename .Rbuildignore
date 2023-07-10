@@ -1,3 +1,6 @@
 ^cytosignal\.Rproj$
 ^\.Rproj\.user$
 ^\.vscode$
+^analysis/
+\.rds$
+\.png$
