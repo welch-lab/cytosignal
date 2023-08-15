@@ -226,11 +226,15 @@ plotEdge <- function(
     )
 
     # plot down panel, non-involved cells
-    plot3D::points3D(down.df.transp$x, down.df.transp$y, down.df.transp$z,
-        colvar = NULL, col = down.df.transp$col, alpha = 0.2,
-        colkey = FALSE, pch = use.shape, cex = pt.size,
-        plot = FALSE, add = TRUE
-    )
+    ## if no cells in down.df.transp, skip the plotting
+    if (nrow(down.df.transp) > 0) {
+        plot3D::points3D(
+            down.df.transp$x, down.df.transp$y, down.df.transp$z,
+            colvar = NULL, col = down.df.transp$col, alpha = 0.2,
+            colkey = FALSE, pch = use.shape, cex = pt.size,
+            plot = FALSE, add = TRUE
+        )
+    }
 
     plot3D::segments3D(
         x0 = seg.down.x[sample.idx], y0 = seg.down.y[sample.idx],

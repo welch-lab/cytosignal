@@ -314,7 +314,8 @@ plotCluster <- function(
             axis.text.x = ggplot2::element_blank(),
             axis.text.y = ggplot2::element_blank(),
             panel.border = ggplot2::element_rect(fill = NA)
-        )
+        ) +
+        ggplot2::coord_fixed()
 }
 
 #' @importFrom rlang .data
@@ -403,7 +404,8 @@ plotIntrValue <- function(
                     legend.position = "bottom",
                     legend.justification = 0.9,
                     legend.margin = ggplot2::margin(t = 0)
-                )
+                ) +
+                ggplot2::coord_fixed()
         })
         names(plotList) <- type
         outputList[[intrName]] <- plotList
@@ -444,7 +446,7 @@ plotSignif2 <- function(
         return.plot = FALSE,
         plot_dir = "csSignifPlot/",
         plot.fmt = c("png", "pdf", "svg"),
-        resolution = 200,
+        resolution = 300,
         verbose = FALSE
 ) {
     if ( (m.intr <- missing(intr)) + (m.intr.rank <- missing(intr.rank)) != 1) {
@@ -624,7 +626,7 @@ plotSignif2 <- function(
                 height <- 13
                 filenameIntr <- paste0(filenameIntr, "_edge_velo.", plot.fmt)
             } else {
-                width <- 18
+                width <- 22
                 height <- 8
                 filenameIntr <- paste0(filenameIntr, "_",
                                        ifelse(edge, "edge", "velo"),

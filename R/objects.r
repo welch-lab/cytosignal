@@ -718,11 +718,11 @@ addVelo <- function(
 	}
 
 	# check whether dimnames are the same
-	if (!all.equal(rownames(velo.s), rownames(velo.u))) {
+	if (!identical(rownames(velo.s), rownames(velo.u))) {
 		stop("velo.s and velo.u must have the same rownames.")
 	}
 
-	if (!all.equal(colnames(velo.s), colnames(velo.u))) {
+	if (!identical(colnames(velo.s), colnames(velo.u))) {
 		stop("velo.s and velo.u must have the same colnames.")
 	}
 
@@ -738,11 +738,11 @@ addVelo <- function(
 	velo.u.intr <- Matrix::Matrix(increase_dims(velo.u.intr, object@counts), sparse = T)
 
 	# rownames(velo.s.intr) <- rownames(velo.u.intr) <- rownames(object@counts)
-	if (!all.equal(dimnames(velo.s.intr), dimnames(velo.u.intr))) {
+	if (!identical(dimnames(velo.s.intr), dimnames(velo.u.intr))) {
 		stop("velo.s and velo.u must have the same dimnames.")
 	}
 
-	if (!all.equal(dimnames(velo.s.intr), dimnames(object@counts))) {
+	if (!identical(dimnames(velo.s.intr), dimnames(object@counts))) {
 		stop("counts matrix and velo matrix must have the same dimnames.")
 	}
 

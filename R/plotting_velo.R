@@ -159,7 +159,8 @@ plotVelo <- function(
   # scale the length of each arrow by the maximum abs(bin_velo)
   # overall, scale by each intr
 
-  z.hold = z.scale*z.scaler # set the interval between arrows and points
+  # z.hold = z.scale*z.scaler # set the interval between arrows and points
+  z.hold = 0.05
 
   if (nrow(ars.pos) > 0) {
     ars.pos$length = abs(ars.pos$bin_velo)/z.scale
