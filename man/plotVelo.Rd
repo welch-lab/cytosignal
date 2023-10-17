@@ -13,7 +13,7 @@ plotVelo(
   plot.fmt = c("png", "pdf"),
   slot.use = NULL,
   signif.use = NULL,
-  plot.clusters = TRUE,
+  use.clusters = NULL,
   colors.list = NULL,
   z.scaler = 0.03,
   title = NULL,
@@ -26,6 +26,7 @@ plotVelo(
   pt.stroke = 0.2,
   use.phi = 30,
   use.theta = -17,
+  box = TRUE,
   width = 6,
   height = 6,
   set.res = 300,
@@ -41,35 +42,35 @@ plotVelo(
 
 \item{signif.use}{The metric used to rank the interactions, by default "result.hq.pear"}
 
-\item{plot.clusters}{Whether to plot the clusters}
+\item{use.clusters}{Plot only selected clusters. Default \code{NULL} for all clusters.}
 
 \item{colors.list}{A list of colors to use for plotting}
 
 \item{z.scaler}{Scaling factor for the z-axis}
 
-\item{pt.size}{Point size}
+\item{pt.size}{Point size. Default 0.1}
 
-\item{use.shape}{Point shape}
+\item{use.shape}{Point shape. Default 16}
 
-\item{use_xbins}{Number of bins for the x-axis}
+\item{use_xbins}{Number of bins for the x-axis. Default 15}
 
-\item{use_ybins}{Number of bins for the y-axis}
+\item{use_ybins}{Number of bins for the y-axis. Default 15}
 
-\item{arrow.line.width}{Width of the arrow line}
+\item{arrow.line.width}{Width of the arrow line. Default 0.6}
 
-\item{arrow.width}{Width of the arrow}
+\item{arrow.width}{Width of the arrow. Default 0.06}
 
 \item{pt.stroke}{Stroke of the points}
 
-\item{use.phi}{Set view angel: phi the colatitude}
+\item{use.phi}{Set view angel: phi the colatitude. Default 30}
 
-\item{use.theta}{Set view angel: theta gives the azimuthal direction}
+\item{use.theta}{Set view angel: theta gives the azimuthal direction. Default -17}
 
-\item{width}{Width of the plot}
+\item{width}{Width of the plot. Default 6}
 
-\item{height}{Height of the plot}
+\item{height}{Height of the plot. Default 6}
 
-\item{set.res}{Resolution of the plot}
+\item{set.res}{Resolution of the plot. Default 300.}
 
 \item{num.plot}{Number of interactions to plot}
 

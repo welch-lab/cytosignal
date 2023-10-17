@@ -42,8 +42,8 @@ plotEdge <- function(
         plot.fmt = c("png", "pdf", "svg"),
         title = NULL, edge.size = 500, use.shape = 16,
         line.width = 0.01, use.phi = 30, use.theta = -17, z.scaler = 0.03,
-        z.pt.interval = 1, pt.size = 0.1, pt.stroke = 0.2, width = 5, height = 5,
-        set.res = 300, verbose = TRUE
+        box = TRUE, z.pt.interval = 1, pt.size = 0.1, pt.stroke = 0.2,
+        width = 5, height = 5, set.res = 300, verbose = TRUE
 ){
     type <- match.arg(type)
     plot.fmt <- match.arg(plot.fmt)
@@ -87,8 +87,9 @@ plotEdge <- function(
             col.fac = col.fac, res.list = res.list, intr = intr,
             title = titleIntr,
             pt.size = pt.size, use.shape = use.shape, line.width = line.width,
-            use.phi = use.phi, use.theta = use.theta, z.scaler = z.scaler,
-            z.pt.interval = z.pt.interval, pt.stroke = pt.stroke
+            use.phi = use.phi, use.theta = use.theta, box = box,
+            z.scaler = z.scaler, z.pt.interval = z.pt.interval,
+            pt.stroke = pt.stroke
         )
 
         if (isTRUE(return.plot)) {
@@ -132,7 +133,7 @@ plotEdge <- function(
         type = c("sender", "receiver"), edge.size = 500,
         title = NULL, pt.size = 0.1, use.shape = 16, line.width = 0.01,
         use.phi = 30, use.theta = -17, z.scaler = 0.03, z.pt.interval = 1,
-        pt.stroke = 0.2
+        pt.stroke = 0.2, box = TRUE
 ){
     type <- match.arg(type)
     pt.df <- as.data.frame(cells.loc)
@@ -221,7 +222,7 @@ plotEdge <- function(
         expand = 0.7, theta = use.theta, phi = use.phi, d = 5,
         colvar = NULL, col = down.df$col, alpha = 1,
         colkey = FALSE, pch = use.shape, cex = pt.size,
-        main = title, zlab = zlab.use,
+        main = title, zlab = zlab.use, box = box,
         xlab = "", ylab = "", plot = FALSE
     )
 

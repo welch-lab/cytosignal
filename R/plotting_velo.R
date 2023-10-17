@@ -5,23 +5,25 @@
 #' @param res_dir Directory to save the plots
 #' @param slot.use The LRscore slot to use for plotting
 #' @param signif.use The metric used to rank the interactions, by default "result.hq.pear"
-#' @param plot.clusters Whether to plot the clusters
+#' @param use.clusters Plot only selected clusters. Default \code{NULL} for all clusters.
 #' @param plot.velo Whether to plot the velocity
 #' @param colors.list A list of colors to use for plotting
 #' @param pt.size Size of the points
 #' @param pt.stroke Stroke of the points
-#' @param width Width of the plot
-#' @param height Height of the plot
+#' @param width Width of the plot. Default 6
+#' @param height Height of the plot. Default 6
 #' @param z.scaler Scaling factor for the z-axis
-#' @param pt.size Point size
-#' @param use.shape Point shape
-#' @param use_xbins Number of bins for the x-axis
-#' @param use_ybins Number of bins for the y-axis
-#' @param arrow.line.width Width of the arrow line
-#' @param arrow.width Width of the arrow
-#' @param use.phi Set view angel: phi the colatitude
-#' @param use.theta Set view angel: theta gives the azimuthal direction
-#' @param set.res Resolution of the plot
+#' @param pt.size Point size. Default 0.1
+#' @param use.shape Point shape. Default 16
+#' @param use_xbins Number of bins for the x-axis. Default 15
+#' @param use_ybins Number of bins for the y-axis. Default 15
+#' @param arrow.line.width Width of the arrow line. Default 0.6
+#' @param arrow.width Width of the arrow. Default 0.06
+#' @param use.phi Set view angel: phi the colatitude. Default 30
+#' @param use.theta Set view angel: theta gives the azimuthal direction. Default -17
+#' @param box Whether to show a box panel for the 3D region. Default TRUE
+#' @param axis.arrow.len When box = FALSE, set the length of the axis arrows.
+#' @param set.res Resolution of the plot. Default 300.
 #' @param return.plot Whether to return the plot
 #'
 #' @return A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.
@@ -36,7 +38,7 @@ plotVelo <- function(
     plot.fmt = c("png", "pdf"),
     slot.use = NULL,
     signif.use = NULL,
-    plot.clusters = TRUE,
+    use.clusters = NULL,
     colors.list = NULL,
     z.scaler = 0.03,
     title = NULL,
@@ -49,6 +51,8 @@ plotVelo <- function(
     pt.stroke = 0.2,
     use.phi = 30,
     use.theta = -17,
+    box = TRUE,
+    axis.arrow.len = 1,
     width = 6,
     height = 6,
     set.res = 300,
@@ -81,13 +85,24 @@ plotVelo <- function(
       message("Now plotting velocity for interaction: ",
               intr.names[intrx], " ...")
     }
+    if (!is.null(use.clusters)) {
+      if (any(!use.clusters %in% object@clusters)) {
+        stop("Specified clusters not found: ",
+             paste(use.clusters[!use.clusters %in% object@clusters],
+                   collapse = ", "))
+      }
+      idx <- object@clusters %in% use.clusters
+      cells.loc <- cells.loc[idx,]
+      col.fac <- droplevels(col.fac[idx])
+      velo <- velo[idx]
+    }
     p1 <- .plotVeloMatrix(
       cells.loc = cells.loc, intr = intrx, velo = velo, col.fac = col.fac,
       use_xbins = use_xbins, use_ybins = use_ybins, title = titleIntr,
       pt.size = pt.size, use.shape = use.shape,
       arrow.line.width = arrow.line.width, arrow.width = arrow.width,
       use.phi = use.phi, use.theta = use.theta, z.scaler = z.scaler,
-      pt.stroke = pt.stroke
+      pt.stroke = pt.stroke, box = box, axis.arrow.len = axis.arrow.len
     )
 
     if (isTRUE(return.plot)) {
@@ -129,7 +144,7 @@ plotVelo <- function(
     title = "CytoSignalVelo", pt.size = 0.1, use.shape = 16,
     arrow.line.width = 0.6, arrow.width = 0.06,
     use.phi = 30, use.theta = -17, z.scaler = 0.03,
-    pt.stroke = 0.2
+    pt.stroke = 0.2, box = TRUE, axis.arrow.len = 1
 ) {
   # get value for the ranked #1 intr
   plot.df = as.data.frame(cells.loc)
@@ -185,17 +200,18 @@ plotVelo <- function(
   }
   pdf(nullfile())
   # cex: control size of points
+  xlim <- c(min(pt.df$x) - x.scale*0.025,
+            max(pt.df$x) + x.scale*0.025)
+  ylim <- c(min(pt.df$y) - y.scale*0.025,
+            max(pt.df$y) + y.scale*0.025)
   plot3D::points3D(pt.df$x, pt.df$y, pt.df$z,
-                   xlim = c(min(pt.df$x) - x.scale*0.025,
-                            max(pt.df$x) + x.scale*0.025),
-                   ylim = c(min(pt.df$y) - y.scale*0.025,
-                            max(pt.df$y) + y.scale*0.025),
+                   xlim = xlim, ylim = ylim,
                    zlim = c(-0.01, 1.1), expand = 0.3, pt.stroke = pt.stroke,
                    theta = use.theta, phi = use.phi, d = 2,
                    colvar = NULL, col = pt.df$col,
                    colkey = FALSE, pch = use.shape, cex = pt.size,
                    main = title, zlab = "velocity",
-                   xlab = "", ylab = "", plot = FALSE
+                   xlab = "", ylab = "", plot = FALSE, box = box
   )
 
   # plot points with velo = 0 to be grey points
@@ -233,6 +249,32 @@ plotVelo <- function(
       length = arrow.width, clab = intr, d = 3, add = TRUE, plot = FALSE
     )
   }
+
+  # if (isFALSE(box)) {
+  #   # Manually add axis arrows when no default box (w/ those arrows)
+  #   axisCenter <- c(xlim[1], ylim[2], -0.1)
+  #   z.axis.len <- max(ars.pos.plot.df$z1) * axis.arrow.len
+  #   x.axis.len <- .2*diff(xlim) * axis.arrow.len
+  #   y.axis.len <- .2*diff(ylim) * axis.arrow.len
+  #
+  #   # The z-axis arrow, pointing upwards
+  #   plot3D::arrows3D(x0 = axisCenter[1], y0 = axisCenter[2], z0 = axisCenter[3],
+  #                    x1 = axisCenter[1], y1 = axisCenter[2], z1 = axisCenter[3] + z.axis.len,
+  #                    colvar = NULL, col = "black",
+  #                    xlim = xlim, ylim = ylim, plot = FALSE, add = TRUE)
+  #   # The x-axis arrow, pointing to the right
+  #   plot3D::arrows3D(x0 = axisCenter[1], y0 = axisCenter[2], z0 = axisCenter[3],
+  #                    x1 = axisCenter[1] + x.axis.len, y1 = axisCenter[2], z1 = axisCenter[3],
+  #                    colvar = NULL, col = "black",
+  #                    xlim = xlim, ylim = ylim, plot = FALSE, add = TRUE)
+  #   # The y-axis arrow, pointing to the right
+  #   plot3D::arrows3D(x0 = axisCenter[1], y0 = axisCenter[2], z0 = axisCenter[3],
+  #                    x1 = axisCenter[1], y1 = axisCenter[2] - y.axis.len, z1 = axisCenter[3],
+  #                    colvar = NULL, col = "black",
+  #                    xlim = xlim, ylim = ylim, plot = FALSE, add = TRUE)
+  #   # plot3D::text3D(axisCenter[1], axisCenter[2], axisCenter[3], labels = "velocity",
+  #   #                add = TRUE, plot = FALSE)
+  # }
 
   p <- plot3D::getplist()
   dev.off()
