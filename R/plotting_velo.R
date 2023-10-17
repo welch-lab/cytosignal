@@ -137,7 +137,6 @@ plotVelo <- function(
 
   pt.df = plot.df[, c(1,2)]
   pt.df$z = 0
-
   pt.df$col = as.character(col.fac[rownames(pt.df)])
   x.scale = max(pt.df$x) - min(pt.df$x)
   y.scale = max(pt.df$y) - min(pt.df$y)
@@ -184,7 +183,6 @@ plotVelo <- function(
       col = "#f7f7f7"
     )
   }
-
   pdf(nullfile())
   # cex: control size of points
   plot3D::points3D(pt.df$x, pt.df$y, pt.df$z,

@@ -12,8 +12,6 @@ LinkingTo: Rcpp, RcppArmadillo, RcppEigen, RcppProgress
 Depends:
   Matrix,
   methods,
-  Rcpp,
-  RcppArmadillo,
   stats
 Imports:
   dbscan,
@@ -21,6 +19,8 @@ Imports:
   RTriangle,
   ggplot2,
   plyr,
+  Rcpp,
+  RcppArmadillo,
   rlang
 Suggests:
   cowplot,

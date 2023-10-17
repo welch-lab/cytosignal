@@ -338,7 +338,6 @@ uniqueColors <- function(n) {
     levels.use <- levels(object@clusters)
     colors.list <- uniqueColors(length(levels.use))
     names(colors.list) <- levels.use
-    # return(colors.list)
   }
 
   col.len <- length(unique(colors.list))

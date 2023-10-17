@@ -281,6 +281,7 @@ plotSignif <- function(object, num.plot = NULL, res_dir, plot.details = T, slot.
     if (return.plot){return(plots.list)}
 }
 
+#' @export
 plotCluster <- function(
         object,
         colors.list = NULL,
@@ -295,6 +296,8 @@ plotCluster <- function(
     clusters <- object@clusters
     clusters <- clusters[rownames(plotDF)]
     plotDF$clusters = clusters
+    xRange <- c(min(plotDF$x), max(plotDF$x))
+    yRange <- c(min(plotDF$y), max(plotDF$y))
     ggplot2::ggplot(plotDF,
                     ggplot2::aes(.data[["x"]], .data[["y"]],
                                  color = .data[["clusters"]])) +
@@ -315,7 +318,7 @@ plotCluster <- function(
             axis.text.y = ggplot2::element_blank(),
             panel.border = ggplot2::element_rect(fill = NA)
         ) +
-        ggplot2::coord_fixed()
+        ggplot2::coord_fixed(xlim = xRange, ylim = yRange)
 }
 
 #' @importFrom rlang .data
@@ -328,6 +331,7 @@ plotIntrValue <- function(
                  "score", "score_null"),
         slot.use = NULL,
         signif.use = NULL,
+        color.flrs = FALSE,
         pt.size = 0.5,
         pt.stroke = 0.2,
         raster = NULL
@@ -359,6 +363,8 @@ plotIntrValue <- function(
         ligRec <- strsplit(intrName, "-")[[1]]
         ligName <- ligRec[1]
         recName <- ligRec[2]
+        xRange <- c(min(plotDF$x), max(plotDF$x))
+        yRange <- c(min(plotDF$y), max(plotDF$y))
         plotList <- lapply(type, function(info) {
             legendTitle <- info
             if (startsWith(info, "ligand")) {
@@ -371,22 +377,49 @@ plotIntrValue <- function(
                 title <- intrName
                 #title <- info
             }
-            p <- ggplot2::ggplot(plotDF, ggplot2::aes(x = .data[["x"]],
-                                                      y = .data[["y"]],
-                                                      colour = .data[[info]]))
 
-            if (isFALSE(raster)) {
-                p <- p + ggplot2::geom_point(size = pt.size,
-                                             stroke = pt.stroke)
-            } else (
-                p <- p + scattermore::geom_scattermore(pointsize = pt.size,
-                                                       stroke = pt.stroke)
-            )
+            if (isTRUE(color.flrs)) {
+                plotDF[[info]] <- sqrt(plotDF[[info]])
+                p <- ggplot2::ggplot(plotDF, ggplot2::aes(x = .data[["x"]],
+                                                          y = .data[["y"]]))
+                if (isFALSE(raster)) {
+                    p <- p +
+                        ggplot2::geom_point(size = pt.size, stroke = pt.stroke,
+                                            color = "#323C6E", alpha = .9) +
+                        ggplot2::geom_point(mapping = ggplot2::aes(alpha = .data[[info]]),
+                                            size = pt.size, stroke = pt.stroke,
+                                            color = "#FA1E1E")
+                } else (
+                    p <- p + scattermore::geom_scattermore(pointsize = pt.size + 1,
+                                                           stroke = pt.stroke,
+                                                           color = "#323C6E") +
+                        scattermore::geom_scattermore(mapping = ggplot2::aes(alpha = .data[[info]]),
+                                                      pointsize = pt.size + 1.5, stroke = pt.stroke,
+                                                      color = "#FA1E1E")
+                )
+                p <- p + ggplot2::scale_alpha_continuous(
+                    range = c(0, 1), breaks = round(seq(from = 0, to = floor(max(plotDF[[info]])), length = 3), 2)
+                )
+            } else {
+                p <- ggplot2::ggplot(plotDF, ggplot2::aes(x = .data[["x"]],
+                                                          y = .data[["y"]],
+                                                          colour = .data[[info]]))
+
+                if (isFALSE(raster)) {
+                    p <- p + ggplot2::geom_point(size = pt.size,
+                                                 stroke = pt.stroke)
+                } else (
+                    p <- p + scattermore::geom_scattermore(pointsize = pt.size + 1.4,
+                                                           stroke = pt.stroke)
+                )
+
+                p <- p +
+                    ggplot2::scale_color_viridis_c(option = "plasma",
+                                                   direction = -1,
+                                                   na.value = '#F5F5F5')
+            }
 
             p <- p +
-                ggplot2::scale_color_viridis_c(option = "plasma",
-                                               direction = -1,
-                                               na.value = '#F5F5F5') +
                 ggplot2::labs(color = legendTitle, title = title,
                               x = NULL, y = NULL) +
                 ggplot2::theme_classic() +
@@ -405,7 +438,12 @@ plotIntrValue <- function(
                     legend.justification = 0.9,
                     legend.margin = ggplot2::margin(t = 0)
                 ) +
-                ggplot2::coord_fixed()
+                ggplot2::coord_fixed(xlim = xRange, ylim = yRange)
+            if (isTRUE(color.flrs)) {
+                p <- p +
+                    ggplot2::theme(panel.background = ggplot2::element_rect(fill = "black"))
+            }
+            return(p)
         })
         names(plotList) <- type
         outputList[[intrName]] <- plotList

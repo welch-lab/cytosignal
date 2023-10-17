@@ -584,7 +584,12 @@ to_mean <- function(mat) {
     }
     # Assuming there'll always be a "default"
     avail <- names(object@lrscore)[-1]
-    if (isTRUE(velo)) avail <- intersect(avail, names(object@lrvelo))
+    if (isTRUE(velo)) {
+        avail <- intersect(avail, names(object@lrvelo))
+        if (length(avail) == 0) {
+            stop("No velocity info available for plotting.")
+        }
+    }
     if (!slot.use %in% avail) {
         stop("Invalid `slot.use`. Available options: ",
              paste(avail, collapse = ", "))
