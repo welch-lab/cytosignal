@@ -197,6 +197,23 @@ inferVeloLR.CytoSignal <- function(
 	dge.lig <- object@imputation[[lig.slot]]@imp.data
 	dge.recep <- object@imputation[[recep.slot]]@imp.data
 
+	###### reverse log transform
+	message("Reverse log transform and multiply by UMI median...")
+
+	dge.lig@x = (exp(dge.lig@x) - 1)/10000
+	dge.recep@x = (exp(dge.recep@x) - 1)/10000
+
+	# multiply by the median of UMI counts in each bead
+	lig.median = stats::median(object@imputation[[lig.slot]]@scale.fac)
+	cat(paste0("Median of ", lig.slot, ": ", lig.median, "\n"))
+	dge.lig@x = dge.lig@x * lig.median
+
+	recep.median = stats::median(object@imputation[[recep.slot]]@scale.fac)
+	cat(paste0("Median of ", recep.slot, ": ", recep.median, "\n"))
+	dge.recep@x = dge.recep@x * recep.median
+
+	###### reverse log transform
+
 	dge.lig.velo <- object@imputation[[lig.slot]]@imp.velo
 	dge.recep.velo <- object@imputation[[recep.slot]]@imp.velo
 
@@ -231,7 +248,7 @@ inferVeloLR.CytoSignal <- function(
 				dge.lig.velo, dge.recep.velo,
 				intr.db.list[["ligands"]], intr.db.list[["receptors"]])
 
-    message("Done!")
+    message("Done!\n")
 
 	lrvelo.obj <- new(
 		"lrVelo",

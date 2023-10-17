@@ -237,6 +237,7 @@ inferNullScoreLR <- function(
 permuteLR <- function(
 	object,
 	slot.use = NULL,
+	norm.method = "default",
 	perm.size = 100000
 ) {
 	if (is.null(slot.use)){
@@ -276,14 +277,14 @@ permuteLR <- function(
 	message("Permuting ligand Imp slot: ", lig.slot, "...")
 
 	null.lig.list <- lapply(perm.idx.list, function(idx){
-		permuteLR.sparse(object, nn.type = lig.slot, perm.index = idx, sample.idx)
+		permuteLR.sparse(object, nn.type = lig.slot, perm.index = idx, sample.idx, norm.method = norm.method)
 	})
 	null.lig.dge <- cbind_list(null.lig.list)
 
 	message("Permuting receptor Imp slot: ", recep.slot, "...")
 
 	null.recep.list <- lapply(perm.idx.list, function(idx){
-		permuteLR.sparse(object, nn.type = recep.slot, perm.index = idx, sample.idx)
+		permuteLR.sparse(object, nn.type = recep.slot, perm.index = idx, sample.idx, norm.method = norm.method)
 	})
 	null.recep.dge <- cbind_list(null.recep.list)
 	
@@ -323,7 +324,8 @@ permuteLR.sparse <- function(
 	object,
 	nn.type = NULL,
 	perm.index = NULL,
-	sample.index = NULL
+	sample.index = NULL,
+	norm.method = "default"
 ){
 	# check DT imputation first, this is for pre-computing lrscore.mtx
 	if (!"DT" %in% names(object@imputation)) {
@@ -381,7 +383,7 @@ permuteLR.sparse <- function(
 	null.dge <- dge.raw %*% null.graph
 	null.scale.fac <- scale.fac %*% null.graph
 	
-	null.dge <- normCounts.list(list(mat=null.dge, scale.fac=as.numeric(null.scale.fac)), "default")
+	null.dge <- normCounts.list(list(mat=null.dge, scale.fac=as.numeric(null.scale.fac)), norm.method)
 
 	# #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
 	dt.avg.g <- object@imputation[["DT"]]@nn.graph

@@ -446,6 +446,7 @@ plotSignif2 <- function(
         return.plot = FALSE,
         plot_dir = "csSignifPlot/",
         plot.fmt = c("png", "pdf", "svg"),
+        raster = NULL,
         resolution = 300,
         verbose = FALSE
 ) {
@@ -476,7 +477,7 @@ plotSignif2 <- function(
 
     ggs <- plotIntrValue(object, intr = intr, slot.use = slot.use,
                          signif.use = signif.use, pt.size = pt.size,
-                         pt.stroke = pt.stroke)
+                         pt.stroke = pt.stroke, raster = raster)
     edgePaths <- NULL
     veloPaths <- NULL
     if (isTRUE(edge)) {

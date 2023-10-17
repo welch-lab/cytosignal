@@ -565,7 +565,7 @@ normCounts <- function(
 #' @export
 normCounts.dgCMatrix <- function(
 	mat, 
-	method = c("default", "cpm")
+	method = c("default", "cpm", "lib_size")
 ){
 	if (method == "default"){
 		mat@x <- mat@x / rep.int(Matrix::colSums(mat), diff(mat@p))
@@ -573,6 +573,8 @@ normCounts.dgCMatrix <- function(
 	} else if (method == "cpm"){
 		mat@x <- mat@x / rep.int(Matrix::colSums(mat), diff(mat@p))
 		mat@x <- log1p(mat@x * 1e6)
+	} else if (method == "lib_size") {
+		mat@x <- mat@x / rep.int(Matrix::colSums(mat), diff(mat@p))
 	} else {
 		stop("Method not found.")
 	}
@@ -590,7 +592,7 @@ normCounts.dgCMatrix <- function(
 #' @export
 normCounts.list <- function(
 	mat.list, 
-	method = c("default", "cpm")
+	method = c("default", "cpm", "lib_size")
 ){
 	mat <- mat.list[["mat"]]
 	scale.fac <- mat.list[["scale.fac"]]
@@ -601,6 +603,8 @@ normCounts.list <- function(
 	} else if (method == "cpm"){
 		mat@x <- mat@x / rep.int(scale.fac, diff(mat@p))
 		mat@x <- log1p(mat@x * 1e6)
+	} else if (method == "lib_size") {
+		mat@x <- mat@x / rep.int(scale.fac, diff(mat@p))
 	} else {
 		stop("Method not found.")
 	}
@@ -620,7 +624,7 @@ normCounts.list <- function(
 #' @export
 normCounts.CytoSignal <- function(
 	object, 
-	method = c("default", "cpm"),
+	method = c("default", "cpm", "lib_size"),
 	slot.use = NULL,
 	velo = FALSE
 ){
