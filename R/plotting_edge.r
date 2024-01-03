@@ -42,7 +42,7 @@ plotEdge <- function(
         plot.fmt = c("png", "pdf", "svg"),
         title = NULL, edge.size = 500, use.shape = 16,
         line.width = 0.01, use.phi = 30, use.theta = -17, z.scaler = 0.03,
-        box = TRUE, z.pt.interval = 1, pt.size = 0.1, pt.stroke = 0.2,
+        box = TRUE, z.pt.interval = 1, pt.size = 0.1, pt.sig.size = NULL, pt.stroke = 0.2,
         width = 5, height = 5, set.res = 300, verbose = TRUE
 ){
     type <- match.arg(type)
@@ -85,7 +85,7 @@ plotEdge <- function(
             cells.loc = cells.loc, type = type, edge.size = edge.size,
             nn.graph.sig = nn.graph.sig, receiver.idx = receiver.idx,
             col.fac = col.fac, res.list = res.list, intr = intr,
-            title = titleIntr,
+            title = titleIntr, pt.sig.size = pt.sig.size, 
             pt.size = pt.size, use.shape = use.shape, line.width = line.width,
             use.phi = use.phi, use.theta = use.theta, box = box,
             z.scaler = z.scaler, z.pt.interval = z.pt.interval,
@@ -130,7 +130,7 @@ plotEdge <- function(
 
 .plotEdgeMatrix <- function(
         cells.loc, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
-        type = c("sender", "receiver"), edge.size = 500,
+        type = c("sender", "receiver"), edge.size = 500, pt.sig.size = NULL,
         title = NULL, pt.size = 0.1, use.shape = 16, line.width = 0.01,
         use.phi = 30, use.theta = -17, z.scaler = 0.03, z.pt.interval = 1,
         pt.stroke = 0.2, box = TRUE
@@ -142,6 +142,14 @@ plotEdge <- function(
     pt.df$col <- as.character(col.fac[rownames(pt.df)])
     # pt.df$group <- "beads"
     # pt.df[res.list[[intr]], "group"] <- "sig"
+
+    if (is.null(pt.sig.size)) {
+        pt.sig.size <- pt.size*2
+    } else if (is.numeric(pt.sig.size)) {
+        pt.sig.size <- pt.sig.size
+    } else {
+        stop("pt.sig.size is not valid!\n")
+    }
 
     x.scale <- max(pt.df$x) - min(pt.df$x)
     y.scale <- max(pt.df$y) - min(pt.df$y)
@@ -221,7 +229,7 @@ plotEdge <- function(
         xlim = xlim, ylim = ylim, zlim = c(-0.01, z.pt.interval + 0.1),
         expand = 0.7, theta = use.theta, phi = use.phi, d = 5,
         colvar = NULL, col = down.df$col, alpha = 1,
-        colkey = FALSE, pch = use.shape, cex = pt.size,
+        colkey = FALSE, pch = use.shape, cex = pt.sig.size,
         main = title, zlab = zlab.use, box = box,
         xlab = "", ylab = "", plot = FALSE
     )
@@ -249,7 +257,7 @@ plotEdge <- function(
     # plot receiver cells
     plot3D::points3D(up.df$x, up.df$y, up.df$z,
                      colvar = NULL, col = up.df$col, alpha = 1,
-                     colkey = FALSE, pch = use.shape, cex = pt.size,
+                     colkey = FALSE, pch = use.shape, cex = pt.sig.size,
                      plot = FALSE, add = TRUE)
 
     # plot non-receiver cells

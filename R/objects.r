@@ -400,6 +400,7 @@ createCytoSignal <- function(
 
 	if (is.null(clusters)) {
 		clusters <- factor(rep(1, ncol(raw.data)))
+		names(clusters) <- colnames(raw.data)
 	}
 	if (is.null(parameters)) {
 		parameters <- list()
