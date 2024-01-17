@@ -4,20 +4,24 @@
 \alias{permuteLR}
 \title{Permute Imputation Results of specific imputation method}
 \usage{
-permuteLR(object, slot.use = NULL, perm.size = 1e+05)
+permuteLR(object, slot.use = NULL, norm.method = "default", perm.size = 1e+05)
 }
 \arguments{
-\item{object}{A Cytosignal object}
+\item{object}{A CytoSignal object with \code{\link{inferLRScore}} run
+beforehand.}
 
-\item{slot.use}{The \code{lrscore} slot to use}
+\item{slot.use}{Which LR score to use. Use the name specified with \code{tag}
+when running \code{\link{inferLRScore}}.}
 
-\item{perm.size}{Size of the permutation test}
+\item{perm.size}{Size of the permutation test. Defult \code{100000}.}
+
+\item{norm.me}{Normalization method. See \code{\link{normCounts}} for detail.}
 }
 \value{
-A Cytosignal object
+A CytoSignal object
 }
 \description{
-This function is a conveninent wrapper of \code{permuteLR.sparse}, which permutes the imputation methods
-from which a given LR score is calculated. Note that all rounds of permutation will use the same
-shuffle and sample index.
+This function permutes the imputation methods from which a given LR score is
+calculated. Note that all rounds of permutation will use the same shuffle and
+sample index.
 }

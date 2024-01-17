@@ -2,17 +2,28 @@
 % Please edit documentation in R/analysis.r
 \name{findNNDT}
 \alias{findNNDT}
+\alias{findNNDT.matrix}
+\alias{findNNDT.CytoSignal}
 \title{Find the direct connected neighbor of each cell, using Delaunay triangulation}
 \usage{
 findNNDT(object, ...)
+
+\method{findNNDT}{matrix}(object, weight.sum = 2, max.r = NULL, ...)
+
+\method{findNNDT}{CytoSignal}(object, weight = 2, max.r = NULL, ...)
 }
 \arguments{
-\item{object}{A Cytosignal object}
+\item{object}{A CytoSignal object or a matrix of cell location.}
+
+\item{...}{Arguments passed to other S3 methods}
 
 \item{weight.sum}{The sum of the weights}
+
+\item{max.r}{The maximum radius of the edges, by default is the r.diffuse.scale,}
 }
 \value{
-A Cytosignal object
+For CytoSignal object, the original object with result updated. For matrix
+object, a list of neighbors.
 }
 \description{
 Find the direct connected neighbor of each cell, using Delaunay triangulation

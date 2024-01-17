@@ -2,19 +2,52 @@
 % Please edit documentation in R/analysis.r
 \name{normCounts}
 \alias{normCounts}
+\alias{normCounts.dgCMatrix}
+\alias{normCounts.CytoSignal}
 \title{Normalize the data using the specified method}
 \usage{
-normCounts(object, ...)
+normCounts(object, method = c("default", "cpm", "lib_size"), ...)
+
+\method{normCounts}{dgCMatrix}(
+  object,
+  scale.fac = colSums(mat),
+  method = c("default", "cpm", "lib_size"),
+  ...
+)
+
+\method{normCounts}{CytoSignal}(
+  object,
+  method = c("default", "cpm", "lib_size"),
+  slot.use = NULL,
+  velo = FALSE,
+  ...
+)
 }
 \arguments{
-\item{object}{A Cytosignal object}
+\item{object}{A CytoSignal object or a dgCMatrix object of imputation data.}
 
-\item{...}{Other parameters}
+\item{method}{The method to use for normalization. \code{"default"}
+normalizes each column by \code{scale.fac}, multiplies each by 1e4 and
+finally takes log1p. \code{"cpm"} does the similar thing but multiples each
+by 1e6. \code{"lib_size"} only normalize by \code{scale.fac}.}
 
-\item{method}{The method to use for normalization}
+\item{...}{Arguments passed to other S3 methods.}
+
+\item{scale.fac}{Numeric vector of length equals to \code{ncol(object)}. For
+CytoSignal method, this is pre-determined.}
+
+\item{slot.use}{The type of neighbors. The \code{tag} used when finding
+nearest neighbors in the upstream step. If not customized, use
+\code{"GauEps"} for NN found with \code{\link{findNNGauEB}}, or use
+\code{"DT"} for NN found with \code{\link{findNNDT}}. Default use the most
+lastly computed NN.}
+
+\item{velo}{Whether to normalize the velocity data instead. Default
+\code{FALSE}.}
 }
 \value{
-A Cytosignal object
+For CytoSignal object, the original object with normalized data
+updated. For dgCMatrix object, the normalized version of it.
 }
 \description{
 Normalize the data using the specified method

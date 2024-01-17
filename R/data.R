@@ -1,0 +1,37 @@
+#' Interaction database derived from CellphoneDB V2
+#' @rdname database
+#' @description
+#' The referencing database that contains the list of curated interactions, the
+#' meta-information of each interaction, the ligand and receptor of each
+#' interaction, the protein components of both part of each interaction. The
+#' protein components are presented with UNIPROT ID, so we also provide
+#' \code{\link{g_to_u}} that maps UNIPROT ID to gene names.
+#' @format \code{db.diff} and \code{db.cont} are lists of factor objects.
+#' \code{db.diff} is for diffusion dependent interactions and \code{db.cont} is
+#' for contact dependent interactions. Both lists have the following three
+#' entries of the same format:
+#' \itemize{
+#' \item{\code{$ligands} - A factor object where the values are IDs of
+#' interactions and names are UNIPROT IDs of the ligand protein components that
+#' match to the interaction.}
+#' \item{\code{$receptors} - A factor object of the same format as
+#' \code{$ligands} but for the receptor part of the interactions.}
+#' \item{\code{$combined} - The concatenation of the two factors above.}
+#' }
+#'
+#' \code{inter.index} is a data.frame object with the meta-information of each
+#' interaction.
+#'
+#' \code{g_to_u} is a data.frame object that map gene names to UNIPROT ID of
+#' their protein product.
+#' @source CellphoneDB V2
+"db.diff"
+
+#' @rdname database
+"db.cont"
+
+#' @rdname database
+"inter.index"
+
+#' @rdname database
+"g_to_u"

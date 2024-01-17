@@ -3,3 +3,5 @@ cytosignal.Rproj
 src/*.o
 src/*.so
 .vscode/*
+/doc/
+/Meta/

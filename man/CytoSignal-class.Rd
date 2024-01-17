@@ -6,36 +6,34 @@
 \alias{CytoSignal}
 \title{The CytoSignal Class}
 \description{
-The CytoSignal object is created from one ST dataset. To construct a
-CytoSignal object, the user needs to provide both DGE and cell locations. The class provides functions for data
-preprocessing, integrative analysis, and visualization.
-}
-\details{
-The key slots used in the CytoSignal object are described below.
+The CytoSignal object is created from one spatial transcriptomic dataset. A
+CytoSignal object can be created with \code{\link{createCytoSignal}}.
 }
 \section{Slots}{
 
 \describe{
-\item{\code{counts}}{raw dge, gene x cell}
+\item{\code{counts}}{Raw gene expression count matrix, sparse dgCMatrix, gene x cell.}
 
-\item{\code{cell.loc}}{matrix of cell locations}
+\item{\code{cell.loc}}{Matrix of cell locations, cell by axis.}
 
-\item{\code{clusters}}{cluster assignments}
+\item{\code{clusters}}{cluster assignments, named factor.}
 
-\item{\code{imputation}}{list of imputation objs}
+\item{\code{imputation}}{List of imputation objects.}
 
-\item{\code{lrscore}}{list of lrScore objs}
+\item{\code{lrscore}}{List of lrScore objects.}
 
-\item{\code{velo}}{list of velo objs}
+\item{\code{velo}}{List of velo objects.}
 
-\item{\code{intr.valid}}{list of intr database}
+\item{\code{intr.valid}}{List of interaction database. Added with
+\code{\link{addIntrDB}}.}
 
-\item{\code{cell.data}}{data frame of cell data}
+\item{\code{cell.data}}{data.frame of cell data.}
 
 \item{\code{parameters}}{List of parameters for gaussian imputation}
 
 \item{\code{log}}{Log of each main steps}
 
-\item{\code{version}}{Version of package used to create object}
+\item{\code{version}}{Version of package used to create object. Should not be
+modified by users.}
 }}
 

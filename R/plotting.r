@@ -453,8 +453,10 @@ plotIntrValue <- function(
 
 #' Plot significant interactions ranked by the user-specified metric
 #' @param object A cytosignal object
-#' @param intr,intr.rank Specify interactions to be plotted. \code{intr} for
-#' names \code{intr.rank} for numeric index.
+#' @param intr Specify interactions to be plotted. A vector of either the unique
+#' ID of interactions or the numeric indices. Available IDs can be shown with
+#' \code{showIntr(object)}. Availability of an interaction depends on the
+#' LRscore slot to be used as well as the significance metric to be used.
 #' @param edge,velo Logical, whether to plot edge or velocity, respectively.
 #' @param slot.use The LRscore slot to use for plotting
 #' @param signif.use The metric used to rank the interactions, by default "result.hq.pear"
@@ -473,7 +475,6 @@ plotIntrValue <- function(
 plotSignif2 <- function(
         object,
         intr,
-        intr.rank,
         edge = FALSE,
         velo = FALSE,
         slot.use = NULL,
@@ -488,18 +489,15 @@ plotSignif2 <- function(
         resolution = 300,
         verbose = FALSE
 ) {
-    if ( (m.intr <- missing(intr)) + (m.intr.rank <- missing(intr.rank)) != 1) {
-        stop("Either intr or intr.rank should be provided, but not both.")
-    }
-    if (m.intr) {
-        intr <- getCPIs(object, intr.rank, slot.use = slot.use,
-                                 signif.use = signif.use)
-        intrRanks <- intr.rank
-        names(intrRanks) <- intr
-    } else {
+    if (is.numeric(intr)) {
+        intrRanks <- intr
+        intr <- getCPIs(object, intrRanks, slot.use = slot.use,
+                        signif.use = signif.use)
+    } else if (is.character(intr)) {
         intrRanks <- getIntrRanks(object, intr, slot.use = slot.use,
-                            signif.use = signif.use)
+                                  signif.use = signif.use)
     }
+    names(intrRanks) <- intr
 
     # check before plotting to avoid wasting time
     if (isTRUE(velo)) {
@@ -581,14 +579,11 @@ plotSignif2 <- function(
                           pt.stroke = pt.stroke)
     clustLegend <- cowplot::get_legend(pclust)
     if (!dir.exists(plot_dir)) dir.create(plot_dir)
-    cat("Now plotting INTRs: ")
+    message("Now plotting for interactions: ", appendLF = FALSE)
     for (intrx in intr) {
         intrName <- getIntrNames(object, intrx)
-        cat(paste0(intrName, ", "))
+        message(intrName, ", ", appendLF = FALSE)
 
-        if (isFALSE(return.plot)) {
-
-        }
         gglist <- ggs[[intrName]]
         main <- cowplot::plot_grid(
             grid::textGrob(getLigandNames(object, intrx),
@@ -686,7 +681,7 @@ plotSignif2 <- function(
             }
         }
     }
-    cat("Finished!\n")
+    message("Finished!")
     if (isFALSE(return.plot)) return(invisible())
     else return(plotList)
 }

@@ -4,10 +4,16 @@
 \alias{inferSpatialCorr}
 \title{Infer the correspondence between LR-scores and Significance}
 \usage{
-inferSpatialCorr(object, correctBy = c("cell", "intr"), slot.use = NULL, ...)
+inferSpatialCorr(object, correctBy = c("cell", "intr"), slot.use = NULL)
 }
 \arguments{
 \item{object}{A Cytosignal object}
+
+\item{correctBy}{Spatial FDR correction method. Choose from \code{"cell"} or
+\code{"intr"}.}
+
+\item{slot.use}{Which LR score to use. Use the name specified with \code{tag}
+when running \code{\link{inferLRScore}}.}
 }
 \value{
 A Cytosignal object

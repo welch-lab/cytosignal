@@ -2,9 +2,15 @@
 % Please edit documentation in R/LRscores.r
 \name{inferScoreLR}
 \alias{inferScoreLR}
-\title{Compute the LR score for specific ligand-receptor imputation obj pairs}
+\title{Compute the LR score for specific ligand-receptor imputation pairs}
 \usage{
-inferScoreLR(object, ...)
+inferScoreLR(
+  object,
+  lig.slot,
+  recep.slot,
+  intr.db.name,
+  tag = paste0(lig.slot, "-", recep.slot)
+)
 }
 \arguments{
 \item{object}{A Cytosignal object}
@@ -15,11 +21,13 @@ inferScoreLR(object, ...)
 
 \item{intr.db.name}{The intr database name to use}
 
-\item{nn.use}{The neighbor index as niche}
+\item{nn.use}{slot that the neighbor index should be taken from, by default is the same as
+the recep.slot. For example, if score.obj = GauEps-DT, then nn.use = "DT".
+nn.use could also be a user-defind factor.}
 }
 \value{
 A Cytosignal object
 }
 \description{
-Compute the LR score for specific ligand-receptor imputation obj pairs
+Compute the LR score for specific ligand-receptor imputation pairs
 }

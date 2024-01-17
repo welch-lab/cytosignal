@@ -4,7 +4,7 @@
 \alias{showIntr}
 \title{show method for CytoSignal}
 \usage{
-showIntr(object, slot.use = NULL, signif.use = NULL)
+showIntr(object, slot.use = NULL, signif.use = NULL, return.name = FALSE)
 }
 \arguments{
 \item{object}{CytoSignal object}
@@ -12,6 +12,16 @@ showIntr(object, slot.use = NULL, signif.use = NULL)
 \item{slot.use}{slot to use}
 
 \item{signif.use}{Significance level to use for plotting}
+
+\item{return.name}{Whether to return interaction name that comes with the
+form of "ligand-receptor", instead of showing the unique IDs.
+Default \code{FALSE}.}
+}
+\value{
+By default, character vector of unique IDs of the interactions
+available to the specified slots. When \code{return.name = TRUE}, a named
+character vector where the names are the IDs and the values are interaction
+names with the form of "ligand-receptor".
 }
 \description{
 show method for CytoSignal

@@ -7,7 +7,6 @@
 plotSignif2(
   object,
   intr,
-  intr.rank,
   edge = FALSE,
   velo = FALSE,
   slot.use = NULL,
@@ -18,15 +17,18 @@ plotSignif2(
   return.plot = FALSE,
   plot_dir = "csSignifPlot/",
   plot.fmt = c("png", "pdf", "svg"),
-  resolution = 200,
+  raster = NULL,
+  resolution = 300,
   verbose = FALSE
 )
 }
 \arguments{
 \item{object}{A cytosignal object}
 
-\item{intr, intr.rank}{Specify interactions to be plotted. \code{intr} for
-names \code{intr.rank} for numeric index.}
+\item{intr}{Specify interactions to be plotted. A vector of either the unique
+ID of interactions or the numeric indices. Available IDs can be shown with
+\code{showIntr(object)}. Availability of an interaction depends on the
+LRscore slot to be used as well as the significance metric to be used.}
 
 \item{edge, velo}{Logical, whether to plot edge or velocity, respectively.}
 

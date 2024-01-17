@@ -4,7 +4,7 @@
 \alias{purgeBeforeSave}
 \title{Remove imputed data and normalized imputed data from CytoSignal object to save disk space}
 \usage{
-purgeBeforeSave(object, purge.raw = T, purge.null = F)
+purgeBeforeSave(object, purge.raw = TRUE, purge.null = FALSE)
 }
 \arguments{
 \item{object}{CytoSignal object}

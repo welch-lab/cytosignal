@@ -2,22 +2,45 @@
 % Please edit documentation in R/analysis.r
 \name{findNNGauEB}
 \alias{findNNGauEB}
-\title{Find the neighbors of each cell in the epsilon ball}
+\alias{findNNGauEB.matrix}
+\alias{findNNGauEB.CytoSignal}
+\title{Find the neighbors of each cell in the Epsilon Ball}
 \usage{
-findNNGauEB(object, ...)
+findNNGauEB(object, eps = NULL, sigma = NULL, self.weight = "auto", ...)
+
+\method{findNNGauEB}{matrix}(object, eps, sigma = 0.15, self.weight = "auto", ...)
+
+\method{findNNGauEB}{CytoSignal}(
+  object,
+  eps = NULL,
+  sigma = NULL,
+  self.weight = "auto",
+  tag = NULL,
+  ...
+)
 }
 \arguments{
-\item{object}{A Cytosignal object}
+\item{object}{A CytoSignal object or a matrix object for the cell spatial
+location.}
 
-\item{eps}{The radius of the epsilon ball}
+\item{eps}{The radius of the epsilon ball. For CytoSignal object, by default
+use parameter inferred with \code{\link{inferEpsParams}}.}
 
-\item{sigma}{The sigma of the Gaussian kernel}
+\item{sigma}{The sigma of the Gaussian kernel. Default \code{0.15} for matrix
+method. For CytoSignal object, by default use parameter inferred with
+\code{\link{inferEpsParams}}.}
 
-\item{self.weight}{weight of the index cell}
+\item{self.weight}{weight of the index cell. Use a number between 0-1, or
+choose from \code{"auto"} or \code{"sum_1"}.}
+
+\item{...}{Arguments passed to other S3 methods.}
+
+\item{tag}{Name prefix of the analysis.}
 }
 \value{
-A list of neighbors and their distances
+For CytoSignal object, the orignal object with result updated. For
+matrix object, a list of neighbors and their distances.
 }
 \description{
-Find the neighbors of each cell in the epsilon ball
+Find the neighbors of each cell in the Epsilon Ball
 }

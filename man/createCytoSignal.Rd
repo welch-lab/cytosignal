@@ -10,8 +10,7 @@ createCytoSignal(
   clusters = NULL,
   name = NULL,
   parameters = NULL,
-  log = NULL,
-  version = NULL
+  log = NULL
 )
 }
 \arguments{
@@ -26,8 +25,6 @@ createCytoSignal(
 \item{parameters}{parameters used}
 
 \item{log}{log of the processing}
-
-\item{version}{version of the package}
 }
 \value{
 a CytoSignal object

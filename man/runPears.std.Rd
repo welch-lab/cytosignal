@@ -16,7 +16,8 @@ runPears.std(object, k = 10, weight = 2, score.slot = NULL)
 
 \item{weight}{The weight of the nearest neighbors}
 
-\item{score.slot}{The slot name of the lrscore obj to use}
+\item{score.slot}{Which LR score to use. Use the name specified with \code{tag}
+when running \code{\link{inferLRScore}}.}
 }
 \value{
 A Cytosignal object

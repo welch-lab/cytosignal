@@ -2,20 +2,51 @@
 % Please edit documentation in R/analysis.r
 \name{imputeNiche}
 \alias{imputeNiche}
-\title{Impute the data using the specified method}
+\alias{imputeNiche.dgCMatrix}
+\alias{imputeNiche.CytoSignal}
+\title{Impute the data}
 \usage{
-imputeNiche(object, ...)
+imputeNiche(object, weights = c("mean", "counts", "dist", "none"), ...)
+
+\method{imputeNiche}{dgCMatrix}(
+  object,
+  nb.id.fac,
+  nb.dist.fac,
+  weights = c("mean", "counts", "dist", "none"),
+  ...
+)
+
+\method{imputeNiche}{CytoSignal}(
+  object,
+  nn.type = NULL,
+  weights = c("mean", "counts", "dist", "none"),
+  ...
+)
 }
 \arguments{
-\item{object}{A Cytosignal object}
+\item{object}{A Cytosignal object or a dgCMatrix object of raw gene
+expression matrix}
 
-\item{...}{Other parameters}
+\item{weights}{The weight of the Delaunay triangulation. Choose from
+\code{"mean"}, \code{"counts"}, \code{"dist"} or \code{"none"}.}
 
-\item{method}{The method to use for imputation}
+\item{...}{Arguments passed to other S3 methods}
+
+\item{nb.id.fac}{A factor of neighbors}
+
+\item{nb.dist.fac}{A factor of weights}
+
+\item{nn.type}{The type of neighbors. The \code{tag} used when finding
+nearest neighbors in the upstream step. If not customized, use
+\code{"GauEps"} for NN found with \code{\link{findNNGauEB}}, or use
+\code{"DT"} for NN found with \code{\link{findNNDT}}. Default use the most
+lastly computed NN.}
 }
 \value{
-A Cytosignal object
+For CytoSignal object, the original object with imputation result
+updated. For dgCMatrix object, a sparse N x N graph presented as another
+dgCMatrix object.
 }
 \description{
-Impute the data using the specified method
+Impute the data
 }

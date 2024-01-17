@@ -2,20 +2,31 @@
 % Please edit documentation in R/objects.r
 \name{changeUniprot}
 \alias{changeUniprot}
-\title{Subset the imputed data (intr.data) by the specified intr index}
+\alias{changeUniprot.matrix_like}
+\alias{changeUniprot.CytoSignal}
+\title{Subset gene expression matrix according to availability in the UNIPROT
+database.}
 \usage{
 changeUniprot(object, ...)
+
+\method{changeUniprot}{matrix_like}(object, gene_to_uniprot, verbose = TRUE, ...)
+
+\method{changeUniprot}{CytoSignal}(object, verbose = TRUE, ...)
 }
 \arguments{
-\item{object}{A Cytosignal object}
+\item{object}{A CytoSignal object or a matrix.}
 
-\item{intr.index}{The intr index to use for subsetting}
+\item{...}{Parameters passed to S3 methods.}
 
-\item{slot.use}{The slot to use for subsetting}
+\item{gene_to_uniprot}{Please use \code{\link{g_to_u}}.}
+
+\item{verbose}{Whether to show information of the progress.}
 }
 \value{
-A Cytosignal object
+CytoSignal object with subset matrix updated in \code{counts} slot,
+or the subset matrix.
 }
 \description{
-Subset the imputed data (intr.data) by the specified intr index
+Subset genes to those available in \code{\link{g_to_u}}, the gene name to
+UNIPROT ID databse provided with \code{\link{addIntrDB}}
 }

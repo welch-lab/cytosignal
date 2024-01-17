@@ -9,7 +9,8 @@ inferNullScoreLR(object, slot.use = NULL)
 \arguments{
 \item{object}{A Cytosignal object}
 
-\item{nn.type}{The imputation method to use}
+\item{slot.use}{Which LR score to use. Use the name specified with \code{tag}
+when running \code{\link{inferLRScore}}.}
 }
 \value{
 A Cytosignal object

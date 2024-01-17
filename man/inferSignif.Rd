@@ -4,31 +4,41 @@
 \alias{inferSignif}
 \title{Infer significance of LR scores}
 \usage{
-inferSignif(object, ...)
+inferSignif(
+  object,
+  correctBy = c("cell", "intr"),
+  p.value = 0.05,
+  reads.thresh = 100,
+  sig.thresh = 100,
+  slot.use = NULL,
+  nn.use = NULL
+)
 }
 \arguments{
 \item{object}{A Cytosignal object}
 
-\item{...}{Other arguments}
+\item{correctBy}{Spatial FDR correction method. Choose from \code{"cell"} or
+\code{"intr"}.}
 
-\item{lrscore.mtx}{A matrix of LR scores}
+\item{p.value}{A numeric value of p-value threshold}
 
-\item{null.lrscore.mtx}{A matrix of NULL LR scores}
+\item{reads.thresh}{The minimum number of reads for a ligand-receptor
+interaction to be considered.}
 
-\item{nb.fac}{A factor of nearest neighbors index}
+\item{sig.thresh}{The minimum number of beads for a ligand-receptor
+interaction to be considered.}
 
-\item{intr.db}{A interaction database}
+\item{slot.use}{Which LR score to use. Use the name specified with \code{tag}
+when running \code{\link{inferLRScore}}.}
 
-\item{gene_to_uniprot}{A dataframe of gene to uniprot mapping}
-
-\item{p.thresh}{A numeric value of p-value threshold}
-
-\item{reads.thresh}{A numeric value of reads threshold}
-
-\item{sig.thresh}{A numeric value of significance threshold}
+\item{nn.use}{Which imputation to use. Default the imputation used for
+deriving the LRScore specified with \code{slot.use}. Use the name specified
+with \code{tag} when running \code{\link{findNNGauEB}}; use \code{"DT"} for
+imputation produced with \code{\link{findNNDT}}; or use \code{"Raw"} for
+imputation produced with \code{\link{findNNRaw}}.}
 }
 \value{
-A list of indexes of significant cells
+A Cytosignal object
 }
 \description{
 Infer significance of LR scores

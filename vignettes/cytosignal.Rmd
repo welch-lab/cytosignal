@@ -1,0 +1,286 @@
+---
+title: "Infer cell-cell communication in spatial at single-cell level"
+author: "Jialin Liu, Yichen Wang"
+date: "2024-01-03"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      toc_collapsed: false
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{Infer cell-cell communication at single-cell level}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Introduction
+
+CytoSignal detects cell-cell signaling from spatial transcriptomics data at single-cell resolution. CytoSignal performs a nonparametric statistical test to identify which cells within a tissue have significant activity for a particular signaling interaction. CytoSignal considers multi-component interactions and separately models interactions mediated by diffusion vs. contact-dependent molecules.
+
+## Example data
+
+We use Slide-tags snRNA-seq data on mouse embryonic E14 brain for this tutorial. It is publicly available on Single-Cell Portal via [SCP2170](https://singlecell.broadinstitute.org/single_cell/study/SCP2170/slide-tags-snrna-seq-on-mouse-embryonic-e14-brain), originally produced in the work of [Andrew J. C. Russell et al., 2023](https://doi.org/10.1101/2023.04.01.535228). We provide the following pre-cleaned data that can be easily loaded into user R environment at [figshare](https://figshare.com/articles/dataset/CytoSignal_example_dataset/24938868). 
+
+- Raw gene expression count matrix: [SCP2170_annotated_dgCMatrix.rds](https://figshare.com/ndownloader/files/43898937), 26,944 genes by 4623 nuclei)
+- Corresponding cluster annotation: [SCP2170_cluster.csv](https://figshare.com/ndownloader/files/43898934)
+- Spatial location: [SCP2170_spatial.csv](https://figshare.com/ndownloader/files/43898931)
+
+
+```{r download, include=FALSE}
+if (!file.exists("SCP2170_annotated_dgCMatrix.rds")) {
+    download.file("https://figshare.com/ndownloader/files/43898937",
+                  "SCP2170_annotated_dgCMatrix.rds")
+}
+if (!file.exists("SCP2170_cluster.csv")) {
+    download.file("https://figshare.com/ndownloader/files/43898934",
+                  "SCP2170_cluster.csv")
+}
+if (!file.exists("SCP2170_spatial.csv")) {
+    download.file("https://figshare.com/ndownloader/files/43898931",
+                  "SCP2170_spatial.csv")
+}
+```
+
+## Create CytoSignal object
+
+### Loading example data
+
+Download the files listed above from the provided link, into a desired local directory. The code chunk below assumes that users have the files placed at the current working directory (as can be shown by `getwd()`).
+
+Then load the data into R environment. Some preparation needs to be done meanwhile in order to properly load them into a CytoSignal object later. 
+
+```{r load}
+## The RDS file will be loaded into a ready-to-use object
+dge <- readRDS("SCP2170_annotated_dgCMatrix.rds")
+
+## The cluster annotation need to be presented as a factor object
+cluster <- read.csv("SCP2170_cluster.csv")
+cluster <- factor(cluster$cell_type)
+names(cluster) <- colnames(dge)
+
+## The spatial coordinates need to be presented as a matrix object
+spatial <- as.matrix(read.csv("SCP2170_spatial.csv", row.names = 1))
+## Please make sure that the dimension names are lower case "x" and "y"
+colnames(spatial) <- c("x", "y")
+```
+
+Then a CytoSignal object can be created with the following command.
+
+```{r createObj}
+library(cytosignal)
+
+cs <- createCytoSignal(raw.data = dge, cells.loc = spatial, clusters = cluster)
+```
+
+### Database
+
+We prepared our database based on CellphoneDB V2. The database is delivered together with the CytoSignal package and simply running the command below can load it into the object. 
+
+```{r loadDB}
+cs <- addIntrDB(cs, g_to_u, db.diff, db.cont, inter.index)
+```
+
+## Preprocessing
+
+We remove low-quality cells and genes and also keep only genes available to the interaction databse.
+
+```{r qc}
+cs <- removeLowQuality(cs, counts.thresh = 300)
+cs <- changeUniprot(cs)
+```
+
+The function `suggestInterval()` recommends the top five closest distances between cells. For stereo-seq data, the interval between the two neighboring should be exactly 1. If the top few intervals suggested are not 1, then there might be something wrong in the preprocessing step.
+
+```{r suggestInterval, results=TRUE}
+suggestInterval(cs)
+```
+
+## Imputation
+
+TEXT THAT EXPLAINS WHAT THIS IMPUTATION STEP IS FOR. BREIFLY TALK ABOUT WHY AND HOW WE ARE DOING DIFFUSIBLE AND CONTACT DEPENDENT SEPARATELY.
+
+### Gaussian kernel + Epsilon Ball for diffusible ligands
+
+TEXT THAT EXPLAINS WHY USING GAUSSIAN KERNEL FOR DIFFUSIBLE LIGANDS.
+
+Before imputing, we use the function `inferEpsParams()` to infer the epsilon parameter for the Gaussian kernel, which will be used later for imputing the expression of diffusible ligands.
+
+```{r inferEps, results}
+cs <- inferEpsParams(cs, tech.res = 0.5, bin_size = 50, loc.d = 1, thresh = 1e-9)
+```
+
+Optionally, the inferred parameters can be accessed as shown below.
+
+```{r showSigma, results=TRUE}
+cs@parameters$r.diffuse.scale
+cs@parameters$sigma.scale
+```
+
+With the parameters inferred, we can then find the nearest neighbors within a 200 um radius of each cell, together with the weights for each neighbor calculated through Gaussian kernel.
+
+```{r imputeGaussian}
+# calculated through Gaussian kernel
+cs <- findNNGauEB(cs, self.weight = 1)
+# Impute the expression of diffusible ligands
+cs <- imputeNiche(cs, nn.type = "GauEps", weights = "none")
+# Normalize the imputed expression. Defualt normalization method is 10000*log1p(x)
+cs <- normCounts(cs, "default")
+```
+
+Optionally, the imputation result can be viewed as shown below.
+
+```{r showImp, results=TRUE}
+showImp(cs)
+```
+
+### Impute with Delaunay Triangulation Neighbors for contact dependent ligands
+
+TEXT THAT EXPLAINS WHY USING DT NEIGHBORS FOR CONTACT DEPENDENT LIGANDS
+
+With Delaunay Triangulation (DT) neighbors, we detect the directly connected neighbors of each cell. 
+
+```{r findNNDT}
+cs <- findNNDT(cs)
+# Impute the expression of receptors
+cs <- imputeNiche(cs, nn.type = "DT", weights = "none")
+# Normalize the imputed expression. Defualt normalization method is 10000*log1p(x)
+cs <- normCounts(cs, "default")
+```
+
+Similarly, the imputation result can be viewed as shown below.
+
+```{r showImpDT, eval=FALSE}
+showImp(cs)
+```
+
+### Dummy imputation for receptors
+
+WHAT IS THIS?
+
+```{r findNNRaw}
+# Create a dummy imputation using the raw data
+cs <- findNNRaw(cs)
+# Normalize the imputed expression. Defualt normalization method is 10000*log1p(x)
+cs <- normCounts(cs, "default")
+```
+
+Similarly, the imputation result can be viewed as shown below.
+
+```{r showImpRaw, eval=FALSE}
+showImp(cs)
+```
+
+## Calculating LR Scores
+
+LR Score is defined for each cell and measures the signaling interaction strength. Generally, we first calculate the LR score with the imputation derived from the previous steps, and then we perform the permutation test to calculate the null distribution of the imputed ligands and receptors. Next, we calculate a one-sided p-value for the null hypothesis that the signal strength observed for a particular cell is no larger than expected based on the ligand and receptor expression level within the tissue. To control for multiple hypothesis testing and potential biases caused by cellular density differences, we further perform spatial false discovery rate correction. The output of CytoSignal is a test statistic $S$ and adjusted p-value for each signaling interaction within each cell in the tissue. Finally, cells with significant signaling activity can be identified by setting a significance level such as $\alpha=0.05$.
+
+### Diffusible ligands and receptors
+
+```{r diff}
+# Calculate the ligand-receptor scores for diffusible ligands and raw receptors
+cs <- inferScoreLR(cs, lig.slot = "GauEps", recep.slot = "Raw", intr.db.name = "diff_dep")
+# Permutation test to calculate the null distribution of the imputed ligands and receptors
+cs <- permuteLR(cs, slot.use = "GauEps-Raw")
+# Calculate the null distribution of the ligand-receptor scores
+cs <- inferNullScoreLR(cs, slot.use = "GauEps-Raw")
+# Infer the significant ligand-receptor interactions by comparing real scores with the null distribution
+cs <- inferSignif(cs, p.value = 0.05, slot.use = "GauEps-Raw", 
+                  reads.thresh = 100, sig.thresh = 100)
+
+
+# Order the significant interactions by running a modified version of the 
+# pearson correlation test
+cs <- runPears.std(cs, k = 10, score.slot = "GauEps-Raw")
+# Order the significant interactions by: Min-max the LRscores, 
+# substract the significant ones, sum and average
+cs <- inferCorrScore(cs, slot.use = "GauEps-Raw")
+```
+
+`reads.thresh` is the minimum number of reads for a ligand-receptor interaction to be considered. `sig.thresh` is the minimum number of beads for a ligand-receptor interaction to be considered. The three thresholds can be changed arbitrarily if the number of the significant beads is too large or too small. 
+
+### Contact dependent ligands and receptors
+
+```{r cont}
+cs <- inferScoreLR(cs, lig.slot = "DT", recep.slot = "Raw", intr.db.name = "cont_dep")
+cs <- permuteLR(cs, slot.use = "DT-Raw")
+cs <- inferNullScoreLR(cs, slot.use = "DT-Raw")
+
+cs <- inferSignif(cs, slot.use = "DT-Raw", p.value = 0.05, reads.thresh = 100, sig.thresh = 100)
+cs <- runPears.std(cs, k = 10, score.slot = "DT-Raw")
+cs <- inferCorrScore(cs, slot.use = "DT-Raw")
+```
+
+Similarly, the thresholding parameters `reads.thresh`, `sig.thresh` and `p.value` could be arbitrarily tweaked.
+
+
+## Visualizing individual interactions
+
+With all the necessary inference performed, now we show the visualization methods for exploring and understanding the analysis. This part shows visualization methods that applies to individual interactions.
+
+Most of the functions shown here understand the interaction specification with two arguments: `intr` and `slot.use`. Users can first show a list of significant interactions that is available for visualization with `showIntr()`.
+
+```{r showIntr, results=TRUE}
+# Show significant diffusible interaction IDs associated with interaction names
+showIntr(cs, slot.use = "GauEps-Raw", return.name = TRUE)
+```
+
+Using `return.name = TRUE` here allows showing the unique IDs and interaction name, in a form of "ligand-receptor", at the same time, so things can be more interpretable. Note that, the list of available interactions varies for different LRscore inferences. For listing significant interactions with diffusible ligands, most of the time we have `slot.use = "GauEps-Raw"` if users did the LRscore inference with default setting. Similarly, for finding the significant contact dependent interactions, we need to set `slot.use = "DT-Raw"` if everything above went with default. 
+
+In the plotting functions we show next, users need to specify the unique ID(s) of interests and the LRscore slot, where the interaction is found, at the same time. This is for ensuring that the correct result is captured when multiple inferences with parameter tweaks are performed for the same type of interactions.
+
+### Significance plot
+
+We provide function `plotSignif2()` for making a general combination figure that shows the imputed expression values of the ligand and receptor, the original raw expression values of the ligand and receptor, the inferred LRscore of an interaction of interests, and a cluster label plot. General graphical setting can be found in the documentation of the function (`?plotSignif2`). 
+
+```{r signif, fig.width=9, fig.height=6}
+plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE)
+```
+
+**Recommended:** In a more exploratory scenario, users can also do using numeric index with `intr` and turn to `return.plot = FALSE` (default). This way, a bunch of significance plot of high resolution can be stored on device and be browsed more easily. We also recommend doing this for both contact-dependent interactions and diffusion-dependent interactions.
+
+```{r plotsignif2, eval=FALSE}
+# For diffusion dependent interactions
+## Choose a level of significance metric
+signif.use <- "result.hq.corr"
+lrscore.slot <- "GauEps-Raw"
+plot_dir <- paste0("path_to_result/diff-dep_", signif.use, "_", lrscore.slot, "/")
+plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+
+# For contact dependent interactions
+## Choose a level of significance metric
+signif.use <- "result.hq.corr"
+lrscore.slot <- "DT-Raw"
+plot_dir <- paste0("path_to_result/cont-dep_", signif.use, "_", lrscore.slot, "/")
+plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+```
+
+
+### Edge plots
+
+We developed a way to show the connectivity of an interaction with single-cell resolution. The plot comes with two layers of scatter plot of cells placed at the top and bottom of a 3D box space, for labeling the receivers and senders, respectively. In each layer, we use low transparency to highlight the cells that is sending or receiving the signal of the specified interaction. Cells are colored by cluster at the mean time. Finally, we bring lines that connect the senders with their corresponding tentative receivers, which are the edges. 
+
+```{r plotEdge}
+plotEdge(cs, "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw")
+```
+
+For the cluster annotation legend, users can simply use `plotCluster()` for reference.
+
+```{r plotCluster}
+plotCluster(cs)
+```
+
+A panel of edge plot can be added to the significance plot combination with setting `edge = TRUE`. So it is already together with the cluster legend there.
+
+```{r plotSignifEdge, fig.width=14, fig.height=6}
+plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE,
+            edge = TRUE)
+```
+
+### Velo plots
+
+The example dataset provided does not have any velocity information available lol.

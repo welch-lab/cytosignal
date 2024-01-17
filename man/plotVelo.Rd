@@ -27,6 +27,7 @@ plotVelo(
   use.phi = 30,
   use.theta = -17,
   box = TRUE,
+  axis.arrow.len = 1,
   width = 6,
   height = 6,
   set.res = 300,
@@ -65,6 +66,10 @@ plotVelo(
 \item{use.phi}{Set view angel: phi the colatitude. Default 30}
 
 \item{use.theta}{Set view angel: theta gives the azimuthal direction. Default -17}
+
+\item{box}{Whether to show a box panel for the 3D region. Default TRUE}
+
+\item{axis.arrow.len}{When box = FALSE, set the length of the axis arrows.}
 
 \item{width}{Width of the plot. Default 6}
 
