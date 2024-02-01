@@ -4,18 +4,12 @@
 \alias{imputeNicheVelo.CytoSignal}
 \title{Sub function for imputeNicheVelo, input a Cytosignal object}
 \usage{
-\method{imputeNicheVelo}{CytoSignal}(
-  object,
-  nn.type = NULL,
-  weights = c("mean", "counts", "dist", "none")
-)
+\method{imputeNicheVelo}{CytoSignal}(object, nn.type = NULL)
 }
 \arguments{
 \item{object}{A Cytosignal object}
 
 \item{nn.type}{The type of neighbors}
-
-\item{weights}{The weight of the Delaunay triangulation}
 }
 \value{
 A Cytosignal object

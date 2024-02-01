@@ -482,7 +482,6 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
   dge.raw.filter <- object@raw.counts
   cells.loc <- object@cells.loc
   lib.size <- colSums(dge.raw.filter)
-  object@parameters[["lib.size"]] <- lib.size
 
   keep.cell <- lib.size > counts.thresh
   text1 <- ifelse(sum(keep.cell) == ncol(dge.raw.filter),
@@ -505,6 +504,7 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
   object@clusters <- object@clusters[colnames(dge.raw.filter), drop = TRUE]
   object@cells.loc <- cells.loc
   object@raw.counts <- dge.raw.filter
+  object@parameters[["lib.size"]] <- lib.size[keep.cell]
 
   log_text = c(
     paste0("Cell count threshold: ", counts.thresh),

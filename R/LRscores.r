@@ -69,8 +69,11 @@ inferScoreLR <- function(
   message("Computing LR-scores using ", intr.db.name, " database.")
   message("Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
 
-  dge.lig <- object@imputation[[lig.slot]]@imp.data
-  dge.recep <- object@imputation[[recep.slot]]@imp.data
+  # normalize using default method, normCount has been revised to internal function
+  # dge.lig <- object@imputation[[lig.slot]]@imp.data
+  # dge.recep <- object@imputation[[recep.slot]]@imp.data
+  dge.lig <- normCounts(object, method = "default", slot.use = lig.slot)
+  dge.recep <- normCounts(object, method = "default", slot.use = recep.slot)
 
   #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
   message("Comfirming niche index...")

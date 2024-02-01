@@ -4,7 +4,14 @@
 \alias{inferVeloLR.CytoSignal}
 \title{Sub function for inferVeloLR, input a CytoSignal object}
 \usage{
-\method{inferVeloLR}{CytoSignal}(object, lig.slot, recep.slot, intr.db.name, tag = NULL)
+\method{inferVeloLR}{CytoSignal}(
+  object,
+  lig.slot,
+  recep.slot,
+  intr.db.name,
+  norm.method = "scanpy",
+  tag = NULL
+)
 }
 \arguments{
 \item{object}{A Cytosignal object}
@@ -14,6 +21,9 @@
 \item{recep.slot}{The receptor slot to use}
 
 \item{intr.db.name}{The intr database name to use}
+
+\item{norm.method}{The normalization method to apply to the counts, need to be consistent with the
+normalization method used for the RNA velocity method. Default is "scanpy".}
 
 \item{nn.use}{slot that the neighbor index should be taken from, by default is the same as
 the recep.slot. For example, if velo.obj = GauEps-DT, then nn.use = "DT".

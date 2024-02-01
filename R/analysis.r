@@ -530,53 +530,60 @@ imputeNiche.CytoSignal <- function(
 #' @param ... Arguments passed to other S3 methods.
 #' @return For CytoSignal object, the original object with normalized data
 #' updated. For dgCMatrix object, the normalized version of it.
-#' @export
 #'
 normCounts <- function(
     object,
-    method = c("default", "cpm", "lib_size"),
+    method = c("default", "cpm", "none", "scanpy"),
     ...
 ) {
   UseMethod(generic = 'normCounts', object = object)
 }
 
 #' @rdname normCounts
-#' @export
 #' @param scale.fac Numeric vector of length equals to \code{ncol(object)}. For
 #' CytoSignal method, this is pre-determined.
 normCounts.dgCMatrix <- function(
     object,
-    scale.fac = colSums(mat),
-    method = c("default", "cpm", "lib_size"),
+    scale.fac = NULL,
+    method = c("default", "cpm", "none", "scanpy"),
     ...
 ){
+  if (is.null(scale.fac)) {
+    stop("scale.fac has to be specified!")
+  }
   method <- match.arg(method)
   object@x <- object@x / rep.int(scale.fac, diff(object@p))
   if (method == "default"){
     object@x <- log1p(object@x * 1e4)
   } else if (method == "cpm"){
     object@x <- log1p(object@x * 1e6)
+  } else if (method == "scanpy"){
+    lib.median = stats::median(scale.fac)
+    object@x <- object@x * lib.median
+  } else if (method == "none"){
+  } else {
+    stop("Unknown method!")
   }
 
   return(object)
 }
 
 #' @rdname normCounts
-#' @export
 #' @param slot.use The type of neighbors. The \code{tag} used when finding
 #' nearest neighbors in the upstream step. If not customized, use
 #' \code{"GauEps"} for NN found with \code{\link{findNNGauEB}}, or use
 #' \code{"DT"} for NN found with \code{\link{findNNDT}}. Default use the most
 #' lastly computed NN.
-#' @param velo Whether to normalize the velocity data instead. Default
-#' \code{FALSE}.
+#' @param method The method to use for normalization. default: seurat style \code{"default"}
+#' @return A dgCMatrix of normalized data.
 normCounts.CytoSignal <- function(
     object,
-    method = c("default", "cpm", "lib_size"),
+    method = c("default", "cpm", "none", "scanpy"),
     slot.use = NULL,
-    velo = FALSE,
     ...
 ){
+  method <- match.arg(method)
+
   if (is.null(slot.use)) {
     slot.use <- object@imputation[["default"]]
   }
@@ -585,29 +592,20 @@ normCounts.CytoSignal <- function(
     stop("Data not found.")
   }
 
-  message(paste0("Normalizing on Imp slot: ", slot.use, "..."))
+  message(paste0("Normalizing method: ", method, " on Imputation slot: ", slot.use, "..."))
 
-  if (isTRUE(velo)) {
-    mat <- object@imputation[[slot.use]]@imp.velo
-    scale.fac <- object@imputation[[slot.use]]@scale.fac.velo
-  } else {
-    mat <- object@imputation[[slot.use]]@imp.data
-    scale.fac <- object@imputation[[slot.use]]@scale.fac
-  }
-
+  mat <- object@imputation[[slot.use]]@imp.data
+  scale.fac <- object@imputation[[slot.use]]@scale.fac
   mat <- normCounts(object = mat, scale.fac = scale.fac, method = method)
-
-  if (isTRUE(velo)) {
-    object@imputation[[slot.use]]@imp.velo <- mat
-  } else {
-    object@imputation[[slot.use]]@imp.data <- mat
-  }
+  
+  # modified to output the normalized data instead of the object
+  # object@imputation[[slot.use]]@imp.data <- mat
+  # return(object)
+  return(mat)
 
   # if (!all.equal(names(slot(object, slot.use)), names(object@imp.norm.data))){
   # 	warning("Names of imp.data and imp.norm.data not equal!")
   # }
-
-  return(object)
 
 }
 

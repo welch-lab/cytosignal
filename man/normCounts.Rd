@@ -6,30 +6,26 @@
 \alias{normCounts.CytoSignal}
 \title{Normalize the data using the specified method}
 \usage{
-normCounts(object, method = c("default", "cpm", "lib_size"), ...)
+normCounts(object, method = c("default", "cpm", "none", "scanpy"), ...)
 
 \method{normCounts}{dgCMatrix}(
   object,
-  scale.fac = colSums(mat),
-  method = c("default", "cpm", "lib_size"),
+  scale.fac = NULL,
+  method = c("default", "cpm", "none", "scanpy"),
   ...
 )
 
 \method{normCounts}{CytoSignal}(
   object,
-  method = c("default", "cpm", "lib_size"),
+  method = c("default", "cpm", "none", "scanpy"),
   slot.use = NULL,
-  velo = FALSE,
   ...
 )
 }
 \arguments{
 \item{object}{A CytoSignal object or a dgCMatrix object of imputation data.}
 
-\item{method}{The method to use for normalization. \code{"default"}
-normalizes each column by \code{scale.fac}, multiplies each by 1e4 and
-finally takes log1p. \code{"cpm"} does the similar thing but multiples each
-by 1e6. \code{"lib_size"} only normalize by \code{scale.fac}.}
+\item{method}{The method to use for normalization. default: seurat style \code{"default"}}
 
 \item{...}{Arguments passed to other S3 methods.}
 
@@ -41,13 +37,12 @@ nearest neighbors in the upstream step. If not customized, use
 \code{"GauEps"} for NN found with \code{\link{findNNGauEB}}, or use
 \code{"DT"} for NN found with \code{\link{findNNDT}}. Default use the most
 lastly computed NN.}
-
-\item{velo}{Whether to normalize the velocity data instead. Default
-\code{FALSE}.}
 }
 \value{
 For CytoSignal object, the original object with normalized data
 updated. For dgCMatrix object, the normalized version of it.
+
+A dgCMatrix of normalized data.
 }
 \description{
 Normalize the data using the specified method

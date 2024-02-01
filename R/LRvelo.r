@@ -19,21 +19,15 @@ imputeNicheVelo <- function(
 #' 
 #' @param object A Cytosignal object
 #' @param nn.type The type of neighbors
-#' @param weights The weight of the Delaunay triangulation
 #' 
 #' @return A Cytosignal object
 #' @export
 imputeNicheVelo.CytoSignal <- function(
 	object, 
-	nn.type = NULL, 
-	weights = c("mean", "counts", "dist", "none")
+	nn.type = NULL
 ){
 	if (is.null(nn.type)){
 		nn.type <- object@imputation[["default"]]
-	}
-
-	if  (!weights %in% c("mean", "counts", "dist", "none")){
-		stop("Incorret weighting method!\n")
 	}
 
 	message(paste0("Imputing using ", nn.type, "..."))
@@ -156,6 +150,8 @@ inferVeloLR.matrix_like <- function(
 #' @param nn.use slot that the neighbor index should be taken from, by default is the same as
 #' 			the recep.slot. For example, if velo.obj = GauEps-DT, then nn.use = "DT".
 #' 			nn.use could also be a user-defind factor.
+#' @param norm.method The normalization method to apply to the counts, need to be consistent with the
+#' 			normalization method used for the RNA velocity method. Default is "scanpy".
 #' 
 #' @return A Cytosignal object
 #' @export
@@ -164,6 +160,7 @@ inferVeloLR.CytoSignal <- function(
 	lig.slot,
 	recep.slot,
 	intr.db.name,
+	norm.method = "scanpy",
 	tag = NULL
 ){
     # check DT imputation first, this is for pre-computing lrscore.mtx
@@ -194,25 +191,11 @@ inferVeloLR.CytoSignal <- function(
 	# 	stop("Tag already exists.")
 	# }
 
-	dge.lig <- object@imputation[[lig.slot]]@imp.data
-	dge.recep <- object@imputation[[recep.slot]]@imp.data
-
-	###### reverse log transform
-	message("Reverse log transform and multiply by UMI median...")
-
-	dge.lig@x = (exp(dge.lig@x) - 1)/10000
-	dge.recep@x = (exp(dge.recep@x) - 1)/10000
-
-	# multiply by the median of UMI counts in each bead
-	lig.median = stats::median(object@imputation[[lig.slot]]@scale.fac)
-	cat(paste0("Median of ", lig.slot, ": ", lig.median, "\n"))
-	dge.lig@x = dge.lig@x * lig.median
-
-	recep.median = stats::median(object@imputation[[recep.slot]]@scale.fac)
-	cat(paste0("Median of ", recep.slot, ": ", recep.median, "\n"))
-	dge.recep@x = dge.recep@x * recep.median
-
-	###### reverse log transform
+	# normalize using scanpy method, normCount has been revised to internal function
+	# dge.lig <- object@imputation[[lig.slot]]@imp.data
+	# dge.recep <- object@imputation[[recep.slot]]@imp.data
+	dge.lig <- normCounts(object, method = norm.method, slot.use = lig.slot)
+	dge.recep <- normCounts(object, method = norm.method, slot.use = recep.slot)
 
 	dge.lig.velo <- object@imputation[[lig.slot]]@imp.velo
 	dge.recep.velo <- object@imputation[[recep.slot]]@imp.velo
