@@ -23,8 +23,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 CytoSignal detects cell-cell signaling from spatial transcriptomics data at single-cell resolution. CytoSignal performs a nonparametric statistical test to identify which cells within a tissue have significant activity for a particular signaling interaction. CytoSignal considers multi-component interactions and separately models interactions mediated by diffusion vs. contact-dependent molecules.
 
 ## Example data
-
-We use Slide-tags snRNA-seq data on mouse embryonic E14 brain for this tutorial. It is publicly available on Single-Cell Portal via [SCP2170](https://singlecell.broadinstitute.org/single_cell/study/SCP2170/slide-tags-snrna-seq-on-mouse-embryonic-e14-brain), originally produced in the work of [Andrew J. C. Russell et al., 2023](https://doi.org/10.1101/2023.04.01.535228). We provide the following pre-cleaned data that can be easily loaded into user R environment at [figshare](https://figshare.com/articles/dataset/CytoSignal_example_dataset/24938868). 
+In this tutorial, we demonstrate how to preform CytoSignal on a mouse embryonic E14 brain data captured by Slide-tags, a spatial transcriptomics protocol at single-cell resolution. This data was originally produced in the work of [Andrew J. C. Russell et al., 2023](https://doi.org/10.1101/2023.04.01.535228), and is now publicly available on Single-Cell Portal via [SCP2170](https://singlecell.broadinstitute.org/single_cell/study/SCP2170/slide-tags-snrna-seq-on-mouse-embryonic-e14-brain). For convenience, we have pre-processed the data so it can be easily loaded into user R environment, which is available at [figshare](https://figshare.com/articles/dataset/CytoSignal_example_dataset/24938868). 
 
 - Raw gene expression count matrix: [SCP2170_annotated_dgCMatrix.rds](https://figshare.com/ndownloader/files/43898937), 26,944 genes by 4623 nuclei)
 - Corresponding cluster annotation: [SCP2170_cluster.csv](https://figshare.com/ndownloader/files/43898934)
@@ -78,8 +77,7 @@ cs <- createCytoSignal(raw.data = dge, cells.loc = spatial, clusters = cluster)
 ```
 
 ### Database
-
-We prepared our database based on CellphoneDB V2. The database is delivered together with the CytoSignal package and simply running the command below can load it into the object. 
+CytoSignal has a built-in ligand-receptor interaction database resorted from CellphoneDB, which can be simply loaded into the object running the following command. 
 
 ```{r loadDB}
 cs <- addIntrDB(cs, g_to_u, db.diff, db.cont, inter.index)
@@ -94,42 +92,38 @@ cs <- removeLowQuality(cs, counts.thresh = 300)
 cs <- changeUniprot(cs)
 ```
 
-The function `suggestInterval()` recommends the top five closest distances between cells. For stereo-seq data, the interval between the two neighboring should be exactly 1. If the top few intervals suggested are not 1, then there might be something wrong in the preprocessing step.
-
-```{r suggestInterval, results=TRUE}
-suggestInterval(cs)
-```
-
 ## Imputation
 
 TEXT THAT EXPLAINS WHAT THIS IMPUTATION STEP IS FOR. BREIFLY TALK ABOUT WHY AND HOW WE ARE DOING DIFFUSIBLE AND CONTACT DEPENDENT SEPARATELY.
 
 ### Gaussian kernel + Epsilon Ball for diffusible ligands
 
-TEXT THAT EXPLAINS WHY USING GAUSSIAN KERNEL FOR DIFFUSIBLE LIGANDS.
-
-Before imputing, we use the function `inferEpsParams()` to infer the epsilon parameter for the Gaussian kernel, which will be used later for imputing the expression of diffusible ligands.
+The first step is to calculate the amount of ligand L that location i receives using all other locations j weighted by the physical distances between them transformed by a Gaussian kernel. For determining the parameters of the kernel, we will need the conversion ratio between the arbitrary units of the spatial coordinates and real unit (such as µm). For Slide-tags data, the conversion ratio is XXX. Next, run the following function to determine the parameters.
 
 ```{r inferEps, results}
 cs <- inferEpsParams(cs, tech.res = 0.5, bin_size = 50, loc.d = 1, thresh = 1e-9)
 ```
 
-Optionally, the inferred parameters can be accessed as shown below.
+If the ratio is not available right now, we provide a function `suggestInterval()` to help user determine an approximate ratio. `suggestInterval()` recommends the top five closest distances between every pair of spatial locations, and calculate a conversion ratio based on the spatial resolution user provided. However, we note that this conversion ratio is just an estimate instead of the real ratio. We highly recommend using the real ratio instead.
+
+```{r suggestInterval, results=TRUE}
+suggestInterval(cs)
+```
+
+For sanity check, the inferred parameters for the Gaussian kernel can be accessed as shown below.
 
 ```{r showSigma, results=TRUE}
 cs@parameters$r.diffuse.scale
 cs@parameters$sigma.scale
 ```
 
-With the parameters inferred, we can then find the nearest neighbors within a 200 um radius of each cell, together with the weights for each neighbor calculated through Gaussian kernel.
+With the inferred parameters, we can then find the nearest neighbors within a preset 200 µm radius of each cell, together with the weights for each neighbor calculated through Gaussian kernel.
 
 ```{r imputeGaussian}
 # calculated through Gaussian kernel
 cs <- findNNGauEB(cs, self.weight = 1)
 # Impute the expression of diffusible ligands
 cs <- imputeNiche(cs, nn.type = "GauEps", weights = "none")
-# Normalize the imputed expression. Defualt normalization method is 10000*log1p(x)
-cs <- normCounts(cs, "default")
 ```
 
 Optionally, the imputation result can be viewed as shown below.
@@ -148,8 +142,6 @@ With Delaunay Triangulation (DT) neighbors, we detect the directly connected nei
 cs <- findNNDT(cs)
 # Impute the expression of receptors
 cs <- imputeNiche(cs, nn.type = "DT", weights = "none")
-# Normalize the imputed expression. Defualt normalization method is 10000*log1p(x)
-cs <- normCounts(cs, "default")
 ```
 
 Similarly, the imputation result can be viewed as shown below.
@@ -165,8 +157,6 @@ WHAT IS THIS?
 ```{r findNNRaw}
 # Create a dummy imputation using the raw data
 cs <- findNNRaw(cs)
-# Normalize the imputed expression. Defualt normalization method is 10000*log1p(x)
-cs <- normCounts(cs, "default")
 ```
 
 Similarly, the imputation result can be viewed as shown below.
