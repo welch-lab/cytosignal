@@ -653,17 +653,24 @@ purgeBeforeSave <- function(object, purge.raw = TRUE, purge.null = FALSE) {
   return(object)
 }
 
-#' Suggest cell intervels for scaling
+#' Suggest scaling factor of real units to spatial units
 #'
-#' This function is used to estimate the actual cell intervel in cells.loc after scaling
-#' returns the top 5 least intervels, users can choose to which to use.
+#' This function is used to estimate the scaling facor of real units to spatial units.
+#' Returns the top 5 possible scaling factors, users can choose to which to use.
 #'
 #' @param object CytoSignal object
+#' @param cell.intervel Distance between two cell in physical units
 #'
-#' @return a vector of intervels
+#' @return a vector of possible scaling factors
 #'
 #' @export
-suggestInterval <- function(object) {
+suggestScaleFactor <- function(object, cell.intervel = NULL) {
+  warning("NOTE: Users are NOT encouraged to use this function unless the real scaling factor is unknown!")
+
+  if (is.null(cell.intervel)) {
+    stop("Please provide the distance between two cells in physical units.")
+  }
+
   nn = RANN::nn2(object@cells.loc, object@cells.loc, k = 6, searchtype = "priority")
   # nn.idx <- t(nn[["nn.idx"]]) # k X N
   nn.dist <- t(nn[["nn.dists"]]) # k X N
@@ -673,7 +680,10 @@ suggestInterval <- function(object) {
   nn.dist.min <- apply(nn.dist, 1, min)
   nn.dist.min <- nn.dist.min[order(nn.dist.min)]
 
-  return(nn.dist.min)
+  ratio <- nn.dist.min / cell.intervel
+
+  return(ratio)
+
 }
 
 

@@ -1,23 +1,19 @@
 #' Infer the parameters of the Gaussian kernel
 #'
 #' @param object A Cytosignal object
-#' @param tech.res The resolution of the technology
-#' @param bin_size The size of the bin
-#' @param loc.d The scaled distance between two cells
+#' @param scale.facor 1 µm equals to how many spatial coord units
 #' @param r.eps.real The radius of the epsilon ball in tech resolution in um, default 200 um
 #' @param thresh The total signal out of the epsilon ball
 #'
 #' @return A Cytosignal object
 #' @export
 
-inferEpsParams <- function(object, tech.res, bin_size, loc.d, r.eps.real = 200, thresh = 0.001){
-  # tech.res: distance between two cells, ori res * number of bins
-  # loc.d: SCALED distance between two cells
-  # r.eps.real: the radius of the epsilon ball in tech resolution in um, default 200 um
-  # thresh: total signal out of the epsilon ball
-  tech.res = tech.res * bin_size
-  # loc.d = object@cells.loc[1,1] - cells.loc[2,1]
-  r.eps.scale = (loc.d*r.eps.real)/tech.res # the radius of the epsilon ball in scaled resolution
+inferEpsParams <- function(object, scale.factor = NULL, r.eps.real = 200, thresh = 0.001){
+  if (is.null(scale.factor)) {
+    stop("scale.factor has to be specified!")
+  }
+  # r.eps.scale = (loc.d*r.eps.real)/tech.res # the radius of the epsilon ball in scaled resolution
+  r.eps.scale = r.eps.real/scale.factor # the radius of the epsilon ball in scaled resolution
   sigma.real = r.eps.real / sqrt(-2 * log(thresh)) # sigma in tech resolution
   sigma.scale = (loc.d*sigma.real)/tech.res # sigma in scaled resolution
   # object@parameters <- list(r.diffuse.scale = r.eps.scale, sigma.scale = sigma.scale)

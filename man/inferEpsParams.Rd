@@ -4,27 +4,16 @@
 \alias{inferEpsParams}
 \title{Infer the parameters of the Gaussian kernel}
 \usage{
-inferEpsParams(
-  object,
-  tech.res,
-  bin_size,
-  loc.d,
-  r.eps.real = 200,
-  thresh = 0.001
-)
+inferEpsParams(object, scale.factor = NULL, r.eps.real = 200, thresh = 0.001)
 }
 \arguments{
 \item{object}{A Cytosignal object}
 
-\item{tech.res}{The resolution of the technology}
-
-\item{bin_size}{The size of the bin}
-
-\item{loc.d}{The scaled distance between two cells}
-
 \item{r.eps.real}{The radius of the epsilon ball in tech resolution in um, default 200 um}
 
 \item{thresh}{The total signal out of the epsilon ball}
+
+\item{scale.facor}{1 µm equals to how many spatial coord units}
 }
 \value{
 A Cytosignal object
