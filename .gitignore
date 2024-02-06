@@ -5,3 +5,4 @@ src/*.so
 .vscode/*
 /doc/
 /Meta/
+.DS_Store
