@@ -12,11 +12,10 @@ inferEpsParams <- function(object, scale.factor = NULL, r.eps.real = 200, thresh
   if (is.null(scale.factor)) {
     stop("scale.factor has to be specified!")
   }
-  # r.eps.scale = (loc.d*r.eps.real)/tech.res # the radius of the epsilon ball in scaled resolution
+  
   r.eps.scale = r.eps.real/scale.factor # the radius of the epsilon ball in scaled resolution
-  sigma.real = r.eps.real / sqrt(-2 * log(thresh)) # sigma in tech resolution
-  sigma.scale = (loc.d*sigma.real)/tech.res # sigma in scaled resolution
-  # object@parameters <- list(r.diffuse.scale = r.eps.scale, sigma.scale = sigma.scale)
+  sigma.scale = r.eps.scale / sqrt(-2 * log(thresh)) # sigma in tech resolution
+
   object@parameters[["r.diffuse.scale"]] <- r.eps.scale
   object@parameters[["sigma.scale"]] <- sigma.scale
 
