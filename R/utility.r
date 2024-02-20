@@ -92,7 +92,7 @@ checkIntr <- function(symbols.list, intr.db) {
     intr.cmp = names(intr.fac[intr.fac == intr, drop = T])
     return(sum(intr.cmp %in% symbols.list) == length(intr.cmp))
   })
-  cat(paste0("Number of valid intrs: ", sum(if.all.in), " / ", length(if.all.in), "\n"))
+  message("- Number of valid intrs: ", sum(if.all.in), " out of ", length(if.all.in), " from database.")
   levels.valid = levels(intr.fac)[if.all.in]
   # se.cmp.fac = cmp.fac[cmp.fac %in% levels(cmp.fac)[if.pair.in], drop = T] # 294 / 1396 levels
 
@@ -176,7 +176,7 @@ graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT
 
   if (weighting == "DT"){
     # for DT, we use the max distance within the nb as the weight
-    message("Using DT weighting.")
+    # message("Using DT weighting.")
     # t.connect <- sapply(levels(nn.dist), function(x){
     #     nb.dist = as.numeric(names(nn.dist[nn.dist == x]))
     #     return(max(nb.dist))
@@ -269,7 +269,7 @@ filterRes <- function(dge.raw, res.list, intr.db, gene_to_uniprot, reads.thresh 
   res.list.hq = res.list.hq[order(lengths(res.list.hq), decreasing = T)]
 
   res.list.hq = res.list.hq[lengths(res.list.hq) >= sig.thresh]
-  cat("Number of high quality intr: ", length(res.list.hq), "/ ", length(res.list), "\n")
+  message("- Number of high quality interactions: ", length(res.list.hq))
 
   return(res.list.hq)
 }
@@ -596,13 +596,16 @@ to_mean <- function(mat) {
 }
 
 .checkSignifUse <- function(object, signif.use, slot.use) {
+  avail <- names(object@lrscore[[slot.use]]@res.list)
   if (is.null(signif.use)) {
-    signif.use <- "result.hq.pear"
+    signif.use <- avail[length(avail)]
+    # message("`signif.use` not specified, using the latest available option: ",
+    #         signif.use)
   }
 
-  if (!signif.use %in% names(object@lrscore[[slot.use]]@res.list)) {
+  if (!signif.use %in% avail) {
     stop("Invalid `signif.use`. Available options: ",
-         paste(names(object@lrscore[[slot.use]]@res.list), collapse = ", "))
+         paste(avail, collapse = ", "))
   }
   return(signif.use)
 }

@@ -6,7 +6,7 @@
 \usage{
 inferSignif(
   object,
-  correctBy = c("cell", "intr"),
+  fdr.method = c("spatialFDR", "fdr"),
   p.value = 0.05,
   reads.thresh = 100,
   sig.thresh = 100,
@@ -17,8 +17,8 @@ inferSignif(
 \arguments{
 \item{object}{A Cytosignal object}
 
-\item{correctBy}{Spatial FDR correction method. Choose from \code{"cell"} or
-\code{"intr"}.}
+\item{fdr.method}{Spatial FDR correction method. Choose from
+\code{"spatialFDR"} or \code{"fdr"}.}
 
 \item{p.value}{A numeric value of p-value threshold}
 

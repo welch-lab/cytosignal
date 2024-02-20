@@ -67,16 +67,18 @@ inferScoreLR <- function(
   }
 
   message("Computing LR-scores using ", intr.db.name, " database.")
-  message("Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
+  message("- Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
 
   # normalize using default method, normCount has been revised to internal function
   # dge.lig <- object@imputation[[lig.slot]]@imp.data
   # dge.recep <- object@imputation[[recep.slot]]@imp.data
-  dge.lig <- normCounts(object, method = "default", slot.use = lig.slot)
-  dge.recep <- normCounts(object, method = "default", slot.use = recep.slot)
+  dge.lig <- normCounts(object, method = "default", slot.use = lig.slot,
+                        verbose = FALSE)
+  dge.recep <- normCounts(object, method = "default", slot.use = recep.slot,
+                          verbose = FALSE)
 
   #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
-  message("Comfirming niche index...")
+  # message("Comfirming niche index...")
 
   dt.avg.g <- object@imputation[["DT"]]@nn.graph
   dt.avg.g <- to_mean(dt.avg.g)
@@ -92,7 +94,6 @@ inferScoreLR <- function(
   intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][["intr"]]),
                             object@intr.valid[[intr.db.name]])
 
-  message("Calculating LR-scores...")
   res.mtx <- .inferScoreLR.dgCMatrix(dge.lig, dge.recep,
                                      intr.db.list[["ligands"]], intr.db.list[["receptors"]])
 
@@ -167,19 +168,19 @@ inferNullScoreLR <- function(
   rownames(null.lrscore.mtx) <- paste0("perm_", 1:nrow(null.lrscore.mtx))
 
   if (sum(colSums(null.lrscore.mtx) == 0) != 0){
-    message("A total of ", sum(colSums(null.lrscore.mtx) == 0), " intr are empty in NULL scores.")
+    message("- A total of ", sum(colSums(null.lrscore.mtx) == 0), " interactions are empty in NULL scores.")
     null.lrscore.mtx = null.lrscore.mtx[, !colSums(null.lrscore.mtx) == 0]
   }
 
   intr.both <- intersect(colnames(null.lrscore.mtx), colnames(object@lrscore[[slot.use]]@score))
 
   if (length(intr.both) != ncol(null.lrscore.mtx)) {
-    message("Removing ", ncol(null.lrscore.mtx) - length(intr.both), " more intr from NULL scores.")
+    message("- Removing ", ncol(null.lrscore.mtx) - length(intr.both), " more intr from NULL scores.")
     null.lrscore.mtx = null.lrscore.mtx[, intr.both]
   }
 
   if (length(intr.both) != ncol(object@lrscore[[slot.use]]@score)) {
-    message("Removing ", ncol(object@lrscore[[slot.use]]@score) - length(intr.both), " corresponding intr from REAL scores.")
+    message("- Removing ", ncol(object@lrscore[[slot.use]]@score) - length(intr.both), " corresponding intr from REAL scores.")
     object@lrscore[[slot.use]]@score = object@lrscore[[slot.use]]@score[, intr.both]
   }
 
@@ -244,21 +245,35 @@ permuteLR <- function(
   perm.idx.list <- lapply(1:times, function(x){ sample(ncol(dge.raw)) })
   sample.idx <- sample(ncol(dge.raw), each.size)
 
-  message("Permuting ligand Imp slot: ", lig.slot, "...")
+  message("- Permuting ligand Imp slot: ", lig.slot, "...")
 
-  null.lig.list <- lapply(perm.idx.list, function(idx) {
-    permuteLR.sparse(object, nn.type = lig.slot, perm.index = idx, sample.idx, norm.method = norm.method)
-  })
+  pb <- utils::txtProgressBar(min = 0, max = length(perm.idx.list), style = 3, file = stderr())
+  null.lig.list <- list()
+  for (i in seq_along(perm.idx.list)) {
+    idx <- perm.idx.list[[i]]
+    null.lig.list[[i]] <- permuteLR.sparse(object, nn.type = lig.slot, perm.index = idx, sample.idx, norm.method = norm.method)
+    utils::setTxtProgressBar(pb, i)
+  }
+  cat('\n')
+  # null.lig.list <- lapply(perm.idx.list, function(idx) {
+  #   permuteLR.sparse(object, nn.type = lig.slot, perm.index = idx, sample.idx, norm.method = norm.method)
+  # })
   null.lig.dge <- cbind_list(null.lig.list)
 
-  message("Permuting receptor Imp slot: ", recep.slot, "...")
+  message("- Permuting receptor Imp slot: ", recep.slot, "...")
 
-  null.recep.list <- lapply(perm.idx.list, function(idx){
-    permuteLR.sparse(object, nn.type = recep.slot, perm.index = idx, sample.idx, norm.method = norm.method)
-  })
+  pb <- utils::txtProgressBar(min = 0, max = length(perm.idx.list), style = 3, file = stderr())
+  null.recep.list <- list()
+  for (i in seq_along(perm.idx.list)) {
+    idx <- perm.idx.list[[i]]
+    null.recep.list[[i]] <- permuteLR.sparse(object, nn.type = recep.slot, perm.index = idx, sample.idx, norm.method = norm.method)
+    utils::setTxtProgressBar(pb, i)
+  }
+  cat('\n')
+
   null.recep.dge <- cbind_list(null.recep.list)
 
-  message("Calculating NULL scores...")
+  message("- Calculating NULL scores...")
 
   object@lrscore[[slot.use]]@lig.null <- null.lig.dge
   object@lrscore[[slot.use]]@recep.null <- null.recep.dge

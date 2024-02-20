@@ -1,9 +1,9 @@
 #' Impute the velocity mtx using the specified method
-#' 
+#'
 #' @param object A Cytosignal object
 #' @param method The method to use for imputation
 #' @param ... Other parameters
-#' 
+#'
 #' @return A Cytosignal object
 #' @export
 imputeNicheVelo <- function(
@@ -16,14 +16,14 @@ imputeNicheVelo <- function(
 
 
 #' Sub function for imputeNicheVelo, input a Cytosignal object
-#' 
+#'
 #' @param object A Cytosignal object
 #' @param nn.type The type of neighbors
-#' 
+#'
 #' @return A Cytosignal object
 #' @export
 imputeNicheVelo.CytoSignal <- function(
-	object, 
+	object,
 	nn.type = NULL
 ){
 	if (is.null(nn.type)){
@@ -34,12 +34,11 @@ imputeNicheVelo.CytoSignal <- function(
 
 	dge.raw <- object@velo[["velo.s"]] + object@velo[["velo.u"]]
 
-	if (nn.type %in% names(object@imputation)){
-		nb.id.fac <- object@imputation[[nn.type]]@nn.id
-		nb.dist.fac <- object@imputation[[nn.type]]@nn.dist
-	} else {
+	if (!nn.type %in% names(object@imputation)) {
 		stop("NN type not found.")
 	}
+	nb.id.fac <- object@imputation[[nn.type]]@nn.id
+	nb.dist.fac <- object@imputation[[nn.type]]@nn.dist
 
 	if (nn.type == "Raw") {
 		object@imputation[[nn.type]]@imp.velo <- dge.raw
@@ -54,15 +53,17 @@ imputeNicheVelo.CytoSignal <- function(
 	dge.raw.imputed <- dge.raw %*% nn.graph
 
 	# weighted sum of scale factors as well
-	scale.fac <- Matrix::Matrix(object@parameters[["velo.lib.size"]], sparse = T, nrow = 1,
-						dimnames = list(NULL, names(object@parameters[["velo.lib.size"]])))
+	scale.fac <- Matrix::Matrix(
+	  object@parameters[["velo.lib.size"]],
+	  sparse = TRUE, nrow = 1,
+	  dimnames = list(NULL, names(object@parameters[["velo.lib.size"]]))
+	)
 	scale.fac.imp <- scale.fac %*% nn.graph
 
 	scale.fac.imp <- as.numeric(scale.fac.imp)
 	names(scale.fac.imp) <- names(object@parameters[["velo.lib.size"]])
 
 	res.density <- sum(dge.raw.imputed != 0)/length(dge.raw.imputed) # density 6.2%
-	cat(paste0("Density after imputation: ", res.density*100, "%\n"))
 
 	object@imputation[[nn.type]]@imp.velo <- dge.raw.imputed
 	object@imputation[[nn.type]]@scale.fac.velo <- scale.fac.imp
@@ -75,38 +76,37 @@ imputeNicheVelo.CytoSignal <- function(
 
 
 
-#' Compute the LR velo for specific ligand-receptor imputation obj pairs
-#' 
-#' @param object A Cytosignal object
-#' @param lig.slot The ligand slot to use
-#' @param recep.slot The receptor slot to use
-#' @param intr.db.name The intr database name to use
-#' @param nn.use The neighbor index as niche
-#' 
-#' @return A Cytosignal object
-#' @export
-#' 
-inferVeloLR <- function(
-  object,
-  ...
-) {
-  UseMethod(generic = 'inferVeloLR', object = object)
-}
+#' #' Compute the LR velo for specific ligand-receptor imputation obj pairs
+#' #'
+#' #' @param object A Cytosignal object
+#' #' @param lig.slot The ligand slot to use
+#' #' @param recep.slot The receptor slot to use
+#' #' @param intr.db.name The intr database name to use
+#' #' @param nn.use The neighbor index as niche
+#' #'
+#' #' @return A Cytosignal object
+#' #' @export
+#' #'
+#' inferVeloLR <- function(
+#'   object,
+#'   ...
+#' ) {
+#'   UseMethod(generic = 'inferVeloLR', object = object)
+#' }
 
-#' Sub function for inferVeloLR, input a sparse matrix
-#' 
-#' @param dge.lig A sparse matrix for ligand
-#' @param dge.recep A sparse matrix for receptor
-#' @param nb.id.fac A factor of neighbor indices
-#' @param lig.fac A factor of ligand indices
-#' @param recep.fac A factor of receptor indices
-#' 
-#' @return A sparse matrix
-#' @export
-#' 
-inferVeloLR.matrix_like <- function(
+# Sub function for inferVeloLR, input a sparse matrix
+#
+# @param dge.lig A sparse matrix for ligand
+# @param dge.recep A sparse matrix for receptor
+# @param nb.id.fac A factor of neighbor indices
+# @param lig.fac A factor of ligand indices
+# @param recep.fac A factor of receptor indices
+#
+# @return A sparse matrix
+#
+.inferVeloLR.matrix_like <- function(
 	dge.lig,
-    dge.recep,
+  dge.recep,
 	dge.lig.velo,
 	dge.recep.velo,
 	lig.fac,
@@ -129,7 +129,7 @@ inferVeloLR.matrix_like <- function(
 		unname(as.matrix(dge.recep)),
 		unname(as.matrix(dge.lig.velo)),
 		unname(as.matrix(dge.recep.velo)),
-		lig.index[[1]], lig.index[[2]], 
+		lig.index[[1]], lig.index[[2]],
 		recep.index[[1]], recep.index[[2]]
 	)
 
@@ -142,7 +142,7 @@ inferVeloLR.matrix_like <- function(
 
 
 #' Sub function for inferVeloLR, input a CytoSignal object
-#' 
+#'
 #' @param object A Cytosignal object
 #' @param lig.slot The ligand slot to use
 #' @param recep.slot The receptor slot to use
@@ -152,10 +152,10 @@ inferVeloLR.matrix_like <- function(
 #' 			nn.use could also be a user-defind factor.
 #' @param norm.method The normalization method to apply to the counts, need to be consistent with the
 #' 			normalization method used for the RNA velocity method. Default is "scanpy".
-#' 
+#'
 #' @return A Cytosignal object
 #' @export
-inferVeloLR.CytoSignal <- function(
+inferVeloLR <- function(
 	object,
 	lig.slot,
 	recep.slot,
@@ -181,7 +181,7 @@ inferVeloLR.CytoSignal <- function(
 	}
 
 	message("Computing LR-velos using ", intr.db.name, " database.")
-	message("Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
+	message("- Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
 
 	if (is.null(tag)) {
 		tag <- paste0(lig.slot, "-", recep.slot)
@@ -194,23 +194,24 @@ inferVeloLR.CytoSignal <- function(
 	# normalize using scanpy method, normCount has been revised to internal function
 	# dge.lig <- object@imputation[[lig.slot]]@imp.data
 	# dge.recep <- object@imputation[[recep.slot]]@imp.data
-	dge.lig <- normCounts(object, method = norm.method, slot.use = lig.slot)
-	dge.recep <- normCounts(object, method = norm.method, slot.use = recep.slot)
+	dge.lig <- normCounts(object, method = norm.method, slot.use = lig.slot,
+	                      verbose = FALSE)
+	dge.recep <- normCounts(object, method = norm.method, slot.use = recep.slot,
+	                        verbose = FALSE)
 
 	dge.lig.velo <- object@imputation[[lig.slot]]@imp.velo
 	dge.recep.velo <- object@imputation[[recep.slot]]@imp.velo
 
 	# compare the dimnames of all four matrices
-	if (!all.equal(dimnames(dge.lig), dimnames(dge.recep))){
+	if (!identical(dimnames(dge.lig), dimnames(dge.recep))){
 		stop("dge.lig and dge.recep must have the same dimension names.")
 	}
-
-	if (!all.equal(dimnames(dge.lig.velo), dimnames(dge.recep.velo))){
+	if (!identical(dimnames(dge.lig.velo), dimnames(dge.recep.velo))){
 		stop("dge.lig.velo and dge.recep.velo must have the same dimension names.")
 	}
 
 	#----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
-	message("Comfirming niche index...")
+	# message("Comfirming niche index...")
 
 	dt.avg.g <- object@imputation[["DT"]]@nn.graph
 	dt.avg.g <- to_mean(dt.avg.g)
@@ -222,16 +223,16 @@ inferVeloLR.CytoSignal <- function(
     dge.recep.velo <- dge.recep.velo %*% dt.avg.g
 	#-------------------------------------------------------------------------------------------#
 
-	intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][["intr"]]), 
+	intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][["intr"]]),
 							object@intr.valid[[intr.db.name]])
 
 	message("Calculating LR-velos...")
 
-	res.mtx <- inferVeloLR.matrix_like(dge.lig, dge.recep, 
+	res.mtx <- .inferVeloLR.matrix_like(dge.lig, dge.recep,
 				dge.lig.velo, dge.recep.velo,
 				intr.db.list[["ligands"]], intr.db.list[["receptors"]])
 
-    message("Done!\n")
+    # message("Done!")
 
 	lrvelo.obj <- new(
 		"lrVelo",

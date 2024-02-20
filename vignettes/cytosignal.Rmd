@@ -15,7 +15,7 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, results = "hide")
 ```
 
 ## Introduction
@@ -23,6 +23,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 CytoSignal detects cell-cell signaling from spatial transcriptomics data at single-cell resolution. CytoSignal performs a nonparametric statistical test to identify which cells within a tissue have significant activity for a particular signaling interaction. CytoSignal considers multi-component interactions and separately models interactions mediated by diffusion vs. contact-dependent molecules.
 
 ## Example data
+
 In this tutorial, we demonstrate how to preform CytoSignal on a mouse embryonic E14 brain data captured by Slide-tags, a spatial transcriptomics protocol at single-cell resolution. This data was originally produced in the work of [Andrew J. C. Russell et al., 2023](https://doi.org/10.1101/2023.04.01.535228), and is now publicly available on Single-Cell Portal via [SCP2170](https://singlecell.broadinstitute.org/single_cell/study/SCP2170/slide-tags-snrna-seq-on-mouse-embryonic-e14-brain). For convenience, we have pre-processed the data so it can be easily loaded into user R environment, which is available at [figshare](https://figshare.com/articles/dataset/CytoSignal_example_dataset/24938868). 
 
 - Raw gene expression count matrix: [SCP2170_annotated_dgCMatrix.rds](https://figshare.com/ndownloader/files/43898937), 26,944 genes by 4623 nuclei)
@@ -95,20 +96,14 @@ cs <- changeUniprot(cs)
 
 ## Imputation
 
-TEXT THAT EXPLAINS WHAT THIS IMPUTATION STEP IS FOR. BREIFLY TALK ABOUT WHY AND HOW WE ARE DOING DIFFUSIBLE AND CONTACT DEPENDENT SEPARATELY.
+The basic idea of calculating single-cell resolution interaction scores with spatial information utilized is to infer the amount of ligand $L$ that location $i$ receives using amount of molecules from nearest neighbors (NN) weighted by physical distance. We model the NN finding differently for diffusible ligands and contact-dependent ligands. For diffusible ligands, we use a Gaussian kernel plus Epsilon ball (GauEps) to weight the amount of ligand received by each cell from its neighbors. For contact-dependent ligands, we use Delaunay Triangulation (DT) to find the directly connected neighbors of each cell. 
 
-### Gaussian kernel + Epsilon Ball for diffusible ligands
+### Estimate parameters for Gaussian kernel
 
-The first step is to calculate the amount of ligand L that location i receives using all other locations j weighted by the physical distances between them transformed by a Gaussian kernel. For determining the parameters of the kernel, we will need the conversion ratio between the arbitrary units of the spatial coordinates and real unit (such as µm). For Slide-tags data, the conversion ratio is XXX. Next, run the following function to determine the parameters.
+Before we start, we need to determine the parameters of the Gaussian kernel. For determining the parameters of the kernel, we will need the conversion ratio between the arbitrary units of the spatial coordinates and real unit (such as µm), which is based on prior knowledge of user dataset. For the specific example Slide-tags data, the conversion ratio is 0.73. Next, run the following function to determine the parameters.
 
-```{r inferEps, results}
-cs <- inferEpsParams(cs, tech.res = 0.5, bin_size = 50, loc.d = 1, thresh = 1e-9)
-```
-
-If the ratio is not available right now, we provide a function `suggestInterval()` to help user determine an approximate ratio. `suggestInterval()` recommends the top five closest distances between every pair of spatial locations, and calculate a conversion ratio based on the spatial resolution user provided. However, we note that this conversion ratio is just an estimate instead of the real ratio. We highly recommend using the real ratio instead.
-
-```{r suggestInterval, results=TRUE}
-suggestInterval(cs)
+```{r inferEps}
+cs <- inferEpsParams(cs, scale.factor = 0.73)
 ```
 
 For sanity check, the inferred parameters for the Gaussian kernel can be accessed as shown below.
@@ -118,111 +113,58 @@ cs@parameters$r.diffuse.scale
 cs@parameters$sigma.scale
 ```
 
-With the inferred parameters, we can then find the nearest neighbors within a preset 200 µm radius of each cell, together with the weights for each neighbor calculated through Gaussian kernel.
+### Find nearest neighbors
 
-```{r imputeGaussian}
-# calculated through Gaussian kernel
-cs <- findNNGauEB(cs, self.weight = 1)
-# Impute the expression of diffusible ligands
-cs <- imputeNiche(cs, nn.type = "GauEps", weights = "none")
+With the inferred parameters, we can then find the nearest neighbors together with the weights for each neighbor calculated through the corresponding models ("GauEps", "DT").
+
+```{r findNN}
+cs <- findNN(cs)
 ```
 
-Optionally, the imputation result can be viewed as shown below.
+### Impute received amount of ligands
 
-```{r showImp, results=TRUE}
-showImp(cs)
-```
+With the NN found and weights for each neighbor calculated, we can then impute the received amount of ligands for each cell. Meanwhile, the amount of receptors for each cell is imputed as the raw amount of modulecules expressed in place.
 
-### Impute with Delaunay Triangulation Neighbors for contact dependent ligands
-
-TEXT THAT EXPLAINS WHY USING DT NEIGHBORS FOR CONTACT DEPENDENT LIGANDS
-
-With Delaunay Triangulation (DT) neighbors, we detect the directly connected neighbors of each cell. 
-
-```{r findNNDT}
-cs <- findNNDT(cs)
-# Impute the expression of receptors
-cs <- imputeNiche(cs, nn.type = "DT", weights = "none")
-```
-
-Similarly, the imputation result can be viewed as shown below.
-
-```{r showImpDT, eval=FALSE}
-showImp(cs)
-```
-
-### Dummy imputation for receptors
-
-WHAT IS THIS?
-
-```{r findNNRaw}
-# Create a dummy imputation using the raw data
-cs <- findNNRaw(cs)
-```
-
-Similarly, the imputation result can be viewed as shown below.
-
-```{r showImpRaw, eval=FALSE}
-showImp(cs)
+```{r impute}
+cs <- imputeLR(cs)
 ```
 
 ## Calculating LR Scores
 
-LR Score is defined for each cell and measures the signaling interaction strength. Generally, we first calculate the LR score with the imputation derived from the previous steps, and then we perform the permutation test to calculate the null distribution of the imputed ligands and receptors. Next, we calculate a one-sided p-value for the null hypothesis that the signal strength observed for a particular cell is no larger than expected based on the ligand and receptor expression level within the tissue. To control for multiple hypothesis testing and potential biases caused by cellular density differences, we further perform spatial false discovery rate correction. The output of CytoSignal is a test statistic $S$ and adjusted p-value for each signaling interaction within each cell in the tissue. Finally, cells with significant signaling activity can be identified by setting a significance level such as $\alpha=0.05$.
+LR Score is defined for each cell and measures the signaling interaction strength. Generally, we first calculate the LR score with the imputation derived from the previous step, and then we perform the permutation test to calculate the null distribution of the imputed ligands and receptors. Next, we calculate a one-sided p-value for the null hypothesis that the signal strength observed for a particular cell is no larger than expected based on the ligand and receptor expression level within the tissue. To control for multiple hypothesis testing and potential biases caused by cellular density differences, we further perform spatial false discovery rate correction. The output of CytoSignal is a test statistic $S$ and adjusted p-value for each signaling interaction within each cell in the tissue. Finally, cells with significant signaling activity can be identified by setting a significance level such as `p.value = 0.05`.
 
-### Diffusible ligands and receptors
-
-```{r diff}
-# Calculate the ligand-receptor scores for diffusible ligands and raw receptors
-cs <- inferScoreLR(cs, lig.slot = "GauEps", recep.slot = "Raw", intr.db.name = "diff_dep")
-# Permutation test to calculate the null distribution of the imputed ligands and receptors
-cs <- permuteLR(cs, slot.use = "GauEps-Raw")
-# Calculate the null distribution of the ligand-receptor scores
-cs <- inferNullScoreLR(cs, slot.use = "GauEps-Raw")
-# Infer the significant ligand-receptor interactions by comparing real scores with the null distribution
-cs <- inferSignif(cs, p.value = 0.05, slot.use = "GauEps-Raw", 
-                  reads.thresh = 100, sig.thresh = 100)
-
-
-# Order the significant interactions by running a modified version of the 
-# pearson correlation test
-cs <- runPears.std(cs, k = 10, score.slot = "GauEps-Raw")
-# Order the significant interactions by: Min-max the LRscores, 
-# substract the significant ones, sum and average
-cs <- inferCorrScore(cs, slot.use = "GauEps-Raw")
+```{r lrscore}
+cs <- inferIntrScore(cs)
 ```
 
 `reads.thresh` is the minimum number of reads for a ligand-receptor interaction to be considered. `sig.thresh` is the minimum number of beads for a ligand-receptor interaction to be considered. The three thresholds can be changed arbitrarily if the number of the significant beads is too large or too small. 
 
-### Contact dependent ligands and receptors
+To view the interactions that are significant, we provide accessor function `showIntr()`. 
 
-```{r cont}
-cs <- inferScoreLR(cs, lig.slot = "DT", recep.slot = "Raw", intr.db.name = "cont_dep")
-cs <- permuteLR(cs, slot.use = "DT-Raw")
-cs <- inferNullScoreLR(cs, slot.use = "DT-Raw")
+The argument `slot.use` is for specifying the LRscore calculation model used. Possible options are explained as followed:
 
-cs <- inferSignif(cs, slot.use = "DT-Raw", p.value = 0.05, reads.thresh = 100, sig.thresh = 100)
-cs <- runPears.std(cs, k = 10, score.slot = "DT-Raw")
-cs <- inferCorrScore(cs, slot.use = "DT-Raw")
+- `"GauEps-Raw"`: Ligand values are imputed with Gaussian Epsilon ball and receptor values are taken from raw expression. Typically for the diffusion-dependent interactions.
+- `"DT-Raw"`: Ligand values are imputed with Delaunay Triangulation and receptor values are taken from raw expression. Typically for the contact-dependent interactions.
+- `"GauEps-DT"`: Ligand values are imputed with Gaussian Epsilon ball and receptor values are imputed with Delaunay Triangulation. This is for diffusion-dependent interactions, but exists only when `inferIntrScore()` is run with `recep.smooth = TRUE`.
+- `"DT-DT"`: Ligand values and receptor values are all imputed with Delaunay Triangulation. This is for contact-dependent interactions, but exists only when `inferIntrScore()` is run with `recep.smooth = TRUE`.
+
+The argument `signif.use` has options and can return interactions that:
+
+- `"result"`: have p-value less that specified threshold.
+- `"result.hq"`: have significant p-value and passes the quality control on the minimum number of reads and beads as mentioned above.
+- `"result.spx"`: are spatially variable and are of high quality according to that in `"result.hq"`.
+
+Using `return.name = TRUE` here allows showing the unique IDs and interaction name, in a form of "ligand-receptor", at the same time, so things can be more interpretable. 
+
+```{r showIntr, results=TRUE}
+showIntr(cs, slot.use = "GauEps-Raw", signif.use = "result.spx", return.name = TRUE)
 ```
-
-Similarly, the thresholding parameters `reads.thresh`, `sig.thresh` and `p.value` could be arbitrarily tweaked.
-
 
 ## Visualizing individual interactions
 
 With all the necessary inference performed, now we show the visualization methods for exploring and understanding the analysis. This part shows visualization methods that applies to individual interactions.
 
-Most of the functions shown here understand the interaction specification with two arguments: `intr` and `slot.use`. Users can first show a list of significant interactions that is available for visualization with `showIntr()`.
-
-```{r showIntr, results=TRUE}
-# Show significant diffusible interaction IDs associated with interaction names
-showIntr(cs, slot.use = "GauEps-Raw", return.name = TRUE)
-```
-
-Using `return.name = TRUE` here allows showing the unique IDs and interaction name, in a form of "ligand-receptor", at the same time, so things can be more interpretable. Note that, the list of available interactions varies for different LRscore inferences. For listing significant interactions with diffusible ligands, most of the time we have `slot.use = "GauEps-Raw"` if users did the LRscore inference with default setting. Similarly, for finding the significant contact dependent interactions, we need to set `slot.use = "DT-Raw"` if everything above went with default. 
-
-In the plotting functions we show next, users need to specify the unique ID(s) of interests and the LRscore slot, where the interaction is found, at the same time. This is for ensuring that the correct result is captured when multiple inferences with parameter tweaks are performed for the same type of interactions.
+Most of the functions shown here understand the interaction specification with two arguments: `intr` and `slot.use`. Users can first show a list of significant interactions that is available for visualization with `showIntr()`. `intr` should then be the unique ID of available interaction(s) and `slot.use` should be a selection as explained above.
 
 ### Significance plot
 
@@ -236,15 +178,13 @@ plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot =
 
 ```{r plotsignif2, eval=FALSE}
 # For diffusion dependent interactions
-## Choose a level of significance metric
-signif.use <- "result.hq.corr"
+signif.use <- "result.spx"
 lrscore.slot <- "GauEps-Raw"
 plot_dir <- paste0("path_to_result/diff-dep_", signif.use, "_", lrscore.slot, "/")
 plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
 
 # For contact dependent interactions
 ## Choose a level of significance metric
-signif.use <- "result.hq.corr"
 lrscore.slot <- "DT-Raw"
 plot_dir <- paste0("path_to_result/cont-dep_", signif.use, "_", lrscore.slot, "/")
 plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)

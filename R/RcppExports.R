@@ -49,3 +49,23 @@ VelographNicheLR_cpp <- function(dge_lig, dge_recep, dge_velo, lig_index, lig_li
     .Call('_cytosignal_VelographNicheLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, dge_velo, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list)
 }
 
+cpp_rank_matrix_dgc <- function(x, p, nrow, ncol) {
+    .Call('_cytosignal_cpp_rank_matrix_dgc', PACKAGE = 'cytosignal', x, p, nrow, ncol)
+}
+
+rowAggregateSum_sparse <- function(X, groups, ngroups) {
+    .Call('_cytosignal_rowAggregateSum_sparse', PACKAGE = 'cytosignal', X, groups, ngroups)
+}
+
+colAggregateSum_sparse <- function(X, groups, ngroups) {
+    .Call('_cytosignal_colAggregateSum_sparse', PACKAGE = 'cytosignal', X, groups, ngroups)
+}
+
+colNNZAggr_sparse <- function(X, groups, ngroups) {
+    .Call('_cytosignal_colNNZAggr_sparse', PACKAGE = 'cytosignal', X, groups, ngroups)
+}
+
+rowNNZAggr_sparse <- function(X, groups, ngroups) {
+    .Call('_cytosignal_rowNNZAggr_sparse', PACKAGE = 'cytosignal', X, groups, ngroups)
+}
+

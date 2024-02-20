@@ -9,10 +9,6 @@
 #' @export
 
 inferEpsParams <- function(object, scale.factor = NULL, r.eps.real = 200, thresh = 0.001){
-  if (is.null(scale.factor)) {
-    stop("scale.factor has to be specified!")
-  }
-  
   r.eps.scale = r.eps.real/scale.factor # the radius of the epsilon ball in scaled resolution
   sigma.scale = r.eps.scale / sqrt(-2 * log(thresh)) # sigma in tech resolution
 
@@ -63,7 +59,7 @@ findNNGauEB.matrix <- function(
 
   if (is.numeric(self.weight)) {
     if (self.weight < 0 || self.weight > 1) {
-      stop("Self weight should be within (0,1)!\n")
+      stop("Self weight should be within (0,1)!")
     }
     message("Using manual self weight: ", self.weight, "...")
   } else if (self.weight == "auto") {
@@ -71,8 +67,8 @@ findNNGauEB.matrix <- function(
   } else if (self.weight == "sum_1") {
     message("Using self weight: all NB weights sum to 1...")
   } else {
-    message("Unknown self weight, determining automatically...")
-    self.weight = "auto"
+    stop("Please set `self.weight` to a number within (0, 1) ",
+         "or use \"auto\" or \"sum_1\".")
   }
 
   # get a sorted nn factor
@@ -106,9 +102,6 @@ findNNGauEB.matrix <- function(
       y = gauss_vec_cpp(c(x, 1e-9), sigma)[,1]
       return(y/sum(y))
     }
-    else {
-      stop("Unknown self weight!\n")
-    }
   })
 
   # discard the cell that has no neighbors
@@ -126,8 +119,8 @@ findNNGauEB.matrix <- function(
     stop("Result fac longer than original beads length!\n")
   }
 
-  message("Mean num of neighbors: ", ceiling(mean(table(nn.fac))))
-  message("Median num of neighbors: ", median(table(nn.fac)))
+  # message("Mean num of neighbors: ", ceiling(mean(table(nn.fac))))
+  # message("Median num of neighbors: ", median(table(nn.fac)))
 
   return(list(
     "id" = nn.fac,
@@ -218,7 +211,6 @@ findNNDT.matrix <- function(
     max.r = NULL,
     ...
 ){
-  cat("Finding DT neighbors...\n")
   # cells.loc <- RTriangle::pslg(P=cells.loc)
   cells.dt <- RTriangle::triangulate(RTriangle::pslg(P=object))
   egdes <- cells.dt$E
@@ -236,14 +228,14 @@ findNNDT.matrix <- function(
   nn.fac.old <- nn.fac
   nn.fac <- nn.fac[nn.valid, drop = T]
 
-  message("Filtering out ", length(dist.euc.list) - length(nn.valid), " edges out of range.")
+  # message("Filtering out ", length(dist.euc.list) - length(nn.valid), " edges out of range.")
   noNN <- as.numeric(setdiff(levels(nn.fac.old), levels(nn.fac)))
 
   if (length(noNN) > 0){
-    message("A total of ", length(noNN), " beads do not have NNs!\n")
-  } else {
-    cat("All beads have NNs.\n")
-  }
+    message("A total of ", length(noNN), " beads do not have NNs!")
+  }# else {
+  #   message("All beads have NNs.")
+  # }
 
   # set distance for each niche, based on the cell number of each niche
   nb.size <- table(nn.fac)
@@ -267,8 +259,8 @@ findNNDT.matrix <- function(
   nn.dist.fac <- nn.fac
   names(nn.dist.fac) <- dist.list
 
-  cat(paste0("Mean num of neighbors: ", ceiling(mean(nb.size)), "\n"))
-  cat(paste0("Median num of neighbors: ", median(nb.size), "\n"))
+  # cat("Mean num of neighbors: ", ceiling(mean(nb.size)), "\n")
+  # cat("Median num of neighbors: ", median(nb.size), "\n")
 
   # return(nn.fac)
   return(list(
@@ -306,7 +298,7 @@ findNNDT.CytoSignal <- function(
     stop("max.r should be a numeric value.")
   }
 
-  message("Filtering out the edges over given radius: ", max.r, "...")
+  # message("Filtering out the edges over given radius: ", max.r, "...")
 
   nn <- findNNDT.matrix(cells.loc, weight.sum = weight, max.r = max.r)
 
@@ -347,7 +339,7 @@ findNNRaw <- function(
 ) {
   tag <- "Raw"
 
-  message("Setting Imp obj using NO imputation...")
+  message("Setting ImpData obj using NO imputation...")
 
   if ("DT" %in% names(object@imputation)){
     message("DT has been done before, taking the same neighbors.")
@@ -415,7 +407,6 @@ imputeNiche.dgCMatrix <- function(
     weights = c("mean", "counts", "dist", "none"),
     ...
 ){
-  message("Imputing...")
   weights <- match.arg(weights)
   i.list = as.integer(names(nb.id.fac)) # x coords, row number
   j.list = as.numeric(as.character(nb.id.fac)) # y coords, col number, hq beads
@@ -505,7 +496,7 @@ imputeNiche.CytoSignal <- function(
   names(scale.fac.imp) <- names(object@parameters$lib.size)
 
   res.density <- sum(dge.raw.imputed != 0)/length(dge.raw.imputed) # density 6.2%
-  message("Density after imputation: ", res.density*100, "%")
+  # message("Density after imputation: ", res.density*100, "%")
 
   object@imputation[[nn.type]]@imp.data <- dge.raw.imputed
   object@imputation[[nn.type]]@nn.graph <- weights.mtx
@@ -525,7 +516,7 @@ imputeNiche.CytoSignal <- function(
 #' @param ... Arguments passed to other S3 methods.
 #' @return For CytoSignal object, the original object with normalized data
 #' updated. For dgCMatrix object, the normalized version of it.
-#'
+#' @noRd
 normCounts <- function(
     object,
     method = c("default", "cpm", "none", "scanpy"),
@@ -569,12 +560,14 @@ normCounts.dgCMatrix <- function(
 #' \code{"GauEps"} for NN found with \code{\link{findNNGauEB}}, or use
 #' \code{"DT"} for NN found with \code{\link{findNNDT}}. Default use the most
 #' lastly computed NN.
+#' @param verbose Whether to print out the progress. Default \code{TRUE}.
 #' @param method The method to use for normalization. default: seurat style \code{"default"}
 #' @return A dgCMatrix of normalized data.
 normCounts.CytoSignal <- function(
     object,
     method = c("default", "cpm", "none", "scanpy"),
     slot.use = NULL,
+    verbose = TRUE,
     ...
 ){
   method <- match.arg(method)
@@ -586,13 +579,13 @@ normCounts.CytoSignal <- function(
   if (!slot.use %in% names(object@imputation)) {
     stop("Data not found.")
   }
-
+  if (isTRUE(verbose))
   message(paste0("Normalizing method: ", method, " on Imputation slot: ", slot.use, "..."))
 
   mat <- object@imputation[[slot.use]]@imp.data
   scale.fac <- object@imputation[[slot.use]]@scale.fac
   mat <- normCounts(object = mat, scale.fac = scale.fac, method = method)
-  
+
   # modified to output the normalized data instead of the object
   # object@imputation[[slot.use]]@imp.data <- mat
   # return(object)
@@ -624,7 +617,7 @@ normCounts.CytoSignal <- function(
     dge.raw,
     lrscore.mtx,
     null.lrscore.mtx,
-    correctBy = c("cell", "intr"),
+    fdr.method = c("spatialFDR", "fdr"),
     nb.fac,
     intr.db,
     gene_to_uniprot,
@@ -632,7 +625,7 @@ normCounts.CytoSignal <- function(
     reads.thresh = 100,
     sig.thresh = 100
 ){
-  correctBy <- match.arg(correctBy)
+  fdr.method <- match.arg(fdr.method)
   # if Cell numbers in pvalue mtx and nb.fac do not match
   cellsNN = as.integer(levels(nb.fac[["id"]]))
   if (!identical(nrow(lrscore.mtx), length(cellsNN))) {
@@ -640,32 +633,32 @@ normCounts.CytoSignal <- function(
     lrscore.mtx <- lrscore.mtx[-cellsNoNN, ]
   }
 
-  pval.mtx = getPvalues(lrscore.mtx, null.lrscore.mtx)
+  pval.mtx <- getPvalues(lrscore.mtx, null.lrscore.mtx)
 
-  if (correctBy == "cell"){
-    pval.spatial = graphSpatialFDR(nb.fac, pval.mtx)
-    dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
-  } else if (correctBy == "intr"){
-    pval.spatial = sapply(1:nrow(pval.mtx), function(i) {
+  if (fdr.method == "spatialFDR"){
+    pval.spatial <- graphSpatialFDR(nb.fac, pval.mtx)
+    dimnames(pval.spatial) <- dimnames(lrscore.mtx); gc()
+  } else if (fdr.method == "fdr"){
+    pval.spatial <- sapply(1:nrow(pval.mtx), function(i) {
       p.adjust(pval.mtx[i, ], method = "BH")
     })
-    pval.spatial = t(pval.spatial)
-    dimnames(pval.spatial) = dimnames(lrscore.mtx); gc()
+    pval.spatial <- t(pval.spatial)
+    dimnames(pval.spatial) <- dimnames(lrscore.mtx); gc()
   }
-
-  res.list = lapply(colnames(pval.spatial), function(cp){
-    bead.index = names(which(pval.spatial[, cp] < p.thresh))
+  res.list <- lapply(colnames(pval.spatial), function(cp){
+    rownames(pval.spatial)[pval.spatial[, cp] < p.thresh]
   })
 
-  names(res.list) = colnames(pval.spatial)
+  names(res.list) <- colnames(pval.spatial)
 
-  num.sig.intr = sum(lengths(res.list) != 0) # 534 / 744
-  cat("Number of interactions that have significant i-niche: ", num.sig.intr, "\n")
+  res.list <- res.list[lengths(res.list) != 0]
+  message("- Number of interactions that have significant i-niche: ",
+          length(res.list))
 
-  res.list = res.list[lengths(res.list) != 0]
-  res.list = res.list[order(lengths(res.list), decreasing = T)]
+  res.list <- res.list[order(lengths(res.list), decreasing = T)]
 
-  res.list.hq = filterRes(dge.raw, res.list, intr.db, gene_to_uniprot,
+  res.list.hq = filterRes(dge.raw = dge.raw, res.list = res.list,
+                          intr.db = intr.db, gene_to_uniprot = gene_to_uniprot,
                           reads.thresh = reads.thresh, sig.thresh = sig.thresh)
 
   # lrscore.mtx.hq = lrscore.mtx[, names(res.list.hq)]
@@ -685,8 +678,8 @@ normCounts.CytoSignal <- function(
 #' Infer significance of LR scores
 #'
 #' @param object A Cytosignal object
-#' @param correctBy Spatial FDR correction method. Choose from \code{"cell"} or
-#' \code{"intr"}.
+#' @param fdr.method Spatial FDR correction method. Choose from
+#' \code{"spatialFDR"} or \code{"fdr"}.
 #' @param p.value A numeric value of p-value threshold
 #' @param reads.thresh The minimum number of reads for a ligand-receptor
 #' interaction to be considered.
@@ -704,7 +697,7 @@ normCounts.CytoSignal <- function(
 #' @export
 inferSignif <- function(
     object,
-    correctBy = c("cell", "intr"),
+    fdr.method = c("spatialFDR", "fdr"),
     p.value = 0.05,
     reads.thresh = 100,
     sig.thresh = 100,
@@ -729,7 +722,7 @@ inferSignif <- function(
     }
     nb.id.fac <- object@imputation[[nn.use]]@nn.id
   } else {
-    stop("nn.use must be either a factor or a character.")
+    stop("`nn.use` must be either or a character.")
   }
 
   # else if (is.factor(nn.use)) {
@@ -752,10 +745,9 @@ inferSignif <- function(
   use.intr.db <- object@intr.valid[[use.intr.slot.name]]
 
   res.list = .inferSignif.matrix_like(object@counts, object@lrscore[[slot.use]]@score,
-                                      object@lrscore[[slot.use]]@score.null, correctBy, nb.fac,
+                                      object@lrscore[[slot.use]]@score.null, fdr.method, nb.fac,
                                       use.intr.db, object@intr.valid[["gene_to_uniprot"]], p.value,
                                       reads.thresh, sig.thresh)
-
   object@lrscore[[slot.use]]@res.list <- res.list
 
   object@lrscore[[slot.use]]@log[["Parameters for Significant beads"]] <- list(
@@ -984,9 +976,71 @@ inferCorrScore <- function(
 }
 
 
+#' Rank the inferred high-quality interactions by their spatial variability
+#' @description
+#' This function utilizes SPARK package to calculate the spatial variability of
+#' the high-quality interactions, using their LR scores. Please refer to
+#' \href{https://doi.org/10.1186/s13059-021-02404-0}{Jiaqiang Zhu, et al., 2021, Genome Biology}
+#' for more details of the method.
+#' @param object A \linkS4class{CytoSignal} object, with
+#' \code{\link{inferSignif}} already run.
+#' @param slot.use Which LR score to use. Use the name specified with \code{tag}
+#' when running \code{\link{inferLRScore}}.
+#' @param numCores SPARK::sparkx parameter, an integer specifying the number of
+#' threads.
+#' @param verbose SPARK::sparkx parameter, a logical value indicating whether to
+#' print details for debug purpose
+#' @return The input \linkS4class{CytoSignal} object with the spatially variable
+#' high-quality interaction list updated at
+#' \code{object@lrscore[[slot.use]]@res.list$result.spx}
+#' @export
+#' @examples
+#' \dontrun{
+#' object <- findNN(object)
+#' object <- imputeLR(object)
+#' object <- inferScoreLR(object, lig.slot = "GauEps", recep.slot = "Raw",
+#'                        intr.db.name = "diff_dep")
+#' object <- permuteLR(object)
+#' object <- inferNullScoreLR(object)
+#' object <- inferSignif(object)
+#' object <- rankIntrSpatialVar(object)
+#' }
+rankIntrSpatialVar <- function(
+    object,
+    slot.use = NULL,
+    numCores = 1,
+    verbose = FALSE
+) {
+  if (!requireNamespace("SPARK", quietly = TRUE)) {
+    stop("Package SPARK is required for calculating the spatial variability. ",
+         "Please install with:\ndevtools::install_github('xzhoulab/SPARK')")
+  }
+  if (is.null(slot.use)){
+    slot.use <- object@lrscore[["default"]]
+  }
+  if (!"result.hq" %in% names(object@lrscore[[slot.use]]@res.list)) {
+    stop("Filtered high-quality interactions not found. Please run ",
+         "`inferIntrScore()` or `inferSignif()` first.")
+  }
+  message("Ranking high-quality interactions by spatial variability using LR score at ", slot.use, "... ")
 
+  spx.res <- SPARK::sparkx(count_in = t(object@lrscore[[slot.use]]@score),
+                           locus_in = object@cells.loc,
+                           numCores = numCores,
+                           option = "mixture",
+                           verbose = verbose)
+  # head(spx.res$res_mtest)
 
+  spx.pvals <- spx.res$res_mtest
+  spx.pvals.hq <- spx.pvals[names(object@lrscore[[slot.use]]@res.list[["result.hq"]]), ]
+  nVar <- sum(spx.pvals.hq$adjustedPval <= 0.05)
+  message("- Number of spatially variable interactions: ", nVar, " out of ",
+          nrow(spx.pvals.hq), " high-quality interactions.")
+  spx.pvals.hq <- spx.pvals.hq[order(spx.pvals.hq$adjustedPval), ]
 
+  object@lrscore[[slot.use]]@res.list[["result.spx"]] <- object@lrscore[[slot.use]]@res.list[["result.hq"]][rownames(spx.pvals.hq)]
+  return(object)
+}
 
 
 

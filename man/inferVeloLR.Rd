@@ -2,9 +2,16 @@
 % Please edit documentation in R/LRvelo.r
 \name{inferVeloLR}
 \alias{inferVeloLR}
-\title{Compute the LR velo for specific ligand-receptor imputation obj pairs}
+\title{Sub function for inferVeloLR, input a CytoSignal object}
 \usage{
-inferVeloLR(object, ...)
+inferVeloLR(
+  object,
+  lig.slot,
+  recep.slot,
+  intr.db.name,
+  norm.method = "scanpy",
+  tag = NULL
+)
 }
 \arguments{
 \item{object}{A Cytosignal object}
@@ -15,11 +22,16 @@ inferVeloLR(object, ...)
 
 \item{intr.db.name}{The intr database name to use}
 
-\item{nn.use}{The neighbor index as niche}
+\item{norm.method}{The normalization method to apply to the counts, need to be consistent with the
+normalization method used for the RNA velocity method. Default is "scanpy".}
+
+\item{nn.use}{slot that the neighbor index should be taken from, by default is the same as
+the recep.slot. For example, if velo.obj = GauEps-DT, then nn.use = "DT".
+nn.use could also be a user-defind factor.}
 }
 \value{
 A Cytosignal object
 }
 \description{
-Compute the LR velo for specific ligand-receptor imputation obj pairs
+Sub function for inferVeloLR, input a CytoSignal object
 }

@@ -177,6 +177,72 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_rank_matrix_dgc
+std::vector<std::list<float> > cpp_rank_matrix_dgc(arma::vec& x, const arma::vec& p, int nrow, int ncol);
+RcppExport SEXP _cytosignal_cpp_rank_matrix_dgc(SEXP xSEXP, SEXP pSEXP, SEXP nrowSEXP, SEXP ncolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type nrow(nrowSEXP);
+    Rcpp::traits::input_parameter< int >::type ncol(ncolSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_rank_matrix_dgc(x, p, nrow, ncol));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rowAggregateSum_sparse
+arma::mat rowAggregateSum_sparse(arma::sp_mat& X, const arma::uvec& groups, unsigned ngroups);
+RcppExport SEXP _cytosignal_rowAggregateSum_sparse(SEXP XSEXP, SEXP groupsSEXP, SEXP ngroupsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::sp_mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type groups(groupsSEXP);
+    Rcpp::traits::input_parameter< unsigned >::type ngroups(ngroupsSEXP);
+    rcpp_result_gen = Rcpp::wrap(rowAggregateSum_sparse(X, groups, ngroups));
+    return rcpp_result_gen;
+END_RCPP
+}
+// colAggregateSum_sparse
+arma::mat colAggregateSum_sparse(arma::sp_mat& X, const arma::uvec& groups, unsigned ngroups);
+RcppExport SEXP _cytosignal_colAggregateSum_sparse(SEXP XSEXP, SEXP groupsSEXP, SEXP ngroupsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::sp_mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type groups(groupsSEXP);
+    Rcpp::traits::input_parameter< unsigned >::type ngroups(ngroupsSEXP);
+    rcpp_result_gen = Rcpp::wrap(colAggregateSum_sparse(X, groups, ngroups));
+    return rcpp_result_gen;
+END_RCPP
+}
+// colNNZAggr_sparse
+arma::mat colNNZAggr_sparse(arma::sp_mat& X, const arma::uvec& groups, unsigned ngroups);
+RcppExport SEXP _cytosignal_colNNZAggr_sparse(SEXP XSEXP, SEXP groupsSEXP, SEXP ngroupsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::sp_mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type groups(groupsSEXP);
+    Rcpp::traits::input_parameter< unsigned >::type ngroups(ngroupsSEXP);
+    rcpp_result_gen = Rcpp::wrap(colNNZAggr_sparse(X, groups, ngroups));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rowNNZAggr_sparse
+arma::mat rowNNZAggr_sparse(arma::sp_mat& X, const arma::uvec& groups, unsigned ngroups);
+RcppExport SEXP _cytosignal_rowNNZAggr_sparse(SEXP XSEXP, SEXP groupsSEXP, SEXP ngroupsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::sp_mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type groups(groupsSEXP);
+    Rcpp::traits::input_parameter< unsigned >::type ngroups(ngroupsSEXP);
+    rcpp_result_gen = Rcpp::wrap(rowNNZAggr_sparse(X, groups, ngroups));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_gauss_vec_cpp", (DL_FUNC) &_cytosignal_gauss_vec_cpp, 2},
@@ -191,6 +257,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_inferVeloLR_cpp", (DL_FUNC) &_cytosignal_inferVeloLR_cpp, 8},
     {"_cytosignal_graphNicheLR_cpp", (DL_FUNC) &_cytosignal_graphNicheLR_cpp, 8},
     {"_cytosignal_VelographNicheLR_cpp", (DL_FUNC) &_cytosignal_VelographNicheLR_cpp, 9},
+    {"_cytosignal_cpp_rank_matrix_dgc", (DL_FUNC) &_cytosignal_cpp_rank_matrix_dgc, 4},
+    {"_cytosignal_rowAggregateSum_sparse", (DL_FUNC) &_cytosignal_rowAggregateSum_sparse, 3},
+    {"_cytosignal_colAggregateSum_sparse", (DL_FUNC) &_cytosignal_colAggregateSum_sparse, 3},
+    {"_cytosignal_colNNZAggr_sparse", (DL_FUNC) &_cytosignal_colNNZAggr_sparse, 3},
+    {"_cytosignal_rowNNZAggr_sparse", (DL_FUNC) &_cytosignal_rowNNZAggr_sparse, 3},
     {NULL, NULL, 0}
 };
 
