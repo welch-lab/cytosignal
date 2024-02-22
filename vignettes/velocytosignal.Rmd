@@ -1,5 +1,5 @@
 ---
-title: "Infer temporal cell-cell communication change in spatial at single-cell level with RNA velocity information associated"
+title: "Infer spatially resolved temporal dynamics of cell-cell communication at cellular resolution"
 author: "Jialin Liu, Yichen Wang"
 date: "2024-01-03"
 output: 
@@ -18,23 +18,27 @@ vignette: >
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
+### Please run the [CytoSignal workflow](#) before this vignette.
+
 ## Introduction
 
-CytoSignal detects cell-cell signaling from spatial transcriptomics data at single-cell resolution. CytoSignal performs a nonparametric statistical test to identify which cells within a tissue have significant activity for a particular signaling interaction. CytoSignal considers multi-component interactions and separately models interactions mediated by diffusion vs. contact-dependent molecules.
+CytoSignal detects cell-cell signaling from spatial transcriptomic data at single-cell resolution. CytoSignal performs a nonparametric statistical test to identify which cells within a tissue have significant activity for a particular signaling interaction. CytoSignal considers multi-component interactions and separately models interactions mediated by diffusion vs. contact-dependent molecules. 
 
-**We have introduced the [basic CytoSignal workflow](#) in detail.** This vignette extends the analysis to inferring temporal changes in signaling strength. The signaling interaction strength changes when either the ligand or receptor expression changes. Previous work has shown that spliced and unspliced counts can be used to estimate the time derivative of a gene’s expression, a concept called RNA velocity. ([Gioele La Manno et al., 2018](https://doi.org/10.1038/s41586-018-0414-6)) These velocity estimates of the rate of change for ligand and receptor expression can then be used to predict whether a particular signaling interaction will increase or decrease in strength over time.
+As an extension to CytoSignal, we have also developed VeloCytoSignal to infer temporal dynamic changes in signaling strength using spatial data from only a single time point. VeloCytoSignal predicts the instantaneous rate of change for a signaling interaction at a specific position within a tissue by combining RNA velocity from the ligand and receptor genes to calculate the time derivative (dS/dt) of the CytoSignal LRscore (S). 
 
 ## Example data
 
-For this tutorial, we use a cortex dataset **TODO: with some more biology and sequencing technology context**. We have derived the necessary information for inferring the temporal signaling change, including the spliced ($s$) and unspliced ($u$) RNA velocity. These two matrices are required for temporal singling change inference. In this example, the $s$ and $u$ matrices are derived with [VeloVAE]() using its full VB model with default hyperparameters. Other RNA velocity inference tools, such as [scvelo](), can all produce the two matrices with desired format (i.e. dense matrix in gene x cell dimensionality), as this is the standard representation of RNA velocity inference result. 
+In this tutorial, we demonstrate how to preform VeloCytoSignal on a mouse embryonic E14 brain data captured by Slide-seq V2, a spatial transcriptomic protocol at single-cell resolution. This data was originally produced in the work of [Stickels R.R. et al., 2020](https://doi.org/10.1038/s41587-020-0739-1), and is now publicly available on Single-Cell Portal via [SCP815](https://singlecell.broadinstitute.org/single_cell/study/SCP815). 
 
-We have already performed [regular CytoSignal analysis]() following the other vignette. Please refer to the other vignette for detailed walk-through. Here we provide the processed CytoSignal object and move on to the analysis with VeloCytoSignal.
+To calculate RNA velocity estimates, we utilized our previously published tool, [VeloVAE](https://doi.org/10.1038/s41586-018-0414-6). VeloVAE uses gene-shared latent times to calculate much more accurate velocity estimates for individual genes than approaches that infers by single-gene. However, VeloCytoSignal is widely applicable on most kinds of RNA velocity approaches, as long as it provides the spliced ($s$) and unspliced ($u$) RNA velocity estimates in the cell-by-gene matrix format.
+
+Here we provide the processed CytoSignal object and pre-calculated RNA velocity estimates.
 
 - CytoSignal object with regular CytoSignal analysis performed: [cortex-something_vcs-obj.rds](https://...)
-- $s$ matrix that stands for the spliced RNA velocity inference from the dataset: [cortex-something_velo-spliced.rds](https://...)
-- $u$ matrix that stands for the unspliced RNA velocity inference from the dataset: [cortex-something_velo-unspliced.rds](https://...)
+- $s$ matrix stands for the spliced RNA velocity estimates: [cortex-something_velo-spliced.rds](https://...)
+- $u$ matrix stands for the unspliced RNA velocity estimates: [cortex-something_velo-unspliced.rds](https://...)
 
-Download the files listed above from the provided link into a desired local directory. The code chunks below assumes that users have the files placed at the current working directory (as can be shown by `getwd()`). Then load the data into R environment. 
+Download the files listed above from the provided link into a desired local directory. Next, load the downloaded data into the R environment using the following codes. We assume that users have the files placed at the current working directory (as can be shown by `getwd()`). Alternatively, users can also specify the path to the files.
 
 ```{r load}
 library(cytosignal)
@@ -44,7 +48,7 @@ velo.s <- readRDS("cortex-fullvb-adult_velo-spliced.rds")
 velo.u <- readRDS("cortex-fullvb-adult_velo-unspliced.rds")
 ```
 
-In order to get started with VeloCytoSignal analysis, we simply need to add the spliced and unspliced velocity matrices into the object so that the analytic functions will be able to make use of them automatically. 
+Add the velocity matrices to the CytoSignal object using the `addVelo()` method. The method takes the CytoSignal object and the spliced and unspliced velocity matrices as input.
 
 ```{r addVelo}
 vcs <- addVelo(vcs, velo.s = velo.s, velo.u = velo.u)
@@ -52,7 +56,7 @@ vcs <- addVelo(vcs, velo.s = velo.s, velo.u = velo.u)
 
 ## Imputation
 
-Similar to a regular CytoSignal workflow, we impute the L and R changes from nearest neighbors using different strategies for diffusion-dependent and contact-dependent interactions. There is no need to do the neighbor finding here because it is already done during the regular workflow. Here, we implemented `imputeNicheVelo()` method to pull the RNA velocity from the nearest neighbors of each location and impute the temporal ligand/receptor change.
+Similar to the CytoSignal workflow, we impute the velocity estimates for the ligands and receptors from the spatial neighbors of each location using function `imputeNichVelo`. We use the same strategy as we did for calculating LRscore in the CytoSignal workflow, but with the RNA velocity estimates. Hence, there is no need to do the neighbor finding here because it is already done during the CytoSignal workflow.
 
 ```{r impute}
 # Impute value for diffusion-dependent ligands
@@ -63,69 +67,46 @@ vcs <- imputeNicheVelo(vcs, nn.type = "DT")
 vcs <- imputeNicheVelo(vcs, nn.type = "Raw")
 ```
 
-## Calculating velo LR Scores
+## Calculating velocity estimates for signaling interactions
 
-Recall that in a regular inference, we calculate LR score, which is defined for each cell location and measures the signaling interaction strength. In VeloCytoSignal, with the imputed temporal change of ligands and receptors, we can calculate the veloLR score which measures the time derivative of the signaling strength. This is the primary result of VeloCytoSignal analysis.
+Next, we feed the imputed velocity estimates to function `inferVeloLR` to calculate velocity estimates for each signaling interaction. Because the CytoSignal test statistic is simply $S = L x R$, we can calculate the time derivative of 𝑆 using the product rule of differential calculus: $dS/dt = dL/dt x R + L x dR/dt$. 
+
+By default, we use the same parameters as we did for the CytoSignal workflow. Velocity estimates of receptors are taken from the normalized expression (`Raw`). Velocity estimates of ligands of diffusible interactions are imputed with Gaussian Epsilon ball (`lig.slot = "GauEps", recep.slot = "Raw"`), while those from contact-dependent interactions are imputed with Delaunay Triangulation (`lig.slot = "DT", recep.slot = "Raw"`). The function also provides an option to smooth the receptor expressions with Delaunay Triangulation (`recep.slot = "DT"`), which is useful when the sparsity of the data is relatively high.
+
+Parameter `intr.db.name` specifies the name of the interaction database to use, with `"diff_dep"` for diffusible interactions and `"cont_dep"` for contact-dependent interactions.
 
 ```{r veloLR}
 vcs <- inferVeloLR(vcs, lig.slot = "GauEps", recep.slot = "Raw", intr.db.name = "diff_dep")
 vcs <- inferVeloLR(vcs, lig.slot = "DT", recep.slot = "Raw", intr.db.name = "cont_dep")
 ```
 
-To access the exact value for the veloLR scores, users can explore the object with the following command with replacing `<nn.type>` by strings `"GauEps-Raw"` for diffusion-dependent interactions, or `"DT-Raw"` for contact-dependent interactions. The returned result is a sparse matrix with barcodes on rows and interaction ID on columns and values indicating the temporal interaction signaling strength change for each interaction in each cell.
+To access the exact value for the LRvelo estimates, users can explore the object with the following command with replacing `<nn.type>` by strings `"GauEps-Raw"` for diffusion-dependent interactions, or `"DT-Raw"` for contact-dependent interactions. The returned result is a sparse matrix with barcodes as rows and interaction ID as columns and values indicating the velocity estimates for each interaction in each cell.
 
 ```{r veloLRRes, eval=FALSE}
 vcs@lrvelo[[<nn.type>]]@intr.velo
 ```
 
-## Visualizing individual interactions
+## Visualization
 
-With all the necessary inference performed, now we show the visualization methods for exploring and understanding the analysis. This part shows visualization methods that applies to individual interactions.
+VeloCytoSignal makes cellular-resolution, spatially-resolved signaling inference. We developed several new visualizations for plotting each inferred signaling interaction.
 
-Most of the functions shown here understand the interaction specification with two arguments: `intr` and `slot.use`. Users can first show a list of significant interactions that is available for visualization with `showIntr()`.
+Most of the functions take two arguments, `intr` and `slot.use`, for specifying individual interactions. Users can first show a list of significant interactions that is available for visualization with `showIntr()`. `intr` should then be the unique ID of available interaction(s) and `slot.use` should be a selection as explained above.
 
 ```{r showIntr, results=TRUE}
 # Show significant diffusible interaction IDs associated with interaction names
 showIntr(vcs, slot.use = "GauEps-Raw", return.name = TRUE)
 ```
 
-Using `return.name = TRUE` here allows showing the unique IDs and interaction name, in a form of "ligand-receptor", at the same time, so things can be more interpretable. Note that, the list of available interactions varies for different LRscore inferences. For listing significant interactions with diffusible ligands, most of the time we have `slot.use = "GauEps-Raw"` if users did the LRscore inference with default setting. Similarly, for finding the significant contact dependent interactions, we need to set `slot.use = "DT-Raw"` if everything above went with default. 
+Setting `return.name = TRUE` displays both interaction unique IDs and the interaction names for easier interpretation. Interaction names are shown as a "ligand-receptor" gene symbol. Note that the list of available interactions varies for different LRscore inferences. For listing significant interactions with diffusible ligands, most of the time we have `slot.use = "GauEps-Raw"` if users did the LRscore inference with default setting. Similarly, for finding the significant contact dependent interactions, we need to set `slot.use = "DT-Raw"` if everything above went with default. 
 
 In the plotting functions we show next, users need to specify the unique ID(s) of interests and the LRscore slot, where the interaction is found, at the same time. This is for ensuring that the correct result is captured when multiple inferences with parameter tweaks are performed for the same type of interactions.
 
-### Significance plot
+### Visualizing velocity estimates of interaction signaling in 3D
 
-We provide function `plotSignif2()` for making a general combination figure that shows the imputed expression values of the ligand and receptor, the original raw expression values of the ligand and receptor, the inferred LRscore of an interaction of interests, and a cluster label plot. General graphical setting can be found in the documentation of the function (`?plotSignif2`). 
+We developed a way (`plotVelo`) to show the velocity estimates of an interaction at cellular resolution in 3D, with the directions of the arrows indicating whether the signaling activity is currently increasing (pointing upward) or decreasing (pointing downward) at each spatial position.
 
-```{r signif, fig.width=9, fig.height=6}
-plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE)
-```
-
-**Recommended:** In a more exploratory scenario, users can also do using numeric index with `intr` and turn to `return.plot = FALSE` (default). This way, a bunch of significance plot of high resolution can be stored on device and be browsed more easily. We also recommend doing this for both contact-dependent interactions and diffusion-dependent interactions.
-
-```{r plotsignif2, eval=FALSE}
-# For diffusion dependent interactions
-## Choose a level of significance metric
-signif.use <- "result.hq.corr"
-lrscore.slot <- "GauEps-Raw"
-plot_dir <- paste0("path_to_result/diff-dep_", signif.use, "_", lrscore.slot, "/")
-plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
-
-# For contact dependent interactions
-## Choose a level of significance metric
-signif.use <- "result.hq.corr"
-lrscore.slot <- "DT-Raw"
-plot_dir <- paste0("path_to_result/cont-dep_", signif.use, "_", lrscore.slot, "/")
-plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
-```
-
-
-### Edge plots
-
-We developed a way to show the connectivity of an interaction with single-cell resolution. The plot comes with two layers of scatter plot of cells placed at the top and bottom of a 3D box space, for labeling the receivers and senders, respectively. In each layer, we use low transparency to highlight the cells that is sending or receiving the signal of the specified interaction. Cells are colored by cluster at the mean time. Finally, we bring lines that connect the senders with their corresponding tentative receivers, which are the edges. 
-
-```{r plotEdge}
-plotEdge(cs, "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw")
+```{r plotVelo}
+plotVelo(cs, "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw")
 ```
 
 For the cluster annotation legend, users can simply use `plotCluster()` for reference.
@@ -134,13 +115,30 @@ For the cluster annotation legend, users can simply use `plotCluster()` for refe
 plotCluster(cs)
 ```
 
-A panel of edge plot can be added to the significance plot combination with setting `edge = TRUE`. So it is already together with the cluster legend there.
+### Combinational plots of 3D velocity, gene expression, LRscore and cluster annotation
 
-```{r plotSignifEdge, fig.width=14, fig.height=6}
-plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE,
-            edge = TRUE)
+We provide a function named `plotSignif2` for making a general combination figure. Specify `edge = T` and `velo = True` to include the 3D edge plot and the velocity estimates besides the gene expression and LRscore. 
+
+```{r signif, fig.width=9, fig.height=6}
+plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE, edge = TRUE, velo = T)
 ```
 
-### Velo plots
+**Recommended:** When plotting a large number of interactions, it’s recommended to use numeric index with `intr` and turn to `return.plot = FALSE` (by default). In this way, plots of all input interactions at high resolution will be stored on the device instead of on the screen.
 
-The example dataset provided does not have any velocity information available lol.
+The codes below show the top 5 significant interactions ranked by SPARK-X for both diffusion-dependent and contact-dependent interactions.
+
+```{r plotsignif2, eval=FALSE}
+# For diffusion dependent interactions
+## Choose a level of significance metric
+signif.use <- "result.spx"
+lrscore.slot <- "GauEps-Raw"
+plot_dir <- paste0("path_to_result/Velo-diff-dep_", signif.use, "_", lrscore.slot, "/")
+plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+
+# For contact dependent interactions
+## Choose a level of significance metric
+signif.use <- "result.spx"
+lrscore.slot <- "DT-Raw"
+plot_dir <- paste0("path_to_result/Velo-cont-dep_", signif.use, "_", lrscore.slot, "/")
+plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+```

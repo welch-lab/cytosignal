@@ -1,5 +1,5 @@
 ---
-title: "Infer cell-cell communication in spatial at single-cell level"
+title: "Infer spatially resolved cell-cell communication signaling at cellular resolution"
 author: "Jialin Liu, Yichen Wang"
 date: "2024-01-03"
 output: 
@@ -30,6 +30,7 @@ In this tutorial, we demonstrate how to preform CytoSignal on a mouse embryonic 
 - Corresponding cluster annotation: [SCP2170_cluster.csv](https://figshare.com/ndownloader/files/43898934)
 - Spatial location: [SCP2170_spatial.csv](https://figshare.com/ndownloader/files/43898931)
 
+Download the files listed above from the provided link into a desired local directory.
 
 ```{r download, include=FALSE}
 if (!file.exists("SCP2170_annotated_dgCMatrix.rds")) {
@@ -162,37 +163,13 @@ Setting `return.name = TRUE` displays both interaction unique IDs and the intera
 showIntr(cs, slot.use = "GauEps-Raw", signif.use = "result.spx", return.name = TRUE)
 ```
 
-## Visualizing individual interactions
+## Visualization
 
 CytoSignal makes cellular-resolution, spatially-resolved signaling inference. We developed several new visualizations for plotting each inferred signaling interaction.
 
 Most of the functions take two arguments, `intr` and `slot.use`, for specifying individual interactions. Users can first show a list of significant interactions that is available for visualization with `showIntr()`. `intr` should then be the unique ID of available interaction(s) and `slot.use` should be a selection as explained above.
 
-### Significance plot
-
-We provide a function named `plotSignif2()` for making a general combination figure. This function plots on a per-interaction basis, and for each interaction it shows 1) the imputed gene expression of the ligand and receptor; 2) the original raw expression values of the ligand and receptor; 3) the inferred LRscore; 4) cluster annotations for each location. General graphical setting can be found in the documentation of the function (`?plotSignif2`). 
-
-```{r signif, fig.width=9, fig.height=6}
-plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE)
-```
-
-**Recommended:** When plotting a large number of interactions, it’s recommended to use numeric index with `intr` and turn to `return.plot = FALSE` (by default). In this way, plots of all input interactions at high resolution will be stored on the device instead of on the screen.
-
-```{r plotsignif2, eval=FALSE}
-# For diffusion dependent interactions
-signif.use <- "result.spx"
-lrscore.slot <- "GauEps-Raw"
-plot_dir <- paste0("path_to_result/diff-dep_", signif.use, "_", lrscore.slot, "/")
-plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
-
-# For contact dependent interactions
-## Choose a level of significance metric
-lrscore.slot <- "DT-Raw"
-plot_dir <- paste0("path_to_result/cont-dep_", signif.use, "_", lrscore.slot, "/")
-plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
-```
-
-### Edge plots
+### Visualizing significant cell-cell communication in 3D
 
 We developed a 3D edge plot for visualizing the signal-sending and signal-receiving cells of an interaction at single-cell resolution. The plot comes with two layers of scatter plot of cells placed at the top and bottom of a 3D box space, for labeling the receivers and senders, respectively. In each layer, we use low transparency to highlight the cells that is sending or receiving the signal of the specified interaction. Cells are colored by cluster at the mean time. Finally, we bring lines that connect the senders with their corresponding tentative receivers, which are the edges. 
 
@@ -206,9 +183,28 @@ To plot the cluster annotation legend alone, users can simply use `plotCluster()
 plotCluster(cs)
 ```
 
-3D edge plots can be added to the significance plot combination with setting `edge = TRUE`.
+### Combinational plots of 3D edge plot, gene expression, LRscore and cluster annotation
 
-```{r plotSignifEdge, fig.width=14, fig.height=6}
-plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE,
-            edge = TRUE)
+We provide a function named `plotSignif2` for making a general combination figure. This function plots on a per-interaction basis, and for each interaction it shows 1) the imputed gene expression of the ligand and receptor; 2) the original raw expression values of the ligand and receptor; 3) the inferred LRscore; 4) cluster annotations for each location; 5) 3D edge plot for visualizing the signal-sending and signal-receiving cells. General graphical setting can be found in the documentation of the function (`?plotSignif2`). 
+
+```{r signif, fig.width=9, fig.height=6}
+plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE, edge = T)
+```
+
+**Recommended:** When plotting a large number of interactions, it’s recommended to use numeric index with `intr` and turn to `return.plot = FALSE` (by default). In this way, plots of all input interactions at high resolution will be stored on the device instead of on the screen.
+
+The codes below show the top 5 significant interactions ranked by SPARK-X for both diffusion-dependent and contact-dependent interactions.
+
+```{r plotsignif2, eval=FALSE}
+# For diffusion dependent interactions
+signif.use <- "result.spx"
+lrscore.slot <- "GauEps-Raw"
+plot_dir <- paste0("path_to_result/diff-dep_", signif.use, "_", lrscore.slot, "/")
+plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+
+# For contact dependent interactions
+## Choose a level of significance metric
+lrscore.slot <- "DT-Raw"
+plot_dir <- paste0("path_to_result/cont-dep_", signif.use, "_", lrscore.slot, "/")
+plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
 ```
