@@ -4,9 +4,8 @@ using namespace std;
 using namespace Rcpp;
 using namespace arma;
 
-// Algorithm adopted from https://github.com/immunogenomics/presto
-// With corrections and removed supports for dense matrices which do not seem
-// necessary for LIGER
+// Credit to GitHub repo immunogenomics/presto, with massive modification so
+// this version is minimized to only work for dgCMatrix.
 
 // X - feature x cell
 // output - cell x featureRank
@@ -22,7 +21,6 @@ std::list<float> cpp_in_place_rank_mean(arma::vec& v_temp, int idx_begin,
 
 
   sort(v_sort.begin(), v_sort.end());
-
   float rank_sum = 0, n = 1;
   size_t i;
   for (i = 1U; i < v_sort.size(); i++) {
@@ -44,6 +42,7 @@ std::list<float> cpp_in_place_rank_mean(arma::vec& v_temp, int idx_begin,
       n++;
     }
   }
+  if (n > 1) ties.push_back(n);
   // set the last element(s)
   for (unsigned j = 0; j < n; j++)
     v_temp[v_sort[i - 1 - j].second + idx_begin] = (rank_sum / n) + 1;
@@ -57,8 +56,11 @@ std::vector<std::list<float> > cpp_rank_matrix_dgc(
   vector<list<float> > ties(ncol);
   int n_zero;
   for (int i = 0; i < ncol; i++) {
-    if (p[i+1] == p[i]) continue;
     n_zero = nrow - (p[i+1] - p[i]);
+    if (p[i+1] == p[i]) {
+      ties[i].push_back(n_zero);
+      continue;
+    }
     ties[i] = cpp_in_place_rank_mean(x, p[i], p[i + 1] - 1);
     ties[i].push_back(n_zero);
     x.rows(p[i], p[i + 1] - 1) += n_zero;

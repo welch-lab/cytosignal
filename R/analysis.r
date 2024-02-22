@@ -528,6 +528,7 @@ normCounts <- function(
 #' @rdname normCounts
 #' @param scale.fac Numeric vector of length equals to \code{ncol(object)}. For
 #' CytoSignal method, this is pre-determined.
+#' @noRd
 normCounts.dgCMatrix <- function(
     object,
     scale.fac = NULL,
@@ -563,6 +564,7 @@ normCounts.dgCMatrix <- function(
 #' @param verbose Whether to print out the progress. Default \code{TRUE}.
 #' @param method The method to use for normalization. default: seurat style \code{"default"}
 #' @return A dgCMatrix of normalized data.
+#' @noRd
 normCounts.CytoSignal <- function(
     object,
     method = c("default", "cpm", "none", "scanpy"),

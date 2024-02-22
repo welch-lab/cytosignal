@@ -31,7 +31,7 @@ An object of class \code{list} of length 3.
 
 An object of class \code{data.frame} with 1396 rows and 11 columns.
 
-An object of class \code{data.frame} with 979 rows and 3 columns.
+An object of class \code{data.frame} with 977 rows and 3 columns.
 }
 \source{
 CellphoneDB V2
