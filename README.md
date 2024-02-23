@@ -11,7 +11,7 @@ To install CytoSimplex in R, run the following command in an R console:
 ```R
 if (!requireNamespace("devtools", quietly = TRUE))
     install.packages("devtools")
-devtools::install_github("welch-lab/CytoSimplex")
+devtools::install_github("welch-lab/cytosignal")
 ```
 
 We are currently working on releasing a CRAN version. Stay tuned!
