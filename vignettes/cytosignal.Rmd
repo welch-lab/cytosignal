@@ -183,7 +183,7 @@ To plot the cluster annotation legend alone, users can simply use `plotCluster()
 plotCluster(cs)
 ```
 
-### Combinational plots of 3D edge plot, gene expression, LRscore and cluster annotation
+### Combination plots of 3D edge plot, gene expression, LRscore and cluster annotation
 
 We provide a function named `plotSignif2` for making a general combination figure. This function plots on a per-interaction basis, and for each interaction it shows 1) the imputed gene expression of the ligand and receptor; 2) the original raw expression values of the ligand and receptor; 3) the inferred LRscore; 4) cluster annotations for each location; 5) 3D edge plot for visualizing the signal-sending and signal-receiving cells. General graphical setting can be found in the documentation of the function (`?plotSignif2`). 
 

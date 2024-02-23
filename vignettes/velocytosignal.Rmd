@@ -115,7 +115,7 @@ For the cluster annotation legend, users can simply use `plotCluster()` for refe
 plotCluster(cs)
 ```
 
-### Combinational plots of 3D velocity, gene expression, LRscore and cluster annotation
+### Combination plots of 3D velocity, gene expression, LRscore and cluster annotation
 
 We provide a function named `plotSignif2` for making a general combination figure. Specify `edge = T` and `velo = True` to include the 3D edge plot and the velocity estimates besides the gene expression and LRscore. 
 
