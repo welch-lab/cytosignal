@@ -13,7 +13,7 @@ inferEpsParams(object, scale.factor = NULL, r.eps.real = 200, thresh = 0.001)
 
 \item{thresh}{The total signal out of the epsilon ball}
 
-\item{scale.facor}{1 µm equals to how many spatial coord units}
+\item{scale.facor}{1 spatial coord unit equals to how many µm}
 }
 \value{
 A Cytosignal object

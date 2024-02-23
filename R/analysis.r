@@ -1,7 +1,7 @@
 #' Infer the parameters of the Gaussian kernel
 #'
 #' @param object A Cytosignal object
-#' @param scale.facor 1 µm equals to how many spatial coord units
+#' @param scale.facor 1 spatial coord unit equals to how many µm
 #' @param r.eps.real The radius of the epsilon ball in tech resolution in um, default 200 um
 #' @param thresh The total signal out of the epsilon ball
 #'
@@ -9,7 +9,7 @@
 #' @export
 
 inferEpsParams <- function(object, scale.factor = NULL, r.eps.real = 200, thresh = 0.001){
-  r.eps.scale = r.eps.real/scale.factor # the radius of the epsilon ball in scaled resolution
+  r.eps.scale = r.eps.real / scale.factor # the radius of the epsilon ball in scaled resolution
   sigma.scale = r.eps.scale / sqrt(-2 * log(thresh)) # sigma in tech resolution
 
   object@parameters[["r.diffuse.scale"]] <- r.eps.scale
