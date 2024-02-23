@@ -1,9 +1,30 @@
-# CytoSignal and VelcoCytoSignal
+# CytoSignal & VelcoCytoSignal
 
-CytoSignal (VeloCytoSignal) is a tool for detecting cell-cell signaling interactions and their dynamics at single-cell resolution from spatial transcriptomic data.
+CytoSignal & VeloCytoSignal is a tool for detecting static and dynamic cell-cell signaling interactions at single-cell resolution from spatial transcriptomic data.
 
-Nearby cells within tissues communicate through ligand and receptor signaling interactions. These interactions play crucial roles in cell differentiation, tissue homeostasis, immune response, and disease, but have been difficult to study in an unbiased fashion. New spatial transcriptomic protocols provide a tremendous opportunity to systematically detect cell-cell signaling. Some computational tools can detect signaling among cell types using dissociated or spatial data, but no method operates at cellular resolution. In addition, no existing approaches can predict the future states of cell signaling from snapshot data.
+## Installation
 
-Here, we address these limitations by developing two computational tools for detecting cell-cell signaling from spatial transcriptomic data. The first tool is CytoSignal, which performs a nonparametric statistical test to identify which cells within a tissue have significant activity for a particular signaling interaction. CytoSignal considers multi-component interactions and separately models interactions mediated by diffusible vs. contact-dependent molecules. Second, we will develop VeloCytoSignal, a method for predicting the rate of change for a signaling interaction–whether the strength of a signaling interaction is increasing or decreasing at each tissue location. This approach combines RNA velocities for ligands and receptors simultaneously to predict future signaling strength using snapshot data from as little as one timepoint.
+The package is developed and tested under R>=4.2.0. Users can install R following the [instruction provided on CRAN](https://cran.r-project.org/). [RStudio](https://posit.co/downloads/) is a recommended IDE for working with R projects. 
 
-Both tools will be incorporated into one user-friendly open-source R package. Our work addresses the field's current need of a robust and scalable tool to detect cell-cell signaling interactions and their dynamics at single-cell resolution from spatial transcriptomic data.
+To install CytoSimplex in R, run the following command in an R console:
+
+```R
+if (!requireNamespace("devtools", quietly = TRUE))
+    install.packages("devtools")
+devtools::install_github("welch-lab/CytoSimplex")
+```
+
+We are currently working on releasing a CRAN version. Stay tuned!
+
+## Tutorial
+
+For usage examples and guided walkthroughs, check the vignettes directory of the repo.
+
+* [Infer spatially resolved cell-cell communication signaling at cellular resolution]()
+* [Infer spatially resolved temporal dynamics of cell-cell communication at cellular resolution]()
+
+## Citation
+
+If you used CytoSignal in your work, please cite the following work:
+
+>TBA
