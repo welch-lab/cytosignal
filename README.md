@@ -1,6 +1,6 @@
 # CytoSignal & VelcoCytoSignal
 
-CytoSignal & VeloCytoSignal is a tool for detecting static and dynamic cell-cell signaling interactions at single-cell resolution from spatial transcriptomic data.
+CytoSignal & VeloCytoSignal is a tool for detecting static and dynamic cell-cell signalings at single-cell resolution from spatial transcriptomic data.
 
 ## Installation
 
