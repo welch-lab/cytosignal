@@ -94,7 +94,8 @@ Most of the functions take two arguments, `intr` and `slot.use`, for specifying 
 
 ```{r showIntr, results=TRUE}
 # Show significant diffusible interaction IDs associated with interaction names
-showIntr(vcs, slot.use = "GauEps-Raw", return.name = TRUE)
+allIntrs <- showIntr(vcs, slot.use = "GauEps-Raw", return.name = TRUE)
+print(head(allIntrs))
 ```
 
 Setting `return.name = TRUE` displays both interaction unique IDs and the interaction names for easier interpretation. Interaction names are shown as a "ligand-receptor" gene symbol. Note that the list of available interactions varies for different LRscore inferences. For listing significant interactions with diffusible ligands, most of the time we have `slot.use = "GauEps-Raw"` if users did the LRscore inference with default setting. Similarly, for finding the significant contact dependent interactions, we need to set `slot.use = "DT-Raw"` if everything above went with default. 
@@ -106,13 +107,8 @@ In the plotting functions we show next, users need to specify the unique ID(s) o
 We developed a way (`plotVelo`) to show the velocity estimates of an interaction at cellular resolution in 3D, with the directions of the arrows indicating whether the signaling activity is currently increasing (pointing upward) or decreasing (pointing downward) at each spatial position.
 
 ```{r plotVelo}
-plotVelo(cs, "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw")
-```
-
-For the cluster annotation legend, users can simply use `plotCluster()` for reference.
-
-```{r plotCluster}
-plotCluster(cs)
+intr.use <- names(allIntrs)[1]
+plotVelo(vcs, intr.use, slot.use = "GauEps-Raw")
 ```
 
 ### Combination plots of 3D velocity, gene expression, LRscore and cluster annotation
@@ -120,7 +116,7 @@ plotCluster(cs)
 We provide a function named `plotSignif2` for making a general combination figure. Specify `edge = T` and `velo = True` to include the 3D edge plot and the velocity estimates besides the gene expression and LRscore. 
 
 ```{r signif, fig.width=9, fig.height=6}
-plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE, edge = TRUE, velo = T)
+plotSignif2(vcs, intr = intr.use, slot.use = "GauEps-Raw", return.plot = TRUE, edge = TRUE, velo = TRUE)
 ```
 
 **Recommended:** When plotting a large number of interactions, it’s recommended to use numeric index with `intr` and turn to `return.plot = FALSE` (by default). In this way, plots of all input interactions at high resolution will be stored on the device instead of on the screen.
@@ -133,12 +129,12 @@ The codes below show the top 5 significant interactions ranked by SPARK-X for bo
 signif.use <- "result.spx"
 lrscore.slot <- "GauEps-Raw"
 plot_dir <- paste0("path_to_result/Velo-diff-dep_", signif.use, "_", lrscore.slot, "/")
-plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+plotSignif2(vcs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
 
 # For contact dependent interactions
 ## Choose a level of significance metric
 signif.use <- "result.spx"
 lrscore.slot <- "DT-Raw"
 plot_dir <- paste0("path_to_result/Velo-cont-dep_", signif.use, "_", lrscore.slot, "/")
-plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+plotSignif2(vcs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
 ```

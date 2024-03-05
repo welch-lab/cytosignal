@@ -72,6 +72,7 @@ inferIntrDEG <- function(
     x$signif.use <- signif.use
     return(x)
   })
+  class(res) <- "CytosignalIntrDEG"
   return(res)
 }
 
@@ -263,7 +264,7 @@ refine_score <- function(
   scores <- object@lrscore[[slot.use]]@score
   res.list <- list()
   if (isTRUE(verbose)) {
-    message("Refining LR score with elastic net using identified genes...")
+    message("Traning regression model to further test gene significance...")
     pb <- utils::txtProgressBar(
       min = 0,
       max = length(intr_selected_gene) * length(alpha.test),
@@ -382,7 +383,141 @@ plotRefinedScore <- function(
   return(plotList)
 }
 
+#' Show significant genes across top GO term hits with coefficients from
+#' regression analysis of an interaction
+#' @description
+#' Create a heatmap for an interaction on GO terms by significant genes, colored
+#' by the coefficients of the genes in the regression model returned by
+#' \code{\link{inferIntrDEG}}. The GO term enrichment can be done with any tools
+#' available. The input data.frame \code{GO} must contain fields for 1. term
+#' description, character, pointed to by \code{description.col}, 2. p-value,
+#' numeric, pointed to by \code{pval.col}, 3. gene hit string, character,
+#' pointed to by \code{gene.col}. The gene hit string for each term must be form
+#' in a way that function \code{gene.split.fun} can split it into a character
+#' vector of gene names. For example, if a gene hit string is "gene1, gene2, gene3",
+#' then \code{gene.split.fun} should be \code{function(x) unlist(strsplit(x, ", "))},
+#' so that a split result \code{c("gene1", "gene2", "gene3")} can be correctly
+#' obtained.
+#'
+#' @param intrDEG A \code{CytosignalIntrDEG} object, output from
+#' \code{\link{inferIntrDEG}}.
+#' @param GO A data.frame object for GO enrichment analysis result.
+#' @param intr A single interaction ID (starts with "CPI") or its numeric index
+#' within the range of \code{intrDEG}.
+#' @param description.col,pval.col,gene.col The column names of the data.frame
+#' \code{GO} that contains the term description, p-value, and gene hit string.
+#' Default \code{"description"}, \code{"pval"}, \code{"genes"}.
+#' @param term.topN Use this number of top GO terms, ranked by p-values. Default
+#' \code{20}.
+#' @param gene.topN Use this number of top genes, ranked by absolute value of
+#' coefficients. Default \code{20}.
+#' @param color_num Number of colors in the heatmap. Can only use \code{2} or
+#' \code{3}, Default \code{2} use white-red color palette. \code{3} use scaled
+#' blue-white-red color palette.
+#' @param binary_sign Whether to convert coefficient value to binary sign value.
+#' Default \code{FALSE}.
+#' @export
+heatmap_GO <- function(
+    intrDEG,
+    GO,
+    intr,
+    description.col = "description",
+    pval.col = "pval",
+    gene.col = "genes",
+    gene.split.fun = function(x) unlist(strsplit(x, ",")),
+    term.topN = 20,
+    gene.topN = 20,
+    binary_sign = FALSE,
+    text.size = 10
+) {
+  if (!requireNamespace("pheatmap", quietly = TRUE)) {
+    stop("Package pheatmap is required for this function to work. ",
+         "Please install it with command: `install.packages('pheatmap')`.")
+  }
+  if ((is.numeric(intr) && (intr < 1 || intr > length(intrDEG))) ||
+      (is.character(intr) && !intr %in% names(intrDEG))) {
+    stop("Invalid interaction ID or index.")
+  }
+  data <- intrDEG[[intr]]
+  tmp_coef <- data$coef
+  rownames(tmp_coef) <- trimbackstick(rownames(tmp_coef))
+  # remove genes that are filtered out by the elastic net model
+  sign_features <- rownames(tmp_coef)[tmp_coef[,1] != 0]
+  sign_features_weights = tmp_coef[tmp_coef[,1] != 0,]
+  enet_df = data.frame(sign_features = sign_features, weights = sign_features_weights)
+  # Remove the "(Intercept)"
+  enet_df = enet_df[2:nrow(enet_df),]
+  # sort the data by the absolute value of the weights
+  enet_df = enet_df[order(abs(enet_df$weights), decreasing = TRUE), ]
+  enet_df = enet_df[!startsWith(enet_df$sign_features, "cluster"), , drop = FALSE]
+  enet_df <- enet_df[seq_len(min(nrow(enet_df), gene.topN)),]
 
+  GO <- GO[order(GO[[pval.col]]),]
+  GO <- GO[seq_len(min(nrow(GO), term.topN)),]
+
+  # signif genes x go term
+  occur_matrix = matrix(0, nrow = nrow(enet_df), ncol = nrow(GO),
+                        dimnames = list(enet_df$sign_features,
+                                        GO[[description.col]]))
+
+  for (j in 1:ncol(occur_matrix)) {
+    genes_string = GO[j, gene.col]
+    genes_vec = gene.split.fun(genes_string)
+    new_values = rep(0, nrow(occur_matrix))
+    # fill the values with weights if gene hit the GO term
+    new_values[enet_df$sign_features %in% genes_vec] <- enet_df$weights[enet_df$sign_features %in% genes_vec]
+    occur_matrix[,j] <- if (isTRUE(binary_sign)) sign(new_values) else new_values
+  }
+
+  # filter GO terms without any selected genes hit
+  occur_matrix <- occur_matrix[rowSums(occur_matrix != 0 ) > 0, colSums(occur_matrix != 0) > 0]
+
+  color_palette <- grDevices::colorRampPalette(c("#2166AC","white", "firebrick"))(99)
+  posnegmax <- max(abs(occur_matrix))
+  breaks <- seq(from = -posnegmax, to = posnegmax, length.out = 100)
+
+  pheatmap::pheatmap(t(occur_matrix),
+                     cluster_rows = FALSE,
+                     cluster_cols = FALSE,
+                     color = color_palette,
+                     breaks = breaks,
+                     fontsize = text.size,
+                     scale = "none")
+}
+
+# e.g. "`hello`" becomes "hello"
 trimbackstick <- function(x) {
-  return(sub("`$", "", sub("^`", "", x)))
+  ifelse(startsWith(x, "`") & endsWith(x, "`"),
+         sub("`$", "", sub("^`", "", x)),
+         x)
+}
+
+
+#' Format a CytosignalIntrDEG object to string
+#' @param x A \code{CytosignalIntrDEG} object.
+#' @param ... Passed to other methods
+#' @return A string representation of the object
+#' @export
+#' @method format CytosignalIntrDEG
+format.CytosignalIntrDEG <- function(x, ...) {
+  title <- "Cytosignal::inferIntrDEG() result"
+  nIntr <- length(x)
+  signif.use <- x[[1]]$signif.use
+  slot.use <- x[[1]]$slot.use
+  msg <- paste0(
+    title, "\n",
+    "Number of interactions: ", nIntr, "\n",
+    "LRScore type (`slot.use`): ", slot.use, "\n",
+    "Significance metric (`signif.use`): ", signif.use
+  )
+  return(msg)
+}
+
+#' Print the CytosignalIntrDEG object representation to screen
+#' @param x A \code{CytosignalIntrDEG} object.
+#' @param ... Passed to other methods
+#' @export
+#' @method print CytosignalIntrDEG
+print.CytosignalIntrDEG <- function(x, ...) {
+  cat(format(x), "\n")
 }

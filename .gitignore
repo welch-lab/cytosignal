@@ -7,5 +7,7 @@ src/*.so
 /Meta/
 .DS_Store
 .Rhistory
-vignettes/*.csv
-vignettes/*.rds
+*.rds
+*.pdf
+*.csv
+*.h5ad

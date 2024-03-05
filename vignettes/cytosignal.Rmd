@@ -160,7 +160,8 @@ The argument `signif.use` can return interactions that are ranked by different m
 Setting `return.name = TRUE` displays both interaction unique IDs and the interaction names for easier interpretation. Interaction names are shown as a "ligand-receptor" gene symbol.
 
 ```{r showIntr, results=TRUE}
-showIntr(cs, slot.use = "GauEps-Raw", signif.use = "result.spx", return.name = TRUE)
+allIntrs <- showIntr(cs, slot.use = "GauEps-Raw", signif.use = "result.spx", return.name = TRUE)
+print(head(allIntrs))
 ```
 
 ## Visualization
@@ -174,7 +175,8 @@ Most of the functions take two arguments, `intr` and `slot.use`, for specifying 
 We developed a 3D edge plot for visualizing the signal-sending and signal-receiving cells of an interaction at single-cell resolution. The plot comes with two layers of scatter plot of cells placed at the top and bottom of a 3D box space, for labeling the receivers and senders, respectively. In each layer, we use low transparency to highlight the cells that is sending or receiving the signal of the specified interaction. Cells are colored by cluster at the mean time. Finally, we bring lines that connect the senders with their corresponding tentative receivers, which are the edges. 
 
 ```{r plotEdge}
-plotEdge(cs, "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw")
+intr.use <- names(allIntrs)[1]
+plotEdge(cs, intr.use, slot.use = "GauEps-Raw")
 ```
 
 To plot the cluster annotation legend alone, users can simply use `plotCluster()` for reference.
@@ -188,7 +190,7 @@ plotCluster(cs)
 We provide a function named `plotSignif2` for making a general combination figure. This function plots on a per-interaction basis, and for each interaction it shows 1) the imputed gene expression of the ligand and receptor; 2) the original raw expression values of the ligand and receptor; 3) the inferred LRscore; 4) cluster annotations for each location; 5) 3D edge plot for visualizing the signal-sending and signal-receiving cells. General graphical setting can be found in the documentation of the function (`?plotSignif2`). 
 
 ```{r signif, fig.width=9, fig.height=6}
-plotSignif2(cs, intr = "CPI-SS0D5E30C6C", slot.use = "GauEps-Raw", return.plot = TRUE, edge = T)
+plotSignif2(cs, intr = intr.use, slot.use = "GauEps-Raw", return.plot = TRUE, edge = T)
 ```
 
 **Recommended:** When plotting a large number of interactions, it’s recommended to use numeric index with `intr` and turn to `return.plot = FALSE` (by default). In this way, plots of all input interactions at high resolution will be stored on the device instead of on the screen.
