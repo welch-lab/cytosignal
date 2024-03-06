@@ -30,7 +30,7 @@ As an extension to CytoSignal, we have also developed VeloCytoSignal to infer te
 
 In this tutorial, we demonstrate how to preform VeloCytoSignal on a mouse embryonic E15 brain data captured by Slide-seq V2, a spatial transcriptomic protocol at single-cell resolution. This data was originally produced in the work of [Stickels R.R. et al., 2020](https://doi.org/10.1038/s41587-020-0739-1), and is now publicly available on Single-Cell Portal via [SCP815](https://singlecell.broadinstitute.org/single_cell/study/SCP815). 
 
-To calculate RNA velocity estimates, we utilized our previously published tool, [VeloVAE](https://doi.org/10.1038/s41586-018-0414-6). VeloVAE uses gene-shared latent times to calculate much more accurate velocity estimates for individual genes than approaches that infers by single-gene. However, VeloCytoSignal is widely applicable on most kinds of RNA velocity approaches, as long as it provides the spliced ($s$) and unspliced ($u$) RNA velocity estimates in the gene-by-cell matrix format.
+To calculate RNA velocity estimates, we utilized our previously published tool, [VeloVAE](https://github.com/welch-lab/VeloVAE). VeloVAE uses gene-shared latent times to calculate much more accurate velocity estimates for individual genes than approaches that infers by single-gene. However, VeloCytoSignal is widely applicable on most kinds of RNA velocity approaches, as long as it provides the spliced ($s$) and unspliced ($u$) RNA velocity estimates in the gene-by-cell matrix format.
 
 Here we provide the processed CytoSignal object and pre-calculated RNA velocity estimates.
 
@@ -145,4 +145,9 @@ signif.use <- "result.spx"
 lrscore.slot <- "DT-Raw"
 plot_dir <- paste0("path_to_result/Velo-cont-dep_", signif.use, "_", lrscore.slot, "/")
 plotSignif2(vcs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+```
+
+
+```{r cleanup, include=FALSE}
+unlink("csSignifPlot", recursive = TRUE)
 ```

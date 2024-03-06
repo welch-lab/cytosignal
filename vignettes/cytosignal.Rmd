@@ -253,4 +253,16 @@ heatmap_GO(intrDEG, goRes$result, intr = intr.use,
            gene.col = "intersection")
 ```
 
-In our manuscript, we used another web-based tool [REVIGO](http://revigo.irb.hr/) to visualize the GO terms. Users can simply copy the term IDs from the result into the web form and view the visualization interactively in browser. For users with limited access to interactive session (e.g. on HPCs), we provided an out-of-package script that can do the query and visualize the result from R end. The script is available at ...TBD.
+In our manuscript, we used another web-based tool [REVIGO](http://revigo.irb.hr/) to visualize the GO terms. Users can simply copy the term IDs from the result into the web form and view the visualization interactively in browser. For users with limited access to interactive session (e.g. on HPCs), we provided function `revigo()` to programmatically submit query and fetch the result from their server. The queried result allows us generating a scatter plot where each point represents a GO term and more semantically similar GO terms are also closer in the plot. The color scale presents the `value` when we submit the query, which is the log transformed p-value in this example. The size of dots indicates the frequency of the GO term in the underlying GOA database, so that bubbles of more general terms are larger.
+
+```{r revigo}
+revigoRes <- revigo(GOterms = goRes$result$term_id, 
+                    value = goRes$result$p_value, valueType = "PValue",
+                    speciesTaxon = "10090")
+plotREVIGO(revigoRes, labelSize = 3)
+```
+
+
+```{r cleanup, include=FALSE}
+unlink("csSignifPlot", recursive = TRUE)
+```

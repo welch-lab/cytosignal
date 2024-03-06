@@ -516,6 +516,7 @@ plotSignif2 <- function(
                          pt.stroke = pt.stroke, raster = raster)
     edgePaths <- NULL
     veloPaths <- NULL
+    if (!dir.exists(plot_dir)) dir.create(plot_dir)
     if (isTRUE(edge)) {
         # check possible existence of edge plots
         edgePaths <- file.path(plot_dir, "Edge_plots")

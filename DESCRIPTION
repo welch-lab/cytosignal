@@ -3,31 +3,38 @@ Title: What the Package Does (One Line, Title Case)
 Version: 0.2.0
 Type: Package
 Authors@R: 
-    person(given = "Jialin",
-           family = "Liu",
-           role = c("aut", "cre"),
-           email = "alanliu@umich.edu")
+  c(
+    person(given = "Jialin", family = "Liu", role = c("aut", "cre"),
+           email = "alanliu@umich.edu"),
+    person(given = "Yichen", family = "Wang", role = "aut",
+           email = "wayichen@umich.edu")
+  )
 Description: What the package does (one paragraph).
 LinkingTo: Rcpp, RcppArmadillo, RcppEigen, RcppProgress
 Depends:
-    Matrix,
     methods,
-    R (>= 2.10),
-    stats
+    R (>= 4.0),
+    stats,
+    utils
 Imports:
   dbscan,
   RANN,
   RTriangle,
   ggplot2,
+  ggrepel,
   glmnet,
+  Matrix,
   plyr,
   Rcpp,
   RcppArmadillo,
   rlang
 Suggests:
   cowplot,
+  httr,
+  jsonlite,
   patchwork,
-  scattermore
+  scattermore,
+  stringi
 License: `use_mit_license()`, `use_gpl3_license()` or friends to
     pick a license
 Encoding: UTF-8
