@@ -1,4 +1,4 @@
-# CytoSignal & VelcoCytoSignal
+# CytoSignal & VeloCytoSignal
 <img alt="ViewCount" src="https://views.whatilearened.today/views/github/welch-lab/cytosignal.svg">
 
 `CytoSignal & VeloCytoSignal` is a tool for detecting static and dynamic cell-cell signalings at single-cell resolution from spatial transcriptomic data. Our tools are applicable to most sequencing-based and probe-based spatial transcriptomic techniques including Slide-seq, Stereo-seq, MERFISH, requiring only a cell-by-gene matrix and a cell-by-spatial-position matrix.
