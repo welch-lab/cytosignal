@@ -132,15 +132,17 @@ cs <- imputeLR(cs)
 
 For calculating the LRscore of each interaction within each spatial neighborhood, we multiply $L$ and $R$ within each location and apply an average within its DT neighborhood. Next, we perform a spatial permutation test, calculate the null distribution of the imputed ligands and receptors, and calculate a one-sided p-value. To control for multiple hypothesis testing and potential biases caused by cellular density differences, we further perform spatial false discovery rate correction.
 
-The output of CytoSignal is a test statistic $S$ and adjusted p-value for each signaling interaction within each location in the tissue. Finally, cells with significant signaling activity can be identified by setting a significance level such as `p.value = 0.05`. For convenience, we rank interactions by either the number of significant spatial positions or the spatial variability statistic of the LRscore calculated by SPARK-X.
+The output of CytoSignal is a test statistic $S$ and adjusted p-value for each signaling interaction within each location in the tissue. Finally, cells with significant signaling activity can be identified by setting a significance level such as `p.value = 0.05`. For convenience, we rank interactions by either the number of significant spatial positions or the spatial variability statistics of the LRscore calculated by SPARK-X.
 
-The function `inferIntrScore` is an integrated function that performs all the above steps. For the calculation of LRscore, by default, receptors are taken from the normalized expression. Ligands of diffusible interactions are imputed with Gaussian Epsilon ball (`GauEps-Raw`), while those from contact-dependent interactions are imputed with Delaunay Triangulation (`DT-Raw`). The function also provides an option `recep.smooth` to smooth the receptor expressions with Delaunay Triangulation (`GauEps-DT` and `DT-DT`), which is useful when the sparsity of the data is relatively high.
+The function `inferIntrScore` is an integrated function that performs the LRscore calculation and permutation tests. For the calculation of LRscore, by default, receptors are taken from the normalized expression. Ligands of diffusible interactions are imputed with Gaussian Epsilon ball (`GauEps-Raw`), while those from contact-dependent interactions are imputed with Delaunay Triangulation (`DT-Raw`). The function also provides an option `recep.smooth` to smooth the receptor expressions with Delaunay Triangulation (`GauEps-DT` and `DT-DT`), which is useful when the sparsity of the data is relatively high. The function `inferSignif()` should be called subsequently to identify significant interactions. For ranking the interactions by spatial variability statistics, we provide `rankIntrSpatialVar()`.
 
 ```{r lrscore}
 cs <- inferIntrScore(cs)
+cs <- inferSignif(cs, p.value = 0.05, reads.thresh = 100, sig.thresh = 100)
+cs <- rankIntrSpatialVar(cs)
 ```
 
-`reads.thresh` is the minimum number of reads for a ligand-receptor interaction to be considered. `sig.thresh` is the minimum number of beads for a ligand-receptor interaction to be considered. The three thresholds can be changed arbitrarily if the number of the significant beads is too large or too small. 
+`reads.thresh` is the minimum number of reads for a ligand-receptor interaction to be considered. `sig.thresh` is the minimum number of beads for a ligand-receptor interaction to be considered. The three thresholds can be changed arbitrarily if the number of the significant beads is too large or too small. The function `inferSignif()` by default is applied to all LRscore types available. When any thresholds need to be tweaked for a specific LRscore type, users can specify the `slot.use` argument explicitly.
 
 Users can use function `showIntr()` to view all significant interactions.
 
@@ -176,7 +178,7 @@ We developed a 3D edge plot for visualizing the signal-sending and signal-receiv
 
 ```{r plotEdge}
 intr.use <- names(allIntrs)[1]
-plotEdge(cs, intr.use, slot.use = "GauEps-Raw")
+plotEdge(cs, intr.use, slot.use = "GauEps-Raw", pt.size = 0.15)
 ```
 
 To plot the cluster annotation legend alone, users can simply use `plotCluster()` for reference.
@@ -189,8 +191,8 @@ plotCluster(cs)
 
 We provide a function named `plotSignif2` for making a general combination figure. This function plots on a per-interaction basis, and for each interaction it shows 1) the imputed gene expression of the ligand and receptor; 2) the original raw expression values of the ligand and receptor; 3) the inferred LRscore; 4) cluster annotations for each location; 5) 3D edge plot for visualizing the signal-sending and signal-receiving cells. General graphical setting can be found in the documentation of the function (`?plotSignif2`). 
 
-```{r signif, fig.width=9, fig.height=6}
-plotSignif2(cs, intr = intr.use, slot.use = "GauEps-Raw", return.plot = TRUE, edge = T)
+```{r signif, fig.width=14, fig.height=6}
+plotSignif2(cs, intr = intr.use, slot.use = "GauEps-Raw", return.plot = TRUE, edge = TRUE, pt.size = 0.2)
 ```
 
 **Recommended:** When plotting a large number of interactions, it’s recommended to use numeric index with `intr` and turn to `return.plot = FALSE` (by default). In this way, plots of all input interactions at high resolution will be stored on the device instead of on the screen.
@@ -210,3 +212,45 @@ lrscore.slot <- "DT-Raw"
 plot_dir <- paste0("path_to_result/cont-dep_", signif.use, "_", lrscore.slot, "/")
 plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
 ```
+
+
+## Downstream Analysis
+
+We provide a few downstream analysis approaches to further investigate the biological significance from interactions identified by CytoSignal.
+
+### Regression analysis on differentially expressed genes
+
+With function `inferIntrDEG()`, we can identify genes that are differentially expressed in the cells that are highly correlated to an interaction. After obtaining a gene set for each interaction, we further fit it to a [glmnet](https://glmnet.stanford.edu/articles/glmnet.html) model to do a regression analysis. We finally examine the coefficients of the model to determine the significant genes for the interaction.
+
+The returned object is a list where each element is a result list for each interaction. The sub-entry `intrDEG[[intr.use]]$sign_genes` is the character vector containing the genes that are significant for the interaction. 
+
+```{r regress, results=TRUE}
+intrDEG <- inferIntrDEG(cs, intr = intr.use, slot.use = "GauEps-Raw", signif.use = "result.spx")
+intrDEG[[1]]$sign_genes
+```
+
+### GO term enrichment analysis
+
+With the gene set, we can further do a GO term enrichment analysis. Technically this can be done with any GO tools of preference. We used [GORILLA](https://cbl-gorilla.cs.technion.ac.il/) in our manuscript. Here we provide an example of using the R package [gprofiler2](https://CRAN.R-project.org/package=gprofiler2).
+
+```{r go}
+# Need to set `evcodes = TRUE` to get list genes that hits each GO term
+goRes <- gprofiler2::gost(intrDEG[[1]]$sign_genes,
+                          organism = "mmusculus", evcodes = TRUE)
+```
+
+We provide one more function `heatmap_GO()` for showing the the GO term by the genes submitted. The heatmap will be colored by the coefficient value that is calculated from the regression analysis, while white-colored grids indicate none intersection between the corresponding GO terms. 
+
+With GO analysis conducted with other tools, we require at least three columns from the result table for this function to work:
+
+- A column for the GO term names, i.e. the short text description. The name of this column need to be set to argument `description.col` and the content will be shown as the row labels of the heatmap. 
+- A column for the p-values of the GO terms, for ranking the terms. The name of this column need to be set to argument `pval.col`.
+- A column for the gene intersection evidence. Should have some thing like `"gene1, gene2, gene3"` so we can identify the hit. The name of this column need to be set to argument `gene.col`. This information could have been formatted variously by different tools, users might need to further provide a splitting function that splits the string into a character vector of the gene names to argument `gene.split.fun`.
+
+```{r go_heatmap}
+heatmap_GO(intrDEG, goRes$result, intr = intr.use, 
+           description.col = "term_name", pval.col = "p_value", 
+           gene.col = "intersection")
+```
+
+In our manuscript, we used another web-based tool [REVIGO](http://revigo.irb.hr/) to visualize the GO terms. Users can simply copy the term IDs from the result into the web form and view the visualization interactively in browser. For users with limited access to interactive session (e.g. on HPCs), we provided an out-of-package script that can do the query and visualize the result from R end. The script is available at ...TBD.

@@ -94,14 +94,6 @@ imputeLR <- function(
 #' uses both.
 #' @param perm.size A numeric scalar. The number of permutations to perform.
 #' Default \code{1e5} times.
-#' @param fdr.method The false discovery rate method to use. Choose from
-#' \code{"spatialFDR"} and \code{"fdr"}. Default \code{"spatialFDR"}.
-#' @param p.value A numeric scalar. The p-value threshold to use for filtering
-#' significant interactions. Default \code{0.05}.
-#' @param reads.thresh A numeric scalar. The minimum number of reads for a
-#' ligand-receptor interaction to be considered. Default \code{100}.
-#' @param sig.thresh A numeric scalar. The minimum number of of beads for a
-#' ligand-receptor interaction to be considered. Default \code{100}.
 #' @param numCores SPARK::sparkx parameter. The number of cores to use. Default
 #' \code{1}.
 #' @return A \linkS4class{CytoSignal} object updated. Entries in
@@ -124,13 +116,13 @@ inferIntrScore <- function(
     recep.smooth = FALSE,
     intr.type = c("diff", "cont"),
     perm.size = 1e5,
-    fdr.method = c("spatialFDR", "fdr"),
-    p.value = 0.05,
-    reads.thresh = 100,
-    sig.thresh = 100,
+    # fdr.method = c("spatialFDR", "fdr"),
+    # p.value = 0.05,
+    # reads.thresh = 100,
+    # sig.thresh = 100,
     numCores = 1
 ) {
-  fdr.method <- match.arg(fdr.method)
+  # fdr.method <- match.arg(fdr.method)
   if (isTRUE(recep.smooth)) {
     recep.slot <- "DT"
   } else {
@@ -149,16 +141,16 @@ inferIntrScore <- function(
     # Calculate the null distribution of the ligand-receptor scores
     object <- inferNullScoreLR(object)
     # Infer the significant ligand-receptor interactions by comparing real scores with the null distribution
-    object <- inferSignif(object, fdr.method = fdr.method, p.value = p.value, reads.thresh = reads.thresh, sig.thresh = sig.thresh)
-    object <- rankIntrSpatialVar(object, numCores = numCores, verbose = FALSE)
+    # object <- inferSignif(object, fdr.method = fdr.method, p.value = p.value, reads.thresh = reads.thresh, sig.thresh = sig.thresh)
+    # object <- rankIntrSpatialVar(object, numCores = numCores, verbose = FALSE)
   }
   if ("cont" %in% intr.type) {
     message("== Calculating contact-dependent ligand-receptor scores ==")
     object <- inferScoreLR(object, lig.slot = "DT", recep.slot = recep.slot, intr.db.name = "cont_dep")
     object <- permuteLR(object, perm.size = perm.size)
     object <- inferNullScoreLR(object)
-    object <- inferSignif(object, fdr.method = fdr.method, p.value = p.value, reads.thresh = reads.thresh, sig.thresh = sig.thresh)
-    object <- rankIntrSpatialVar(object, numCores = numCores, verbose = FALSE)
+    # object <- inferSignif(object, fdr.method = fdr.method, p.value = p.value, reads.thresh = reads.thresh, sig.thresh = sig.thresh)
+    # object <- rankIntrSpatialVar(object, numCores = numCores, verbose = FALSE)
   }
   return(object)
 }

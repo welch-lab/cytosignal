@@ -9,10 +9,6 @@ inferIntrScore(
   recep.smooth = FALSE,
   intr.type = c("diff", "cont"),
   perm.size = 1e+05,
-  fdr.method = c("spatialFDR", "fdr"),
-  p.value = 0.05,
-  reads.thresh = 100,
-  sig.thresh = 100,
   numCores = 1
 )
 }
@@ -30,18 +26,6 @@ uses both.}
 
 \item{perm.size}{A numeric scalar. The number of permutations to perform.
 Default \code{1e5} times.}
-
-\item{fdr.method}{The false discovery rate method to use. Choose from
-\code{"spatialFDR"} and \code{"fdr"}. Default \code{"spatialFDR"}.}
-
-\item{p.value}{A numeric scalar. The p-value threshold to use for filtering
-significant interactions. Default \code{0.05}.}
-
-\item{reads.thresh}{A numeric scalar. The minimum number of reads for a
-ligand-receptor interaction to be considered. Default \code{100}.}
-
-\item{sig.thresh}{A numeric scalar. The minimum number of of beads for a
-ligand-receptor interaction to be considered. Default \code{100}.}
 
 \item{numCores}{SPARK::sparkx parameter. The number of cores to use. Default
 \code{1}.}

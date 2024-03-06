@@ -8,7 +8,7 @@ inferScoreLR(
   object,
   lig.slot,
   recep.slot,
-  intr.db.name,
+  intr.db.name = c("diff_dep", "cont_dep"),
   tag = paste0(lig.slot, "-", recep.slot)
 )
 }
@@ -21,9 +21,7 @@ inferScoreLR(
 
 \item{intr.db.name}{The intr database name to use}
 
-\item{nn.use}{slot that the neighbor index should be taken from, by default is the same as
-the recep.slot. For example, if score.obj = GauEps-DT, then nn.use = "DT".
-nn.use could also be a user-defind factor.}
+\item{tag}{Name of the result to be stored in object.}
 }
 \value{
 A Cytosignal object

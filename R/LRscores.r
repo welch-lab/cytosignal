@@ -33,19 +33,18 @@
 #' @param lig.slot The ligand slot to use
 #' @param recep.slot The receptor slot to use
 #' @param intr.db.name The intr database name to use
-#' @param nn.use slot that the neighbor index should be taken from, by default is the same as
-#' 			the recep.slot. For example, if score.obj = GauEps-DT, then nn.use = "DT".
-#' 			nn.use could also be a user-defind factor.
+#' @param tag Name of the result to be stored in object.
 #' @return A Cytosignal object
 #' @export
 inferScoreLR <- function(
     object,
     lig.slot,
     recep.slot,
-    intr.db.name,
+    intr.db.name = c("diff_dep", "cont_dep"),
     tag = paste0(lig.slot, "-", recep.slot)
 ){
-  # check DT imputation first, this is for pre-computing lrscore.mtx
+  intr.db.name <- match.arg(intr.db.name)
+
   if (!"DT" %in% names(object@imputation)) {
     stop("Need to run DT imputation first.")
   }
@@ -56,10 +55,6 @@ inferScoreLR <- function(
 
   if (!recep.slot %in% names(object@imputation)){
     stop("Receptor slot not found.")
-  }
-
-  if (!intr.db.name %in% c("diff_dep", "cont_dep")) {
-    stop("intr.db.name must be either 'diff_dep' or 'cont_dep'.")
   }
 
   if (is.null(tag)) {
@@ -78,8 +73,6 @@ inferScoreLR <- function(
                           verbose = FALSE)
 
   #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
-  # message("Comfirming niche index...")
-
   dt.avg.g <- object@imputation[["DT"]]@nn.graph
   dt.avg.g <- to_mean(dt.avg.g)
 

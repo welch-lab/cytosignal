@@ -577,20 +577,21 @@ to_mean <- function(mat) {
 # }
 
 .checkSlotUse <- function(object, slot.use = NULL, velo = FALSE) {
+  avail <- if (velo) names(object@lrvelo) else names(object@lrscore)
+  avail <- avail[avail != "default"]
   if (is.null(slot.use)) {
-    slot.use <- object@lrscore[["default"]]
+    slot.use <- if (velo) object@lrvelo[["default"]] else object@lrscore[["default"]]
   }
-  # Assuming there'll always be a "default"
-  avail <- names(object@lrscore)[-1]
-  if (isTRUE(velo)) {
-    avail <- intersect(avail, names(object@lrvelo))
-    if (length(avail) == 0) {
-      stop("No velocity info available for plotting.")
-    }
+  infoType <- ifelse(velo, "VeloLRScore", "LRScore")
+  if (length(avail) == 0 || is.null(slot.use)) {
+    funName <- ifelse(velo, "inferIntrVelo()", "inferIntrScore()")
+    stop("No ", infoType, " available or specified. ",
+         "Please run `", funName, "` first.")
   }
   if (!slot.use %in% avail) {
-    stop("Invalid `slot.use`. Available options: ",
-         paste(avail, collapse = ", "))
+    stop("Specified ", infoType, " (`slot.use = '", slot.use, "'`) is not available. ",
+         "Please choose from: ",
+         paste(paste0('"', avail, '"'), collapse = ", "))
   }
   return(slot.use)
 }

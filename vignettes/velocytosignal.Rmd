@@ -28,24 +28,39 @@ As an extension to CytoSignal, we have also developed VeloCytoSignal to infer te
 
 ## Example data
 
-In this tutorial, we demonstrate how to preform VeloCytoSignal on a mouse embryonic E14 brain data captured by Slide-seq V2, a spatial transcriptomic protocol at single-cell resolution. This data was originally produced in the work of [Stickels R.R. et al., 2020](https://doi.org/10.1038/s41587-020-0739-1), and is now publicly available on Single-Cell Portal via [SCP815](https://singlecell.broadinstitute.org/single_cell/study/SCP815). 
+In this tutorial, we demonstrate how to preform VeloCytoSignal on a mouse embryonic E15 brain data captured by Slide-seq V2, a spatial transcriptomic protocol at single-cell resolution. This data was originally produced in the work of [Stickels R.R. et al., 2020](https://doi.org/10.1038/s41587-020-0739-1), and is now publicly available on Single-Cell Portal via [SCP815](https://singlecell.broadinstitute.org/single_cell/study/SCP815). 
 
-To calculate RNA velocity estimates, we utilized our previously published tool, [VeloVAE](https://doi.org/10.1038/s41586-018-0414-6). VeloVAE uses gene-shared latent times to calculate much more accurate velocity estimates for individual genes than approaches that infers by single-gene. However, VeloCytoSignal is widely applicable on most kinds of RNA velocity approaches, as long as it provides the spliced ($s$) and unspliced ($u$) RNA velocity estimates in the cell-by-gene matrix format.
+To calculate RNA velocity estimates, we utilized our previously published tool, [VeloVAE](https://doi.org/10.1038/s41586-018-0414-6). VeloVAE uses gene-shared latent times to calculate much more accurate velocity estimates for individual genes than approaches that infers by single-gene. However, VeloCytoSignal is widely applicable on most kinds of RNA velocity approaches, as long as it provides the spliced ($s$) and unspliced ($u$) RNA velocity estimates in the gene-by-cell matrix format.
 
 Here we provide the processed CytoSignal object and pre-calculated RNA velocity estimates.
 
-- CytoSignal object with regular CytoSignal analysis performed: [cortex-something_vcs-obj.rds](https://...)
-- $s$ matrix stands for the spliced RNA velocity estimates: [cortex-something_velo-spliced.rds](https://...)
-- $u$ matrix stands for the unspliced RNA velocity estimates: [cortex-something_velo-unspliced.rds](https://...)
+- CytoSignal object with regular CytoSignal analysis performed: [SCP815_190921_19_CytoSignal.rds](https://figshare.com/ndownloader/files/44865757)
+- $s$ matrix stands for the spliced RNA velocity estimates: [SCP815_190921_19_velo_spliced_matrix.rds](https://figshare.com/ndownloader/files/44865748)
+- $u$ matrix stands for the unspliced RNA velocity estimates: [SCP815_190921_19_velo_unspliced_matrix.rds](https://figshare.com/ndownloader/files/44865751)
 
 Download the files listed above from the provided link into a desired local directory. Next, load the downloaded data into the R environment using the following codes. We assume that users have the files placed at the current working directory (as can be shown by `getwd()`). Alternatively, users can also specify the path to the files.
+
+```{r download, include=FALSE}
+if (!file.exists("SCP815_190921_19_CytoSignal.rds")) {
+    download.file("https://figshare.com/ndownloader/files/44865757",
+                  "SCP815_190921_19_CytoSignal.rds")
+}
+if (!file.exists("SCP815_190921_19_velo_spliced_matrix.rds")) {
+    download.file("https://figshare.com/ndownloader/files/44865748",
+                  "SCP815_190921_19_velo_spliced_matrix.rds")
+}
+if (!file.exists("SCP815_190921_19_velo_unspliced_matrix.rds")) {
+    download.file("https://figshare.com/ndownloader/files/44865751",
+                  "SCP815_190921_19_velo_unspliced_matrix.rds")
+}
+```
 
 ```{r load}
 library(cytosignal)
 
-vcs <- readRDS("cortex-fullvb-adult_vcs-obj.rds")
-velo.s <- readRDS("cortex-fullvb-adult_velo-spliced.rds")
-velo.u <- readRDS("cortex-fullvb-adult_velo-unspliced.rds")
+vcs <- readRDS("SCP815_190921_19_CytoSignal.rds")
+velo.s <- readRDS("SCP815_190921_19_velo_spliced_matrix.rds")
+velo.u <- readRDS("SCP815_190921_19_velo_unspliced_matrix.rds")
 ```
 
 Add the velocity matrices to the CytoSignal object using the `addVelo()` method. The method takes the CytoSignal object and the spliced and unspliced velocity matrices as input.
@@ -69,7 +84,7 @@ vcs <- imputeNicheVelo(vcs, nn.type = "Raw")
 
 ## Calculating velocity estimates for signaling interactions
 
-Next, we feed the imputed velocity estimates to function `inferVeloLR` to calculate velocity estimates for each signaling interaction. Because the CytoSignal test statistic is simply $S = L x R$, we can calculate the time derivative of 𝑆 using the product rule of differential calculus: $dS/dt = dL/dt x R + L x dR/dt$. 
+Next, we feed the imputed velocity estimates to function `inferVeloLR` to calculate velocity estimates for each signaling interaction. Because the CytoSignal test statistic is simply $S = LR$, we can calculate the time derivative of 𝑆 using the product rule of differential calculus: $dS/dt = RdL/dt + L dR/dt$. 
 
 By default, we use the same parameters as we did for the CytoSignal workflow. Velocity estimates of receptors are taken from the normalized expression (`Raw`). Velocity estimates of ligands of diffusible interactions are imputed with Gaussian Epsilon ball (`lig.slot = "GauEps", recep.slot = "Raw"`), while those from contact-dependent interactions are imputed with Delaunay Triangulation (`lig.slot = "DT", recep.slot = "Raw"`). The function also provides an option to smooth the receptor expressions with Delaunay Triangulation (`recep.slot = "DT"`), which is useful when the sparsity of the data is relatively high.
 
@@ -108,15 +123,16 @@ We developed a way (`plotVelo`) to show the velocity estimates of an interaction
 
 ```{r plotVelo}
 intr.use <- names(allIntrs)[1]
-plotVelo(vcs, intr.use, slot.use = "GauEps-Raw")
+plotVelo(vcs, intr.use, slot.use = "GauEps-Raw", pt.size = 0.2, arrow.width = .1)
 ```
 
 ### Combination plots of 3D velocity, gene expression, LRscore and cluster annotation
 
-We provide a function named `plotSignif2` for making a general combination figure. Specify `edge = T` and `velo = True` to include the 3D edge plot and the velocity estimates besides the gene expression and LRscore. 
+We provide a function named `plotSignif2` for making a general combination figure. Specify `edge = TRUE` and `velo = TRUE` to include the 3D edge plot and the velocity estimates besides the gene expression and LRscore. 
 
-```{r signif, fig.width=9, fig.height=6}
-plotSignif2(vcs, intr = intr.use, slot.use = "GauEps-Raw", return.plot = TRUE, edge = TRUE, velo = TRUE)
+```{r signif, fig.width=9, fig.height=10}
+plotSignif2(vcs, intr = intr.use, slot.use = "GauEps-Raw", return.plot = TRUE, 
+            edge = TRUE, velo = TRUE, pt.size = 0.3)
 ```
 
 **Recommended:** When plotting a large number of interactions, it’s recommended to use numeric index with `intr` and turn to `return.plot = FALSE` (by default). In this way, plots of all input interactions at high resolution will be stored on the device instead of on the screen.

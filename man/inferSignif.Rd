@@ -17,19 +17,21 @@ inferSignif(
 \arguments{
 \item{object}{A Cytosignal object}
 
-\item{fdr.method}{Spatial FDR correction method. Choose from
-\code{"spatialFDR"} or \code{"fdr"}.}
+\item{fdr.method}{The false discovery rate method to use. Choose from
+\code{"spatialFDR"} and \code{"fdr"}. Default \code{"spatialFDR"}.}
 
-\item{p.value}{A numeric value of p-value threshold}
+\item{p.value}{A numeric scalar. The p-value threshold to use for filtering
+significant interactions. Default \code{0.05}.}
 
-\item{reads.thresh}{The minimum number of reads for a ligand-receptor
-interaction to be considered.}
+\item{reads.thresh}{A numeric scalar. The minimum number of reads for a
+ligand-receptor interaction to be considered. Default \code{100}.}
 
-\item{sig.thresh}{The minimum number of beads for a ligand-receptor
-interaction to be considered.}
+\item{sig.thresh}{A numeric scalar. The minimum number of of beads for a
+ligand-receptor interaction to be considered. Default \code{100}.}
 
 \item{slot.use}{Which LR score to use. Use the name specified with \code{tag}
-when running \code{\link{inferLRScore}}.}
+when running \code{\link{inferIntrScore}}. Default \code{NULL} apply
+specified significance and filtering criteria to all available LRscore slots.}
 
 \item{nn.use}{Which imputation to use. Default the imputation used for
 deriving the LRScore specified with \code{slot.use}. Use the name specified

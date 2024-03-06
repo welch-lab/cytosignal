@@ -613,7 +613,6 @@ normCounts.CytoSignal <- function(
 #' @param sig.thresh A numeric value of significance threshold
 #'
 #' @return A list of indexes of significant cells
-#' @export
 #' @noRd
 .inferSignif.matrix_like <- function(
     dge.raw,
@@ -680,21 +679,22 @@ normCounts.CytoSignal <- function(
 #' Infer significance of LR scores
 #'
 #' @param object A Cytosignal object
-#' @param fdr.method Spatial FDR correction method. Choose from
-#' \code{"spatialFDR"} or \code{"fdr"}.
-#' @param p.value A numeric value of p-value threshold
-#' @param reads.thresh The minimum number of reads for a ligand-receptor
-#' interaction to be considered.
-#' @param sig.thresh The minimum number of beads for a ligand-receptor
-#' interaction to be considered.
 #' @param slot.use Which LR score to use. Use the name specified with \code{tag}
-#' when running \code{\link{inferLRScore}}.
+#' when running \code{\link{inferIntrScore}}. Default \code{NULL} apply
+#' specified significance and filtering criteria to all available LRscore slots.
+#' @param fdr.method The false discovery rate method to use. Choose from
+#' \code{"spatialFDR"} and \code{"fdr"}. Default \code{"spatialFDR"}.
+#' @param p.value A numeric scalar. The p-value threshold to use for filtering
+#' significant interactions. Default \code{0.05}.
+#' @param reads.thresh A numeric scalar. The minimum number of reads for a
+#' ligand-receptor interaction to be considered. Default \code{100}.
+#' @param sig.thresh A numeric scalar. The minimum number of of beads for a
+#' ligand-receptor interaction to be considered. Default \code{100}.
 #' @param nn.use Which imputation to use. Default the imputation used for
 #' deriving the LRScore specified with \code{slot.use}. Use the name specified
 #' with \code{tag} when running \code{\link{findNNGauEB}}; use \code{"DT"} for
 #' imputation produced with \code{\link{findNNDT}}; or use \code{"Raw"} for
 #' imputation produced with \code{\link{findNNRaw}}.
-#'
 #' @return A Cytosignal object
 #' @export
 inferSignif <- function(
@@ -706,65 +706,65 @@ inferSignif <- function(
     slot.use = NULL,
     nn.use = NULL
 ){
-  if (is.null(slot.use)){
-    slot.use = object@lrscore[["default"]]
-  }
-
-  if (!slot.use %in% names(object@lrscore)){
-    stop("LRscores not found. ")
-  }
-
-  if (is.null(nn.use)) {
-    nn.use <- object@lrscore[[slot.use]]@recep.slot
-  }
-
-  if (is.character(nn.use)) {
-    if (!nn.use %in% names(object@imputation)){
-      stop("Imputation slot not found.")
-    }
-    nb.id.fac <- object@imputation[[nn.use]]@nn.id
+  if (is.null(slot.use)) {
+    slots <- names(object@lrscore)
+    slots <- slots[slots != "default"]
   } else {
-    stop("`nn.use` must be either or a character.")
+    slots <- .checkSlotUse(object, slot.use = slot.use)
   }
 
-  # else if (is.factor(nn.use)) {
-  # 	if (length(nn.use) != ncol(object@imputation[[nn.use]]@intr.data))
-  # 		stop("nn.use must have the same length as the number of cells.")
-  # 	nb.id.fac <- nn.use
-  # }
+  for (slot.use in slots) {
+    if (is.null(nn.use)) {
+      nn.use <- object@lrscore[[slot.use]]@recep.slot
+    }
 
-  message("Inferring significant beads on Score slot ", slot.use, "... ")
+    if (is.character(nn.use)) {
+      if (!nn.use %in% names(object@imputation)){
+        stop("Imputation slot not found.")
+      }
+      nb.id.fac <- object@imputation[[nn.use]]@nn.id
+    } else {
+      stop("`nn.use` must be either or a character.")
+    }
 
-  # lrscore.mtx = object@lrscore[[slot.use]]@score
-  # null.lrscore.mtx = object@lrscore[[slot.use]]@score.null
+    # else if (is.factor(nn.use)) {
+    # 	if (length(nn.use) != ncol(object@imputation[[nn.use]]@intr.data))
+    # 		stop("nn.use must have the same length as the number of cells.")
+    # 	nb.id.fac <- nn.use
+    # }
 
-  nb.fac = list(
-    id = object@imputation[[nn.use]]@nn.id,
-    dist = object@imputation[[nn.use]]@nn.dist
-  )
+    message("Inferring significant beads on Score slot ", slot.use, "... ")
 
-  use.intr.slot.name <- object@lrscore[[slot.use]]@intr.slot
-  use.intr.db <- object@intr.valid[[use.intr.slot.name]]
+    # lrscore.mtx = object@lrscore[[slot.use]]@score
+    # null.lrscore.mtx = object@lrscore[[slot.use]]@score.null
 
-  res.list = .inferSignif.matrix_like(object@counts, object@lrscore[[slot.use]]@score,
-                                      object@lrscore[[slot.use]]@score.null, fdr.method, nb.fac,
-                                      use.intr.db, object@intr.valid[["gene_to_uniprot"]], p.value,
-                                      reads.thresh, sig.thresh)
-  object@lrscore[[slot.use]]@res.list <- res.list
+    nb.fac = list(
+      id = object@imputation[[nn.use]]@nn.id,
+      dist = object@imputation[[nn.use]]@nn.dist
+    )
 
-  object@lrscore[[slot.use]]@log[["Parameters for Significant beads"]] <- list(
-    "p.value" = p.value,
-    "reads.thresh" = reads.thresh,
-    "sig.thresh" = sig.thresh
-  )
+    use.intr.slot.name <- object@lrscore[[slot.use]]@intr.slot
+    use.intr.db <- object@intr.valid[[use.intr.slot.name]]
 
-  object@lrscore[[slot.use]]@log[["Significant Intrs"]] <- list(
-    paste0("Number of interactions that have significant i-niche: ", length(res.list[["result"]])),
-    paste0("Number of high quality intr: ", length(res.list[["result.hq"]]))
-  )
+    res.list = .inferSignif.matrix_like(object@counts, object@lrscore[[slot.use]]@score,
+                                        object@lrscore[[slot.use]]@score.null, fdr.method, nb.fac,
+                                        use.intr.db, object@intr.valid[["gene_to_uniprot"]], p.value,
+                                        reads.thresh, sig.thresh)
+    object@lrscore[[slot.use]]@res.list <- res.list
+
+    object@lrscore[[slot.use]]@log[["Parameters for Significant beads"]] <- list(
+      "p.value" = p.value,
+      "reads.thresh" = reads.thresh,
+      "sig.thresh" = sig.thresh
+    )
+
+    object@lrscore[[slot.use]]@log[["Significant Intrs"]] <- list(
+      paste0("Number of interactions that have significant i-niche: ", length(res.list[["result"]])),
+      paste0("Number of high quality intr: ", length(res.list[["result.hq"]]))
+    )
+  }
 
   return(object)
-
 }
 
 #' Identify spatially significant interactions using std-corrected pearson correlation
@@ -1017,30 +1017,36 @@ rankIntrSpatialVar <- function(
     stop("Package SPARK is required for calculating the spatial variability. ",
          "Please install with:\ndevtools::install_github('xzhoulab/SPARK')")
   }
-  if (is.null(slot.use)){
-    slot.use <- object@lrscore[["default"]]
+  if (is.null(slot.use)) {
+    slots <- names(object@lrscore)
+    slots <- slots[slots != "default"]
+  } else {
+    slots <- .checkSlotUse(object, slot.use = slot.use)
   }
-  if (!"result.hq" %in% names(object@lrscore[[slot.use]]@res.list)) {
-    stop("Filtered high-quality interactions not found. Please run ",
-         "`inferIntrScore()` or `inferSignif()` first.")
+  for (slot.use in slots) {
+    if (!"result.hq" %in% names(object@lrscore[[slot.use]]@res.list)) {
+      warning("Filtered high-quality interactions for ", slot.use, "not found. ",
+              "Please run `inferSignif()` first.", immediate. = TRUE)
+    }
+    message("Ranking high-quality interactions by spatial variability using LR score at ", slot.use, "... ")
+
+    spx.res <- SPARK::sparkx(count_in = t(object@lrscore[[slot.use]]@score),
+                             locus_in = object@cells.loc,
+                             numCores = numCores,
+                             option = "mixture",
+                             verbose = verbose)
+    # head(spx.res$res_mtest)
+
+    spx.pvals <- spx.res$res_mtest
+    spx.pvals.hq <- spx.pvals[names(object@lrscore[[slot.use]]@res.list[["result.hq"]]), ]
+    nVar <- sum(spx.pvals.hq$adjustedPval <= 0.05)
+    message("- Number of spatially variable interactions: ", nVar, " out of ",
+            nrow(spx.pvals.hq), " high-quality interactions.")
+    spx.pvals.hq <- spx.pvals.hq[order(spx.pvals.hq$adjustedPval), ]
+
+    object@lrscore[[slot.use]]@res.list[["result.spx"]] <- object@lrscore[[slot.use]]@res.list[["result.hq"]][rownames(spx.pvals.hq)]
+
   }
-  message("Ranking high-quality interactions by spatial variability using LR score at ", slot.use, "... ")
-
-  spx.res <- SPARK::sparkx(count_in = t(object@lrscore[[slot.use]]@score),
-                           locus_in = object@cells.loc,
-                           numCores = numCores,
-                           option = "mixture",
-                           verbose = verbose)
-  # head(spx.res$res_mtest)
-
-  spx.pvals <- spx.res$res_mtest
-  spx.pvals.hq <- spx.pvals[names(object@lrscore[[slot.use]]@res.list[["result.hq"]]), ]
-  nVar <- sum(spx.pvals.hq$adjustedPval <= 0.05)
-  message("- Number of spatially variable interactions: ", nVar, " out of ",
-          nrow(spx.pvals.hq), " high-quality interactions.")
-  spx.pvals.hq <- spx.pvals.hq[order(spx.pvals.hq$adjustedPval), ]
-
-  object@lrscore[[slot.use]]@res.list[["result.spx"]] <- object@lrscore[[slot.use]]@res.list[["result.hq"]][rownames(spx.pvals.hq)]
   return(object)
 }
 

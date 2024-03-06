@@ -248,6 +248,7 @@ refine_score <- function(
   slot.use <- .checkSlotUse(object, slot.use)
   # signif.use <- .checkSignifUse(object, signif.use = signif.use, slot.use = slot.use)
   expression <- object@raw.counts
+  clusters <- object@clusters
   expression <- normCounts.dgCMatrix(expression,
                                      scale.fac = colSums(expression),
                                      method = "default")
