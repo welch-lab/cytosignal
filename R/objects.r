@@ -419,6 +419,13 @@ createCytoSignal <- function(
     stop("The cell names in raw.data and cells.loc are not the same.")
   }
 
+  # stop if the dim()[2] of cells.loc is not equal to 2
+  if (dim(cells.loc)[2] != 2) {
+    stop("The cells.loc matrix must have 2 dimensions.")
+  }
+
+  colnames(cells.loc) <- c("x", "y")
+
   clusters <- clusters[colnames(raw.data), drop = TRUE]
 
   object <- methods::new(
