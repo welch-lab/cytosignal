@@ -3,7 +3,8 @@ cytosignal.Rproj
 src/*.o
 src/*.so
 .vscode/*
-/doc/
+/doc/*.Rmd
+/doc/*.R
 /Meta/
 .DS_Store
 .Rhistory

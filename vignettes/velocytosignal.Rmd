@@ -71,28 +71,20 @@ vcs <- addVelo(vcs, velo.s = velo.s, velo.u = velo.u)
 
 ## Imputation
 
-Similar to the CytoSignal workflow, we impute the velocity estimates for the ligands and receptors from the spatial neighbors of each location using function `imputeNichVelo`. We use the same strategy as we did for calculating LRscore in the CytoSignal workflow, but with the RNA velocity estimates. Hence, there is no need to do the neighbor finding here because it is already done during the CytoSignal workflow.
+Similar to the CytoSignal workflow, we impute the velocity estimates for the ligands and receptors from the spatial neighbors of each location using function `imputeVeloLR`. We use the same strategy as we did for calculating LRscore in the CytoSignal workflow, but with the RNA velocity estimates. Hence, there is no need to do the neighbor finding here because it is already done during the CytoSignal workflow (with `findNN()`.
 
 ```{r impute}
-# Impute value for diffusion-dependent ligands
-vcs <- imputeNicheVelo(vcs, nn.type = "GauEps")
-# Impute value for contact-dependent ligands
-vcs <- imputeNicheVelo(vcs, nn.type = "DT")
-# Impute value for receptors
-vcs <- imputeNicheVelo(vcs, nn.type = "Raw")
+vcs <- imputeVeloLR(vcs)
 ```
 
 ## Calculating velocity estimates for signaling interactions
 
-Next, we feed the imputed velocity estimates to function `inferVeloLR` to calculate velocity estimates for each signaling interaction. Because the CytoSignal test statistic is simply $S = LR$, we can calculate the time derivative of 𝑆 using the product rule of differential calculus: $dS/dt = RdL/dt + L dR/dt$. 
+Next, we call `inferIntrVelo()` to calculate velocity estimates for each signaling interaction. Because the CytoSignal test statistic is simply $S = LR$, we can calculate the time derivative of $S$ using the product rule of differential calculus: $dS/dt = RdL/dt + L dR/dt$. 
 
-By default, we use the same parameters as we did for the CytoSignal workflow. Velocity estimates of receptors are taken from the normalized expression (`Raw`). Velocity estimates of ligands of diffusible interactions are imputed with Gaussian Epsilon ball (`lig.slot = "GauEps", recep.slot = "Raw"`), while those from contact-dependent interactions are imputed with Delaunay Triangulation (`lig.slot = "DT", recep.slot = "Raw"`). The function also provides an option to smooth the receptor expressions with Delaunay Triangulation (`recep.slot = "DT"`), which is useful when the sparsity of the data is relatively high.
-
-Parameter `intr.db.name` specifies the name of the interaction database to use, with `"diff_dep"` for diffusible interactions and `"cont_dep"` for contact-dependent interactions.
+Similarly to the CytoSignal workflow, the velocity estimates for diffusible and contact-dependent interactions are treated differently. By default, they are derived using `"GauEps-Raw"` and `"DT-Raw"` strategies, respectively. When the sparsity of the data is relatively high, the receptor expressions can be smoothed with Delaunay Triangulation with setting `recep.smooth = TRUE` and hence triggering `"GauEps-DT"` and `"DT-DT"` mode. Please consult the CytoSignal tutorial for explanation on these tags.
 
 ```{r veloLR}
-vcs <- inferVeloLR(vcs, lig.slot = "GauEps", recep.slot = "Raw", intr.db.name = "diff_dep")
-vcs <- inferVeloLR(vcs, lig.slot = "DT", recep.slot = "Raw", intr.db.name = "cont_dep")
+vcs <- inferIntrVelo(vcs)
 ```
 
 To access the exact value for the LRvelo estimates, users can explore the object with the following command with replacing `<nn.type>` by strings `"GauEps-Raw"` for diffusion-dependent interactions, or `"DT-Raw"` for contact-dependent interactions. The returned result is a sparse matrix with barcodes as rows and interaction ID as columns and values indicating the velocity estimates for each interaction in each cell.
