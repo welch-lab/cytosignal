@@ -213,25 +213,22 @@ plot_dir <- paste0("path_to_result/cont-dep_", signif.use, "_", lrscore.slot, "/
 plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
 ```
 
+## Detection of signaling-associated differentially expressed genes
 
-## Downstream Analysis
+Since CytoSignal predicts the locations within a tissue where a protein-protein interaction occurs, it enables new types of analyses not possible with existing computational approaches.
 
-We provide a few downstream analysis approaches to further investigate the biological significance from interactions identified by CytoSignal.
+For instance, we provide a function `inferIntrDEG()` for detecting signaling-associated differentially expressed genes. It first identifies genes that are differentially expressed in the cells with significant signaling activities for each interaction. Next, it performs a sparse regression analysis based on a [glmnet](https://glmnet.stanford.edu/articles/glmnet.html) model using the output statistic $S$ from CytoSignal as the response variable.
 
-### Regression analysis on differentially expressed genes
-
-With function `inferIntrDEG()`, we can identify genes that are differentially expressed in the cells that are highly correlated to an interaction. After obtaining a gene set for each interaction, we further fit it to a [glmnet](https://glmnet.stanford.edu/articles/glmnet.html) model to do a regression analysis. We finally examine the coefficients of the model to determine the significant genes for the interaction.
-
-The returned object is a list where each element is a result list for each interaction. The sub-entry `intrDEG[[intr.use]]$sign_genes` is the character vector containing the genes that are significant for the interaction. 
+The returned object contains a list of results such as model parameters and significant genes for each interaction. Users can check the genes that are significant for a specific using `intrDEG[[intr.use]]$sign_genes`. 
 
 ```{r regress, results=TRUE}
 intrDEG <- inferIntrDEG(cs, intr = intr.use, slot.use = "GauEps-Raw", signif.use = "result.spx")
 intrDEG[[1]]$sign_genes
 ```
 
-### GO term enrichment analysis
+## GO term enrichment analysis
 
-With the gene set, we can further do a GO term enrichment analysis. Technically this can be done with any GO tools of preference. We used [GORILLA](https://cbl-gorilla.cs.technion.ac.il/) in our manuscript. Here we provide an example of using the R package [gprofiler2](https://CRAN.R-project.org/package=gprofiler2).
+The signaling-associated genes can subsequently be used to identify GO terms or transcription factors associated with the signaling interaction. This analysis can be done with any GO tools of preference. We recommend using [GORILLA](https://cbl-gorilla.cs.technion.ac.il/) which we also utilized in our manuscript. However, we also provide an alternative of using [gprofiler2](https://CRAN.R-project.org/package=gprofiler2).
 
 ```{r go}
 # Need to set `evcodes = TRUE` to get list genes that hits each GO term
@@ -239,9 +236,9 @@ goRes <- gprofiler2::gost(intrDEG[[1]]$sign_genes,
                           organism = "mmusculus", evcodes = TRUE)
 ```
 
-We provide one more function `heatmap_GO()` for showing the the GO term by the genes submitted. The heatmap will be colored by the coefficient value that is calculated from the regression analysis, while white-colored grids indicate none intersection between the corresponding GO terms. 
+To present these results more clearly, we provide one more function `heatmap_GO()` for plotting the regression weights of the selected genes as a heatmap along with their enriched GO terms. The heatmap will be colored by the coefficient value that is calculated from the regression analysis, while white-colored grids indicate the corresponding gene is not enriched in the corresponding GO term. 
 
-With GO analysis conducted with other tools, we require at least three columns from the result table for this function to work:
+If the GO analysis was performed using other tools, we require the result to be in the form of `data.frame` and has the following three columns:
 
 - A column for the GO term names, i.e. the short text description. The name of this column need to be set to argument `description.col` and the content will be shown as the row labels of the heatmap. 
 - A column for the p-values of the GO terms, for ranking the terms. The name of this column need to be set to argument `pval.col`.
@@ -253,7 +250,9 @@ heatmap_GO(intrDEG, goRes$result, intr = intr.use,
            gene.col = "intersection")
 ```
 
-In our manuscript, we used another web-based tool [REVIGO](http://revigo.irb.hr/) to visualize the GO terms. Users can simply copy the term IDs from the result into the web form and view the visualization interactively in browser. For users with limited access to interactive session (e.g. on HPCs), we provided function `revigo()` to programmatically submit query and fetch the result from their server. The queried result allows us generating a scatter plot where each point represents a GO term and more semantically similar GO terms are also closer in the plot. The color scale presents the `value` when we submit the query, which is the log transformed p-value in this example. The size of dots indicates the frequency of the GO term in the underlying GOA database, so that bubbles of more general terms are larger.
+In our manuscript, we used a web-based tool [REVIGO](http://revigo.irb.hr/) to visualize the GO terms. Users can simply copy the term IDs from the result into the web form and get an interactive 2D scatter plot in the browser. For command-line users (e.g. on HPCs), we provided a function `revigo()` to send query and fetch the result from their server. This allows us to generate a similar scatter plot without using an internet browser.
+
+In the output 2D scatter plot, each dot represents a GO term and is surrounded by other similar or related GO terms. The color scale represents the log transformed p-value in this example, which corresponds to `value` in the query. The size of dots indicates the frequency of the GO term in the underlying GOA database.
 
 ```{r revigo}
 revigoRes <- revigo(GOterms = goRes$result$term_id, 
