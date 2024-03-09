@@ -18,7 +18,7 @@ vignette: >
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-### Please run the [CytoSignal workflow](#) before this vignette.
+### Please run the [CytoSignal workflow](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/cytosignal.html) before this vignette.
 
 ## Introduction
 
