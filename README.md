@@ -8,7 +8,7 @@
 
 Check out our paper for a more complete description of the methods and analyses:
 
->[Coming out soon!]()
+>Jialin Liu, Hiroaki Manabe, Weizhou Qian, Yichen Wang, Yichen Gu, Angel Ka Yan Chu, Gaurav Gadhvi, Yuxuan Song, Noriaki Ono, Joshua D Welch, CytoSignal Detects Locations and Dynamics of Ligand-Receptor Signaling at Cellular Resolution from Spatial Transcriptomic Data, 2024, bioRxiv, DOI: [10.1101/2024.03.08.584153](https://doi.org/10.1101/2024.03.08.584153)
 
 ## Installation
 
