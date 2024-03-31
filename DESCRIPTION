@@ -10,7 +10,7 @@ Authors@R:
            email = "wayichen@umich.edu")
   )
 Description: What the package does (one paragraph).
-LinkingTo: Rcpp, RcppArmadillo, RcppEigen, RcppProgress
+LinkingTo: Rcpp, RcppArmadillo, RcppProgress
 Depends:
     methods,
     R (>= 4.0),

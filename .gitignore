@@ -2,6 +2,7 @@
 cytosignal.Rproj
 src/*.o
 src/*.so
+src/*.dll
 .vscode/*
 /doc/*.Rmd
 /doc/*.R
@@ -12,3 +13,4 @@ src/*.so
 *.pdf
 *.csv
 *.h5ad
+cytosignal.Rproj
