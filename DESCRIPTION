@@ -35,7 +35,8 @@ Suggests:
   patchwork,
   scattermore,
   stringi,
-  plot3D
+  plot3D,
+  png
 License: `use_mit_license()`, `use_gpl3_license()` or friends to
     pick a license
 Encoding: UTF-8
