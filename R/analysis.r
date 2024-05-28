@@ -425,8 +425,11 @@ imputeNiche.dgCMatrix <- function(
     do.norm <- FALSE
   }
 
-  weights.mtx = sparseMatrix(i = i.list, j = j.list, x = x.list,
-                             dims = c(ncol(object), ncol(object)), dimnames = list(NULL, colnames(object)))
+  weights.mtx <- Matrix::sparseMatrix(
+    i = i.list, j = j.list, x = x.list,
+    dims = c(ncol(object), ncol(object)),
+    dimnames = list(NULL, colnames(object))
+  )
 
   # re-weight the weight mtx across each niche (column)
   if (do.norm) {

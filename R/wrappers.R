@@ -149,6 +149,11 @@ inferIntrScore <- function(
     object <- inferScoreLR(object, lig.slot = "DT", recep.slot = recep.slot, intr.db.name = "cont_dep")
     object <- permuteLR(object, perm.size = perm.size)
     object <- inferNullScoreLR(object)
+    if (!isTRUE(recep.smooth)) {
+      object <- inferScoreLR(object, lig.slot = "Raw", recep.slot = "Raw", intr.db.name = "cont_dep")
+      object <- permuteLR(object, perm.size = perm.size)
+      object <- inferNullScoreLR(object)
+    }
     # object <- inferSignif(object, fdr.method = fdr.method, p.value = p.value, reads.thresh = reads.thresh, sig.thresh = sig.thresh)
     # object <- rankIntrSpatialVar(object, numCores = numCores, verbose = FALSE)
   }

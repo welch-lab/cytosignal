@@ -144,12 +144,11 @@ cs <- rankIntrSpatialVar(cs)
 
 `reads.thresh` is the minimum number of reads for a ligand-receptor interaction to be considered. `sig.thresh` is the minimum number of beads for a ligand-receptor interaction to be considered. The three thresholds can be changed arbitrarily if the number of the significant beads is too large or too small. The function `inferSignif()` by default is applied to all LRscore types available. When any thresholds need to be tweaked for a specific LRscore type, users can specify the `slot.use` argument explicitly.
 
-Users can use function `showIntr()` to view all significant interactions.
-
-The argument `slot.use` is for specifying the LRscore calculation model used. Possible options are explained as followed:
+Users can use function `showIntr()` to view all significant interactions, where the argument `slot.use` is for specifying the LRscore calculation model used. Possible options are explained as followed:
 
 - `"GauEps-Raw"`: Ligand expressions are imputed with Gaussian Epsilon ball and receptor expressions are taken from normalized expression. Typically for the diffusion-dependent interactions.
 - `"DT-Raw"`: Ligand expressions are imputed with Delaunay Triangulation and receptor values are taken from raw expression. Typically for the contact-dependent interactions.
+- `"Raw-Raw"`: Ligand and receptor expressions are all taken from the raw expression. Typically for the contact-dependent interactions that are expected to happen in the same spot that contains multiple cells. This can be useful for Visium data (See description below).
 - `"GauEps-DT"`: Ligand expressions are imputed with Gaussian Epsilon ball and receptor values are imputed with Delaunay Triangulation. This is for diffusion-dependent interactions, but exists only when `inferIntrScore()` is run with `recep.smooth = TRUE`.
 - `"DT-DT"`: Ligand values and receptor values are all imputed with Delaunay Triangulation. This is for contact-dependent interactions, but exists only when `inferIntrScore()` is run with `recep.smooth = TRUE`.
 
@@ -165,6 +164,8 @@ Setting `return.name = TRUE` displays both interaction unique IDs and the intera
 allIntrs <- showIntr(cs, slot.use = "GauEps-Raw", signif.use = "result.spx", return.name = TRUE)
 print(head(allIntrs))
 ```
+
+When working with spatial technology where each spot contains multiple cells (e.g. 10X Visium), CytoSignal is able to quantify signaling at spot level without requiring deconvolution. For diffusion-dependent interactions, if the spot size is smaller than the preset diffusion radius, we can still infer signaling activities for spatial neighbors within a given radius. The result of such inference can be retrieved by setting `slot.use = "GauEps-Raw"`. For contact-dependent interactions, because cells will only touch their directly connected neighbor cells within the same spot, we only need to consider the gene expression within each spot without applying spatial smoothing across spots. This step is already performed along with `inferIntrScore()`, and the result significant interactions should be accessed with `slot.use = "Raw-Raw"`.
 
 ## Visualization
 
