@@ -56,9 +56,9 @@ findNN <- function(
 #' nearest neighbors.
 #' @param object A \linkS4class{CytoSignal} object, with \code{\link{findNN}}
 #' already run.
-#' @param weights A character scalar. The method to calculate the weights of the
-#' Delauany Triangulation. Choose from \code{"none"}, \code{"mean"},
-#' \code{"counts"} and \code{"dist"}. Default \code{"none"}.
+#' @param weights The method to transform distances to weights. Choose from \code{"none"}, \code{"mean"},
+#' \code{"counts"} and \code{"dist"}. Default \code{"none"} since weights are already calculated by Gaussian
+#' kernel and DT mean.
 #' @return A \linkS4class{CytoSignal} object updated. Entries in
 #' \code{object@imputation} slot will be updated with the imputation values.
 #' @export
@@ -71,6 +71,7 @@ imputeLR <- function(
     object,
     weights = c("none", "mean", "counts", "dist")
 ) {
+  weights = match.arg(weights)
   object <- imputeNiche(object, nn.type = "GauEps", weights = weights)
   object <- imputeNiche(object, nn.type = "DT", weights = weights)
 

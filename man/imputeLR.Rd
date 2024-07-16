@@ -11,9 +11,9 @@ imputeLR(object, weights = c("none", "mean", "counts", "dist"))
 \item{object}{A \linkS4class{CytoSignal} object, with \code{\link{findNN}}
 already run.}
 
-\item{weights}{A character scalar. The method to calculate the weights of the
-Delauany Triangulation. Choose from \code{"none"}, \code{"mean"},
-\code{"counts"} and \code{"dist"}. Default \code{"none"}.}
+\item{weights}{The method to transform distances to weights. Choose from \code{"none"}, \code{"mean"},
+\code{"counts"} and \code{"dist"}. Default \code{"none"} since weights are already calculated by Gaussian
+kernel and DT mean.}
 }
 \value{
 A \linkS4class{CytoSignal} object updated. Entries in
