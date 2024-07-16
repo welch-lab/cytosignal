@@ -9,6 +9,7 @@ inferIntrScore(
   recep.smooth = FALSE,
   intr.type = c("diff", "cont"),
   perm.size = 1e+05,
+  norm.method = c("default", "cpm", "none", "scanpy"),
   numCores = 1
 )
 }
@@ -26,6 +27,8 @@ uses both.}
 
 \item{perm.size}{A numeric scalar. The number of permutations to perform.
 Default \code{1e5} times.}
+
+\item{norm.method}{The normalization method to apply to the imputed L and R}
 
 \item{numCores}{SPARK::sparkx parameter. The number of cores to use. Default
 \code{1}.}

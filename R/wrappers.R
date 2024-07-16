@@ -94,6 +94,7 @@ imputeLR <- function(
 #' uses both.
 #' @param perm.size A numeric scalar. The number of permutations to perform.
 #' Default \code{1e5} times.
+#' @param norm.method The normalization method to apply to the imputed L and R
 #' @param numCores SPARK::sparkx parameter. The number of cores to use. Default
 #' \code{1}.
 #' @return A \linkS4class{CytoSignal} object updated. Entries in
@@ -120,9 +121,11 @@ inferIntrScore <- function(
     # p.value = 0.05,
     # reads.thresh = 100,
     # sig.thresh = 100,
+    norm.method = c("default", "cpm", "none", "scanpy"),
     numCores = 1
 ) {
   # fdr.method <- match.arg(fdr.method)
+  norm.method <- match.arg(norm.method)
   if (isTRUE(recep.smooth)) {
     recep.slot <- "DT"
   } else {
@@ -135,7 +138,8 @@ inferIntrScore <- function(
   if ("diff" %in% intr.type) {
     message("== Calculating diffusible ligand-receptor scores ==")
     # Calculate the ligand-receptor scores for diffusible ligands and raw receptors
-    object <- inferScoreLR(object, lig.slot = "GauEps", recep.slot = recep.slot, intr.db.name = "diff_dep")
+    object <- inferScoreLR(object, lig.slot = "GauEps", recep.slot = recep.slot, 
+                           norm.method = norm.method, intr.db.name = "diff_dep")
     # Permutation test to calculate the null distribution of the imputed ligands and receptors
     object <- permuteLR(object, perm.size = perm.size)
     # Calculate the null distribution of the ligand-receptor scores
@@ -146,11 +150,13 @@ inferIntrScore <- function(
   }
   if ("cont" %in% intr.type) {
     message("== Calculating contact-dependent ligand-receptor scores ==")
-    object <- inferScoreLR(object, lig.slot = "DT", recep.slot = recep.slot, intr.db.name = "cont_dep")
+    object <- inferScoreLR(object, lig.slot = "DT", recep.slot = recep.slot, intr.db.name = "cont_dep",
+                           norm.method = norm.method)
     object <- permuteLR(object, perm.size = perm.size)
     object <- inferNullScoreLR(object)
     if (!isTRUE(recep.smooth)) {
-      object <- inferScoreLR(object, lig.slot = "Raw", recep.slot = "Raw", intr.db.name = "cont_dep")
+      object <- inferScoreLR(object, lig.slot = "Raw", recep.slot = "Raw", intr.db.name = "cont_dep",
+                             norm.method = norm.method)
       object <- permuteLR(object, perm.size = perm.size)
       object <- inferNullScoreLR(object)
     }

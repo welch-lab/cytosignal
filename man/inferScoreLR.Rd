@@ -8,6 +8,7 @@ inferScoreLR(
   object,
   lig.slot,
   recep.slot,
+  norm.method = c("default", "cpm", "none", "scanpy"),
   intr.db.name = c("diff_dep", "cont_dep"),
   tag = paste0(lig.slot, "-", recep.slot)
 )
@@ -18,6 +19,8 @@ inferScoreLR(
 \item{lig.slot}{The ligand slot to use}
 
 \item{recep.slot}{The receptor slot to use}
+
+\item{norm.method}{Method to normalize the data. Default is "default".}
 
 \item{intr.db.name}{The intr database name to use}
 

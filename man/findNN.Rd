@@ -9,8 +9,8 @@ findNN(
   object,
   eps = NULL,
   sigma = NULL,
-  self.weight = "auto",
-  weight = 2,
+  diff.weight = "auto",
+  dt.weight = 2,
   max.r = NULL
 )
 }
@@ -25,6 +25,10 @@ inferred with \code{\link{inferEpsParams}}.}
 Gaussian kernel. Default \code{NULL} uses parameter inferred with
 \code{\link{inferEpsParams}}.}
 
+\item{max.r}{Delaunay Triangulation method parameter. A numeric scalar for
+the maximum radius of the edges. Default \code{NULL} uses parameter inferred
+with \code{\link{inferEpsParams}}.}
+
 \item{self.weight}{Gaussian Epsilon Ball method parameter. Weight of the
 index cell. Use a number between 0-1 or a string \code{"auto"} or
 \code{"sum_1"}. Default \code{"auto"}.}
@@ -32,10 +36,6 @@ index cell. Use a number between 0-1 or a string \code{"auto"} or
 \item{weight}{Delaunay Triangulation method parameter. A numeric scalar for
 the sum of the weights of the edges of the Delaunay Triangulation. Default
 \code{2}.}
-
-\item{max.r}{Delaunay Triangulation method parameter. A numeric scalar for
-the maximum radius of the edges. Default \code{NULL} uses parameter inferred
-with \code{\link{inferEpsParams}}.}
 }
 \value{
 A \linkS4class{CytoSignal} object updated. \code{object@imputation}
