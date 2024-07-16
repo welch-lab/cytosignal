@@ -71,8 +71,8 @@ imputeLR <- function(
     object,
     weights = c("none", "mean", "counts", "dist")
 ) {
-  object <- imputeNiche(object, nn.type = "GauEps", weights = "none")
-  object <- imputeNiche(object, nn.type = "DT", weights = "none")
+  object <- imputeNiche(object, nn.type = "GauEps", weights = weights)
+  object <- imputeNiche(object, nn.type = "DT", weights = weights)
 
   return(object)
 }
