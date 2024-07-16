@@ -33,6 +33,7 @@
 #' @param lig.slot The ligand slot to use
 #' @param recep.slot The receptor slot to use
 #' @param intr.db.name The intr database name to use
+#' @param norm.method Method to normalize the data. Default is "default".
 #' @param tag Name of the result to be stored in object.
 #' @return A Cytosignal object
 #' @export
@@ -40,10 +41,12 @@ inferScoreLR <- function(
     object,
     lig.slot,
     recep.slot,
+    norm.method = c("default", "cpm", "none", "scanpy"),
     intr.db.name = c("diff_dep", "cont_dep"),
     tag = paste0(lig.slot, "-", recep.slot)
 ){
   intr.db.name <- match.arg(intr.db.name)
+  norm.method <- match.arg(norm.method)
 
   if (!"DT" %in% names(object@imputation)) {
     stop("Need to run DT imputation first.")
@@ -67,9 +70,9 @@ inferScoreLR <- function(
   # normalize using default method, normCount has been revised to internal function
   # dge.lig <- object@imputation[[lig.slot]]@imp.data
   # dge.recep <- object@imputation[[recep.slot]]@imp.data
-  dge.lig <- normCounts(object, method = "default", slot.use = lig.slot,
+  dge.lig <- normCounts(object, method = norm.method, slot.use = lig.slot,
                         verbose = FALSE)
-  dge.recep <- normCounts(object, method = "default", slot.use = recep.slot,
+  dge.recep <- normCounts(object, method = norm.method, slot.use = recep.slot,
                           verbose = FALSE)
 
   #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#

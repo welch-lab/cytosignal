@@ -37,13 +37,13 @@ findNN <- function(
     # GauEB params
     eps = NULL,
     sigma = NULL,
-    self.weight = "auto",
+    diff.weight = "auto",
     # DT params
-    weight = 2,
+    dt.weight = 2,
     max.r = NULL
 ) {
-    object <- findNNGauEB(object, eps = eps, sigma = sigma, self.weight = self.weight)
-    object <- findNNDT(object, weight = weight, max.r = max.r)
+    object <- findNNGauEB(object, eps = eps, sigma = sigma, self.weight = diff.weight)
+    object <- findNNDT(object, weight = dt.weight, max.r = max.r)
     object <- findNNRaw(object)
     return(object)
 }
