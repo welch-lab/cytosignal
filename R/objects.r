@@ -415,7 +415,7 @@ createCytoSignal <- function(
   }
 
   # cells.loc <- as.matrix(cells.loc)[colnames(raw.data), ]
-  if (!all.equal(colnames(raw.data), rownames(cells.loc))) {
+  if (!all.equal(colnames(raw.data), rownames(cells.loc), check.attributes=FALSE)) {
     stop("The cell names in raw.data and cells.loc are not the same.")
   }
 
@@ -504,7 +504,7 @@ removeLowQuality <- function(object, counts.thresh = 300, gene.thresh = 50) {
 
   dge.raw.filter <- dge.raw.filter[keep.gene, keep.cell, drop = FALSE]
   cells.loc <- cells.loc[keep.cell, , drop = FALSE]
-  if (!all.equal(rownames(cells.loc), colnames(dge.raw.filter))){
+  if (!all.equal( rownames(cells.loc), colnames(dge.raw.filter), check.attributes=FALSE )){
     stop("The cell names in raw data and cells locations are not the same.")
   }
 

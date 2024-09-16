@@ -589,6 +589,11 @@ normCounts.CytoSignal <- function(
 
   mat <- object@imputation[[slot.use]]@imp.data
   scale.fac <- object@imputation[[slot.use]]@scale.fac
+  
+  if (method == "none"){
+    return(mat)
+  }
+  
   mat <- normCounts(object = mat, scale.fac = scale.fac, method = method)
 
   # modified to output the normalized data instead of the object

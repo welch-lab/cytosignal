@@ -76,11 +76,13 @@ inferScoreLR <- function(
                           verbose = FALSE)
 
   #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
-  dt.avg.g <- object@imputation[["DT"]]@nn.graph
-  dt.avg.g <- to_mean(dt.avg.g)
-
-  dge.lig <- dge.lig %*% dt.avg.g
-  dge.recep <- dge.recep %*% dt.avg.g
+  if (norm.method != "none"){
+    dt.avg.g <- object@imputation[["DT"]]@nn.graph
+    dt.avg.g <- to_mean(dt.avg.g)
+    
+    dge.lig <- dge.lig %*% dt.avg.g
+    dge.recep <- dge.recep %*% dt.avg.g
+  }
   #-------------------------------------------------------------------------------------------#
 
   if (!all.equal(dim(dge.lig), dim(dge.recep))){
