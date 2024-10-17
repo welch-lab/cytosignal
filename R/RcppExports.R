@@ -33,6 +33,10 @@ euclidean_cpp <- function(x, y) {
     .Call('_cytosignal_euclidean_cpp', PACKAGE = 'cytosignal', x, y)
 }
 
+cleanLRscore_sparse_cpp <- function(i, p, x, nrow, ncol) {
+    .Call('_cytosignal_cleanLRscore_sparse_cpp', PACKAGE = 'cytosignal', i, p, x, nrow, ncol)
+}
+
 inferScoreLR_cpp <- function(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list) {
     .Call('_cytosignal_inferScoreLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list)
 }

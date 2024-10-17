@@ -109,6 +109,25 @@ names.mergedCytoSignal <- function(x) {
     grep(pattern, colnames(x@metadata), value = TRUE)
 }
 
+.valid.mergedCytoSignal <- function(object) {
+    # Check if spot IDs are identical from difflrscore, contlrscore and metadata
+    metarownames <- rownames(object@metadata)
+    diffcolnames <- colnames(object@diff.lrscore)
+    contcolnames <- colnames(object@cont.lrscore)
+    if (!identical(metarownames, diffcolnames) ||
+        !identical(metarownames, contcolnames)) {
+        return("Spot/cell IDs in metadata, diff.lrscore and cont.lrscore do not match.")
+    }
+
+    # Check if the spot IDs equal to "{dataset}_{originalID}"
+    if (!identical(metarownames, paste0(object$dataset, "_", object$originalID))) {
+        return("Spot/cell IDs in metadata do not follow the format '{dataset}_{originalID}'.")
+    }
+}
+
+setValidity("mergedCytoSignal", .valid.mergedCytoSignal)
+
+
 #' Create mergedCytoSignal object
 #' @description
 #' This function accepts a list of CytoSignal objects together with a metadata
@@ -195,8 +214,8 @@ mergeCytoSignal <- function(
 
     clusterUnion <- Reduce(union, lapply(objList, function(x) levels(x@clusters)))
     meta.full$clusters <- factor(NA, levels = clusterUnion)
-    meta.full$x <- NULL
-    meta.full$y <- NULL
+    meta.full$x <- NA
+    meta.full$y <- NA
 
     diffList <- list()
     contList <- list()
@@ -212,35 +231,40 @@ mergeCytoSignal <- function(
 
         # Preprocessing
         message(Sys.time(), " - Preprocessing dataset: ", i)
+        # Hard coded parameters, pay attention to these
+        obj <- addIntrDB(obj, g_to_u, db.diff, db.cont, inter.index)
+        obj <- removeLowQuality(obj, counts.thresh = 0)
+        obj <- changeUniprot(obj)
         obj <- inferEpsParams(obj, scale.factor = 25)
-        # NOTE hard coded parameters
         obj <- findNN(obj, diff.weight = 1)
         obj <- imputeLR(obj)
 
         obj <- inferScoreLR(obj, lig.slot = "GauEps", recep.slot = "Raw",
                             norm.method = "none", intr.db.name = "diff_dep")
         diffscore <- obj@lrscore[["GauEps-Raw"]]@score
-        dimnames(diffscore) <- list(
+        diff.dimnames <- list(
             newids,
             unname(getIntrNames(obj, colnames(diffscore)))
         )
-        # TODO clean up the score
-        # Do the clean up below, and remember to clean the sparsity after that
-        # Remove 0s in x
-        # scores@x[scores@x < 1] <- 0
-        # scores@x <- round(scores@x)
-
+        diffscore <- cleanLRscore_sparse_cpp(
+            diffscore@i, diffscore@p, diffscore@x, nrow(diffscore), ncol(diffscore)
+        )
+        dimnames(diffscore) <- diff.dimnames
         diffList[[i]] <- diffscore
+
         obj <- inferScoreLR(obj, lig.slot = "DT", recep.slot = "Raw",
                             norm.method = "none", intr.db.name = "cont_dep")
         contscore <- obj@lrscore[["DT-Raw"]]@score
-        dimnames(contscore) <- list(
+        cont.dimnames <- list(
             newids,
             unname(getIntrNames(obj, colnames(contscore)))
         )
-        # TODO clean up the score
-
+        contscore <- cleanLRscore_sparse_cpp(
+            contscore@i, contscore@p, contscore@x, nrow(contscore), ncol(contscore)
+        )
+        dimnames(contscore) <- cont.dimnames
         contList[[i]] <- contscore
+
         message()
     }
 
@@ -256,7 +280,7 @@ mergeCytoSignal <- function(
     contList <- lapply(contList, `[`, i = , j = contIntrIsec, drop = FALSE)
     contLR <- Reduce(rbind, contList)
 
-    new(
+    methods::new(
         Class = "mergedCytoSignal",
         metadata = meta.full,
         diff.lrscore = t(diffLR),

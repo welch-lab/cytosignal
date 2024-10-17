@@ -64,7 +64,7 @@ arma::vec pearson_col_cpp(const arma::mat& x, const arma::mat& y) {
 
 // [[Rcpp::export]]
 arma::sp_mat cbind_list(List& sparse_matrix_list) {
-  
+
   // combine all sparse matrices in the list by row
   arma::sp_mat combined_sparse_matrix;
   for (int i = 0; i < sparse_matrix_list.size(); i++) {
@@ -75,14 +75,14 @@ arma::sp_mat cbind_list(List& sparse_matrix_list) {
       combined_sparse_matrix = arma::join_rows(combined_sparse_matrix, mat);
     }
   }
-  
+
   return combined_sparse_matrix;
 }
 
 
 // [[Rcpp::export]]
 arma::sp_mat rbind_list(List sparse_matrix_list) {
-  
+
   // combine all sparse matrices in the list by column
   arma::sp_mat combined_sparse_matrix;
   for (int i = 0; i < sparse_matrix_list.size(); i++) {
@@ -93,7 +93,7 @@ arma::sp_mat rbind_list(List sparse_matrix_list) {
       combined_sparse_matrix = arma::join_cols(combined_sparse_matrix, mat);
     }
   }
-  
+
   return combined_sparse_matrix;
 }
 
@@ -105,6 +105,21 @@ arma::mat euclidean_cpp(const arma::mat& x, const arma::mat& y) {
   return d;
 }
 
+// Clean up lrscore sparse matrices by forcing <1 values to 0, and round to
+// integer numbers. Finally clean up sparsity structure.
+// [[Rcpp::export]]
+arma::sp_mat cleanLRscore_sparse_cpp(
+    arma::uvec i,
+    arma::uvec p,
+    arma::colvec x,
+    const int nrow,
+    const int ncol
+) {
+  x.elem(arma::find(x < 1)).zeros();
+  x = arma::round(x);
+  arma::sp_mat out(i, p, x, nrow, ncol, true);
+  return out;
+}
 
 // // compute variance of each column of a matrix in cpp
 // // [[Rcpp::export]]
@@ -153,15 +168,15 @@ arma::mat euclidean_cpp(const arma::mat& x, const arma::mat& y) {
 
 // // [[Rcpp::export]]
 // arma::sp_mat sp_sample_rows(List matrix_list, int n) {
-  
+
 //   // combine all matrices in the list by row
 //   arma::sp_mat combined_matrix = arma::sp_join_rows(matrix_list);
-  
+
 //   // sort each row in ascending order
 //   for (int i = 0; i < combined_matrix.n_rows; i++) {
 //     combined_matrix.row(i) = arma::sort(combined_matrix.row(i));
 //   }
-  
+
 //   // sample n elements within each row evenly
 //   arma::sp_mat sampled_matrix(combined_matrix.n_rows, combined_matrix.n_cols);
 //   for (int i = 0; i < combined_matrix.n_rows; i++) {
@@ -178,14 +193,14 @@ arma::mat euclidean_cpp(const arma::mat& x, const arma::mat& y) {
 //       count++;
 //     }
 //   }
-  
+
 //   return sampled_matrix;
 // }
 
 
 // // [[Rcpp::export]]
 // arma::mat sample_rows_cpp(List matrix_list, int n) {
-  
+
 //   // combine all matrices in the list by row
 //   arma::mat combined_matrix;
 //   for (int i = 0; i < matrix_list.size(); i++) {
@@ -196,12 +211,12 @@ arma::mat euclidean_cpp(const arma::mat& x, const arma::mat& y) {
 //       combined_matrix = join_rows(combined_matrix, mat);
 //     }
 //   }
-  
+
 //   // sort each row in ascending order
 //   for (int i = 0; i < combined_matrix.n_rows; i++) {
 //     combined_matrix.row(i) = sort(combined_matrix.row(i));
 //   }
-  
+
 //   // sample n elements within each row evenly
 //   arma::mat sampled_matrix(combined_matrix.n_rows, n);
 //   for (int i = 0; i < combined_matrix.n_rows; i++) {
@@ -215,7 +230,7 @@ arma::mat euclidean_cpp(const arma::mat& x, const arma::mat& y) {
 //       sampled_matrix(i, j) = combined_matrix(i, idx);
 //     }
 //   }
-  
+
 //   return sampled_matrix;
 // }
 
