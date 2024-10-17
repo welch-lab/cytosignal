@@ -144,12 +144,18 @@ setValidity("mergedCytoSignal", .valid.mergedCytoSignal)
 #' @param name.by A column name in \code{metadata} indicating where to find the
 #' dataset names. Default \code{NULL} names datasets by "dataset1", "dataset2"
 #' and etc, and will create column "dataset" in the metadata.
+#' @param counts.thresh A number indicating the threshold for removing low-quality
+#' spots. Default 0.
+#' @param scale.factor A number indicating 1 spatial coord unit equals to how 
+#' many µm. 
 #' @return A \linkS4class{mergedCytoSignal} object preprocessed.
 #' @export
 mergeCytoSignal <- function(
         objList,
         metadata = NULL,
-        name.by = NULL
+        name.by = NULL,
+        counts.thresh = 0,
+        scale.factor = NULL
 ) {
     # Sanity checks on objList
     for (i in seq_along(objList)) {
@@ -204,6 +210,10 @@ mergeCytoSignal <- function(
             }
         }
     }
+    
+    if (is.null(scale.factor)) {
+        stop("Please provide `scale.factor`.")
+    }
 
     # broadcast dataset-level metadata to location level
     spotIDs <- lapply(objList, function(x) colnames(x@raw.counts))
@@ -233,9 +243,9 @@ mergeCytoSignal <- function(
         message(Sys.time(), " - Preprocessing dataset: ", i)
         # Hard coded parameters, pay attention to these
         obj <- addIntrDB(obj, g_to_u, db.diff, db.cont, inter.index)
-        obj <- removeLowQuality(obj, counts.thresh = 0)
+        obj <- removeLowQuality(obj, counts.thresh = counts.thresh)
         obj <- changeUniprot(obj)
-        obj <- inferEpsParams(obj, scale.factor = 25)
+        obj <- inferEpsParams(obj, scale.factor = scale.factor)
         obj <- findNN(obj, diff.weight = 1)
         obj <- imputeLR(obj)
 

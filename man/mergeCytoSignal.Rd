@@ -4,7 +4,13 @@
 \alias{mergeCytoSignal}
 \title{Create mergedCytoSignal object}
 \usage{
-mergeCytoSignal(objList, metadata = NULL, name.by = NULL)
+mergeCytoSignal(
+  objList,
+  metadata = NULL,
+  name.by = NULL,
+  counts.thresh = 0,
+  scale.factor = NULL
+)
 }
 \arguments{
 \item{objList}{A list of CytoSignal object.}
@@ -16,6 +22,12 @@ order to \code{objList}.}
 \item{name.by}{A column name in \code{metadata} indicating where to find the
 dataset names. Default \code{NULL} names datasets by "dataset1", "dataset2"
 and etc, and will create column "dataset" in the metadata.}
+
+\item{counts.thresh}{A number indicating the threshold for removing low-quality
+spots. Default 0.}
+
+\item{scale.factor}{A number indicating 1 spatial coord unit equals to how
+many µm.}
 }
 \value{
 A \linkS4class{mergedCytoSignal} object preprocessed.
