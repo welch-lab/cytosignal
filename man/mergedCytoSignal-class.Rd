@@ -6,15 +6,45 @@
 \title{mergedCytoSignal Class for cross-dataset analysis of spatial cell-cell
 communication}
 \description{
-mergedCytoSignal Class for cross-dataset analysis of spatial cell-cell
-communication
+An object that holds necessary information from multiple CytoSignal objects
+that is required for performing cross-dataset analysis. Results from the
+cross-dataset analysis will also be held in this object.
+
+Please use \code{\link{mergeCytoSignal}()} to create a
+\code{mergedCytoSignal} object
 }
 \section{Slots}{
 
 \describe{
-\item{\code{lrscore}}{A sparse matrix (dgCMatrix class) with LR scores from all
-dataset merged into one.}
+\item{\code{metadata}}{A data.frame with spot/cell level metadata covariates. Column
+name "dataset", "originalID", "clusters", "x" and "y" are reserved for
+downstream analysis and object validity.}
 
-\item{\code{metadata}}{A data.frame with location level metadata covariates.}
+\item{\code{diff.lrscore}}{A sparse matrix (dgCMatrix) of LR scores for
+diffusion-dependent interactions, across all datasets.}
+
+\item{\code{diff.results}}{A list of data.frame objects, each containing the results
+of NEBULA analysis for a specific covariate as specified when running the
+analysis.}
+
+\item{\code{cont.lrscore}}{A sparse matrix (dgCMatrix) of LR scores for
+contact-dependent interactions, across all datasets.}
+
+\item{\code{cont.results}}{A list of data.frame objects, each containing the results
+of NEBULA analysis for a specific covariate as specified when running the
+analysis.}
+
+\item{\code{cov.use}}{A list that organizes the covariates being used for the
+modeling. Each element is named by a variable name selected from metadata,
+and is a list with the following structure
+\itemize{
+\item{"type": "factor" or "numeric" etc. Original class of the variable}
+\item{"levels" (if a factor): levels of the factor that'll be found in the
+model.matrix outcome}
+\item{"range" (if numeric): range of the variable}
+}}
 }}
 
+\seealso{
+\code{\link[=mergeCytoSignal]{mergeCytoSignal()}} \code{\link[=runNEBULA]{runNEBULA()}}
+}

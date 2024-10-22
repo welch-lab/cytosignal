@@ -2,26 +2,48 @@
 % Please edit documentation in R/objects.r
 \name{showIntr}
 \alias{showIntr}
+\alias{showIntr.CytoSignal}
+\alias{showIntr.mergedCytoSignal}
 \title{show method for CytoSignal}
 \usage{
-showIntr(object, slot.use = NULL, signif.use = NULL, return.name = FALSE)
+showIntr(object, ...)
+
+\method{showIntr}{CytoSignal}(object, slot.use = NULL, signif.use = NULL, return.name = FALSE, ...)
+
+\method{showIntr}{mergedCytoSignal}(object, intr.type, ...)
 }
 \arguments{
-\item{object}{CytoSignal object}
+\item{object}{A \linkS4class{CytoSignal} or \linkS4class{mergedCytoSignal}
+object}
 
-\item{slot.use}{slot to use}
+\item{...}{S3 method options for different classes.}
 
-\item{signif.use}{Significance level to use for plotting}
+\item{slot.use}{The LR score slot to use. Choose from
+\code{names(object@lrscore)}. Default \code{NULL} uses whichever last
+updated.}
+
+\item{signif.use}{Which level of significance inference to use for the
+LR score slot selected. Choose from
+\code{names(object@lrscore[[slot.use]]@res.list)}. Default \code{NULL} uses
+whichever last updated.}
 
 \item{return.name}{Whether to return interaction name that comes with the
 form of "ligand-receptor", instead of showing the unique IDs.
 Default \code{FALSE}.}
+
+\item{intr.type}{Which type of interactions to show. Choose from
+\code{"diff"} or \code{"cont"}.}
 }
 \value{
-By default, character vector of unique IDs of the interactions
-available to the specified slots. When \code{return.name = TRUE}, a named
-character vector where the names are the IDs and the values are interaction
-names with the form of "ligand-receptor".
+\itemize{
+\item{For CytoSignal object, a character vector of unique IDs of the
+interactions available to the specified slot. When
+\code{return.name = TRUE}, a named character vector where the names are the
+IDs and the values are interaction names with the form of
+"ligand-receptor".}
+\item{For mergedCytoSignal object, a character vector "ligand-receptor"
+pair names.}
+}
 }
 \description{
 show method for CytoSignal

@@ -306,20 +306,41 @@ showVelo <- function(object, slot.use = NULL) {
 }
 
 #' show method for CytoSignal
-#'
-#' @param object CytoSignal object
-#' @param slot.use slot to use
-#' @param signif.use Significance level to use for plotting
+#' @rdname showIntr
+#' @param object A \linkS4class{CytoSignal} or \linkS4class{mergedCytoSignal}
+#' object
+#' @param ... S3 method options for different classes.
+#' @export
+#' @return
+#' \itemize{
+#'   \item{For CytoSignal object, a character vector of unique IDs of the
+#'   interactions available to the specified slot. When
+#'   \code{return.name = TRUE}, a named character vector where the names are the
+#'   IDs and the values are interaction names with the form of
+#'   "ligand-receptor".}
+#'   \item{For mergedCytoSignal object, a character vector "ligand-receptor"
+#'   pair names.}
+#' }
+showIntr <- function(object, ...) {
+  UseMethod("showIntr", object)
+}
+
+
+#' @rdname showIntr
+#' @export
+#' @method showIntr CytoSignal
+#' @param slot.use The LR score slot to use. Choose from
+#' \code{names(object@lrscore)}. Default \code{NULL} uses whichever last
+#' updated.
+#' @param signif.use Which level of significance inference to use for the
+#' LR score slot selected. Choose from
+#' \code{names(object@lrscore[[slot.use]]@res.list)}. Default \code{NULL} uses
+#' whichever last updated.
 #' @param return.name Whether to return interaction name that comes with the
 #' form of "ligand-receptor", instead of showing the unique IDs.
 #' Default \code{FALSE}.
-#' @export
-#' @return By default, character vector of unique IDs of the interactions
-#' available to the specified slots. When \code{return.name = TRUE}, a named
-#' character vector where the names are the IDs and the values are interaction
-#' names with the form of "ligand-receptor".
-showIntr <- function(object, slot.use = NULL, signif.use = NULL,
-                     return.name = FALSE) {
+showIntr.CytoSignal <-  function(object, slot.use = NULL, signif.use = NULL,
+                     return.name = FALSE, ...) {
   slot.use <- .checkSlotUse(object, slot.use)
   signif.use <- .checkSignifUse(object, signif.use, slot.use)
   score.obj <- object@lrscore[[slot.use]]
@@ -329,6 +350,20 @@ showIntr <- function(object, slot.use = NULL, signif.use = NULL,
   } else {
     return(intr)
   }
+}
+
+#' @rdname showIntr
+#' @export
+#' @method showIntr mergedCytoSignal
+#' @param intr.type Which type of interactions to show. Choose from
+#' \code{"diff"} or \code{"cont"}.
+showIntr.mergedCytoSignal <- function(object, intr.type, ...) {
+  switch(
+    EXPR = intr.type,
+    diff = rownames(object@diff.lrscore),
+    cont = rownames(object@cont.lrscore),
+    stop("`intr.type` must be either 'diff' or 'cont'.")
+  )
 }
 
 #' show all current logs

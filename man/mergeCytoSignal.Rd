@@ -13,11 +13,13 @@ mergeCytoSignal(
 )
 }
 \arguments{
-\item{objList}{A list of CytoSignal object.}
+\item{objList}{A list of CytoSignal objects or paths to CytoSignal objects
+stored as RDS format. Can be mixed of two types.}
 
-\item{metadata}{A data.frame object. Default \code{NULL}. If provided, must
-have as many rows as the length of \code{objList} with rows in matching
-order to \code{objList}.}
+\item{metadata}{A data.frame object of dataset level metadata, containing
+information like gender, age, treatment and etc. Default \code{NULL}. If
+provided, must have as many rows as the length of \code{objList} with rows
+in matching order to \code{objList}.}
 
 \item{name.by}{A column name in \code{metadata} indicating where to find the
 dataset names. Default \code{NULL} names datasets by "dataset1", "dataset2"
@@ -40,4 +42,7 @@ be required for the cross-dataset analysis.
 The function will preprocess each CytoSignal object with cross-dataset
 analysis specific steps, including imputing diffusible LR values using
 Gaussion Epsilon model with weight 1.
+}
+\seealso{
+\code{\link[=runNEBULA]{runNEBULA()}}
 }
