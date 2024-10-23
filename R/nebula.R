@@ -269,9 +269,9 @@ mergeCytoSignal <- function(
         }
     }
     
-    if (is.null(scale.factor)) {
-        stop("Please provide `scale.factor`.")
-    }
+    # if (is.null(scale.factor)) {
+    #     stop("Please provide `scale.factor`.")
+    # }
 
     # Initialize lists that hold information needed
     diffList <- list()
