@@ -225,9 +225,9 @@ setValidity("mergedCytoSignal", .valid.mergedCytoSignal)
 mergeCytoSignal <- function(
         objList,
         metadata = NULL,
-        name.by = NULL,
-        counts.thresh = 0,
-        scale.factor = NULL
+        name.by = NULL
+        # counts.thresh = 0,
+        # scale.factor = NULL
 ) {
     # Check metadata
     if (is.null(metadata)) {
@@ -325,13 +325,19 @@ mergeCytoSignal <- function(
 
         # Preprocessing
         message(Sys.time(), " - Preprocessing dataset: ", i)
+        
         # Hard coded parameters, pay attention to these
-        obj <- addIntrDB(obj, g_to_u, db.diff, db.cont, inter.index)
-        obj <- removeLowQuality(obj, counts.thresh = counts.thresh)
-        obj <- changeUniprot(obj)
-        obj <- inferEpsParams(obj, scale.factor = scale.factor)
-        obj <- findNN(obj, diff.weight = 1)
-        obj <- imputeLR(obj)
+        #------------------- steps already run, skip for now ---------------#
+        # obj <- addIntrDB(obj, g_to_u, db.diff, db.cont, inter.index)
+        # obj <- removeLowQuality(obj, counts.thresh = counts.thresh)
+        # obj <- changeUniprot(obj)
+        # obj <- inferEpsParams(obj, scale.factor = scale.factor)
+        # obj <- findNN(obj, diff.weight = 1)
+        
+        #----------------- Running Diff only, Hard coded params ------------#
+        obj <- findNNGauEB(obj, self.weight = 1)
+        # obj <- imputeLR(obj)
+        obj <- imputeNiche(obj, nn.type = "GauEps", weights = "none")
 
         obj <- inferScoreLR(obj, lig.slot = "GauEps", recep.slot = "Raw",
                             norm.method = "none", intr.db.name = "diff_dep")
