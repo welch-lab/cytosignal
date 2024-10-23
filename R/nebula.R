@@ -955,7 +955,7 @@ plotNebulaAll <- function(
         stripTitleSize = 12,
         ylim = NULL
 ) {
-    object <- mergedcs
+    # object <- mergedcs
     intr.type <- match.arg(intr.type)
     all_list <- switch(
         EXPR = intr.type,
