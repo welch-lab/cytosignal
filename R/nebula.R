@@ -408,6 +408,48 @@ mergeCytoSignal <- function(
     )
 }
 
+checkDependence <- function(X){
+  # Perform QR decomposition
+  qrX <- qr(X)
+  
+  # Get the rank
+  matrix_rank <- qrX$rank
+  
+  # Get the pivot indices
+  pivot_indices <- qrX$pivot
+  
+  # identify linear dependent columns
+  # Get the R matrix
+  R_matrix <- qr.R(qrX)
+  
+  # Extract the absolute values of the diagonal elements
+  diag_R <- abs(diag(R_matrix))
+  
+  # Set tolerance level
+  tolerance <- max(dim(X)) * .Machine$double.eps * max(diag_R)
+  
+  # Identify dependent diagonals
+  dependent_diagonals <- diag_R < tolerance
+  
+  # Get the indices of dependent columns
+  dependent_indices <- pivot_indices[which(dependent_diagonals)]
+  
+  # Get the names of dependent columns
+  dependent_columns <- colnames(X)[dependent_indices]
+  
+  # # Output dependent columns
+  # if (length(dependent_columns) > 0) {
+  #   cat("Linearly dependent columns detected:\n")
+  #   print(dependent_columns)
+  #   return(dependent_columns)
+  # } else {
+  #   cat("No linearly dependent columns detected.\n")
+  #   return()
+  # }
+
+  return(dependent_columns)
+}
+
 
 # Setup the model matrix and organizes the object internal information for
 # downstream use.
@@ -423,10 +465,24 @@ mergeCytoSignal <- function(
 
 
     model <- stats::model.matrix(
-        stats::formula(paste0("~ ", paste0(covariates, collapse = " + "))),
+        stats::formula(paste0("~ ", paste0(c(-1, covariates), collapse = " + "))),
         data = object@metadata
     )
-
+    m.names <- colnames(model)
+    
+    model <- cbind(1, model)
+    colnames(model) <- c("(Intercept)", m.names)
+    
+    # check for linear dependence
+    dep.cols <- checkDependence(model)
+    
+    if (length(dep.cols) > 0) {
+      cat("Removing linearly dependent columns from model matrix.\n")
+      print(dep.cols)
+      remove.idx <- which(colnames(model) %in% dep.cols)
+      model <- model[, -remove.idx]
+    }
+    
     # Organize cov.use for future use
     cov.use <- lapply(covariates, function(cov) {
         var <- object@metadata[[cov]]
