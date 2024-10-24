@@ -638,7 +638,8 @@ runNEBULA <- function(
     })
     cont.res.list <- lapply(seq_along(summary.cn), function(i) {
         sub <- cont.res.summary[, summary.cn[[i]]]
-        colnames(sub) <- gsub(sprintf("_%s$", covnames[i]), "", colnames(sub))
+        # colnames(sub) <- gsub(sprintf("_%s$", covnames[i]), "", colnames(sub))
+        colnames(sub) <- c("logFC", "se", "p")
         sub$padj <- stats::p.adjust(sub$p, method = "fdr")
         sub$interaction <- cont.res.summary$gene
         sub <- sub[, c(5, 1, 2, 3, 4)]
