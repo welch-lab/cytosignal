@@ -120,6 +120,32 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// select_EB_singleSpot_rcpp
+arma::uvec select_EB_singleSpot_rcpp(const arma::mat& loc, const double x_i, const double y_i, const double eps);
+RcppExport SEXP _cytosignal_select_EB_singleSpot_rcpp(SEXP locSEXP, SEXP x_iSEXP, SEXP y_iSEXP, SEXP epsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type loc(locSEXP);
+    Rcpp::traits::input_parameter< const double >::type x_i(x_iSEXP);
+    Rcpp::traits::input_parameter< const double >::type y_i(y_iSEXP);
+    Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
+    rcpp_result_gen = Rcpp::wrap(select_EB_singleSpot_rcpp(loc, x_i, y_i, eps));
+    return rcpp_result_gen;
+END_RCPP
+}
+// select_EB_rcpp
+Rcpp::List select_EB_rcpp(const arma::mat& loc, const double eps);
+RcppExport SEXP _cytosignal_select_EB_rcpp(SEXP locSEXP, SEXP epsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type loc(locSEXP);
+    Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
+    rcpp_result_gen = Rcpp::wrap(select_EB_rcpp(loc, eps));
+    return rcpp_result_gen;
+END_RCPP
+}
 // inferScoreLR_cpp
 arma::mat inferScoreLR_cpp(const arma::mat& dge_lig, const arma::mat& dge_recep, const arma::uvec& lig_index, const arma::uvec& lig_list, const arma::uvec& recep_index, const arma::uvec& recep_list);
 RcppExport SEXP _cytosignal_inferScoreLR_cpp(SEXP dge_ligSEXP, SEXP dge_recepSEXP, SEXP lig_indexSEXP, SEXP lig_listSEXP, SEXP recep_indexSEXP, SEXP recep_listSEXP) {
@@ -268,6 +294,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_rbind_list", (DL_FUNC) &_cytosignal_rbind_list, 1},
     {"_cytosignal_euclidean_cpp", (DL_FUNC) &_cytosignal_euclidean_cpp, 2},
     {"_cytosignal_cleanLRscore_sparse_cpp", (DL_FUNC) &_cytosignal_cleanLRscore_sparse_cpp, 5},
+    {"_cytosignal_select_EB_singleSpot_rcpp", (DL_FUNC) &_cytosignal_select_EB_singleSpot_rcpp, 4},
+    {"_cytosignal_select_EB_rcpp", (DL_FUNC) &_cytosignal_select_EB_rcpp, 2},
     {"_cytosignal_inferScoreLR_cpp", (DL_FUNC) &_cytosignal_inferScoreLR_cpp, 6},
     {"_cytosignal_inferVeloLR_cpp", (DL_FUNC) &_cytosignal_inferVeloLR_cpp, 8},
     {"_cytosignal_graphNicheLR_cpp", (DL_FUNC) &_cytosignal_graphNicheLR_cpp, 8},

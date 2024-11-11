@@ -37,6 +37,14 @@ cleanLRscore_sparse_cpp <- function(i, p, x, nrow, ncol) {
     .Call('_cytosignal_cleanLRscore_sparse_cpp', PACKAGE = 'cytosignal', i, p, x, nrow, ncol)
 }
 
+select_EB_singleSpot_rcpp <- function(loc, x_i, y_i, eps) {
+    .Call('_cytosignal_select_EB_singleSpot_rcpp', PACKAGE = 'cytosignal', loc, x_i, y_i, eps)
+}
+
+select_EB_rcpp <- function(loc, eps) {
+    .Call('_cytosignal_select_EB_rcpp', PACKAGE = 'cytosignal', loc, eps)
+}
+
 inferScoreLR_cpp <- function(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list) {
     .Call('_cytosignal_inferScoreLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list)
 }

@@ -55,8 +55,8 @@ findNNGauEB.matrix <- function(
 ){
   if (is.null(sigma)) stop("`sigma` has to be specified for matrix method.")
   # cat("Finding neighbors in epsilon circle...\n")
-  nn <- dbscan::frNN(object, eps = eps, sort = F)
-
+  # nn <- dbscan::frNN(object, eps = eps, sort = F)
+  nn <- select_EB_rcpp(object, eps = eps)
   if (is.numeric(self.weight)) {
     if (self.weight < 0 || self.weight > 1) {
       stop("Self weight should be within (0,1)!")
@@ -589,11 +589,11 @@ normCounts.CytoSignal <- function(
 
   mat <- object@imputation[[slot.use]]@imp.data
   scale.fac <- object@imputation[[slot.use]]@scale.fac
-  
+
   if (method == "none"){
     return(mat)
   }
-  
+
   mat <- normCounts(object = mat, scale.fac = scale.fac, method = method)
 
   # modified to output the normalized data instead of the object

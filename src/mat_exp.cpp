@@ -1,8 +1,10 @@
 #include <RcppArmadillo.h>
 // #include <Rcpp.h>
 #include <iostream>
+#include <progress.hpp>
 
 // [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppProgress)]]
 
 using namespace std;
 using namespace Rcpp;
@@ -243,3 +245,59 @@ arma::sp_mat cleanLRscore_sparse_cpp(
 //   arma::mat y = arma::exp(-arma::square(x) / (2 * sigma * sigma)) / (sigma * sqrt(2 * M_PI));
 //   return y;
 // }
+
+// [[Rcpp::export]]
+arma::uvec select_EB_singleSpot_rcpp(
+    const arma::mat& loc,
+    const double x_i,
+    const double y_i,
+    const double eps) {
+  arma::colvec x = loc.col(0);
+  arma::colvec y = loc.col(1);
+  double xmax = x_i + eps;
+  double xmin = x_i - eps;
+  double ymax = y_i + eps;
+  double ymin = y_i - eps;
+  arma::uvec idx = arma::find((x < xmax) && (x > xmin) && (y < ymax) && (y > ymin));
+  return idx;
+}
+
+// x - the location matrix, rows - spots, columns x and y
+// eps - radius of the selection
+// [[Rcpp::export]]
+Rcpp::List select_EB_rcpp(const arma::mat& loc, const double eps) {
+  int n = loc.n_rows;
+  arma::colvec x = loc.col(0);
+  arma::colvec y = loc.col(1);
+  arma::colvec x_box, y_box;
+  double xmax, xmin, ymax, ymin;
+  Rcpp::List id, dist;
+  Rcpp::Rcerr << "- GauEps: Selecting neighbors within the radius of " << eps <<
+    " from " << n << " spots" << std::endl;
+  Progress p(n, true);
+  for (int i = 0; i < n; i++) {
+    if (Progress::check_abort()) {
+      return R_NilValue;
+    }
+    double x_i = x(i);
+    double y_i = y(i);
+    xmax = x_i + eps;
+    xmin = x_i - eps;
+    ymax = y_i + eps;
+    ymin = y_i - eps;
+    // filter for x < xmax and get the index
+    arma::uvec idx = arma::find(x < xmax);
+    idx = idx(arma::find(x(idx) > xmin));
+    idx = idx(arma::find(y(idx) < ymax));
+    idx = idx(arma::find(y(idx) > ymin));
+    x_box = x(idx);
+    y_box = y(idx);
+    arma::vec dists = arma::sqrt(arma::pow(x_box - x_i, 2) + arma::pow(y_box - y_i, 2));
+    idx = idx(arma::find(dists < eps));
+    dists = dists(arma::find(dists < eps));
+    id.push_back(Rcpp::IntegerVector(idx.begin(), idx.end()) + 1);
+    dist.push_back(Rcpp::NumericVector(dists.begin(), dists.end()));
+    p.increment();
+  }
+  return Rcpp::List::create(Rcpp::Named("id") = id, Rcpp::Named("dist") = dist);
+}
