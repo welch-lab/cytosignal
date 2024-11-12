@@ -271,6 +271,7 @@ Rcpp::List select_EB_rcpp(const arma::mat& loc, const double eps) {
   arma::colvec y = loc.col(1);
   arma::colvec x_box, y_box;
   double xmax, xmin, ymax, ymin;
+  arma::uvec idx, subidx;
   Rcpp::List id, dist;
   Rcpp::Rcerr << "- GauEps: Selecting neighbors within the radius of " << eps <<
     " from " << n << " spots" << std::endl;
@@ -286,15 +287,17 @@ Rcpp::List select_EB_rcpp(const arma::mat& loc, const double eps) {
     ymax = y_i + eps;
     ymin = y_i - eps;
     // filter for x < xmax and get the index
-    arma::uvec idx = arma::find(x < xmax);
+    idx = arma::find(x < xmax);
     idx = idx(arma::find(x(idx) > xmin));
     idx = idx(arma::find(y(idx) < ymax));
     idx = idx(arma::find(y(idx) > ymin));
+    idx = idx(arma::find(idx != i));
     x_box = x(idx);
     y_box = y(idx);
     arma::vec dists = arma::sqrt(arma::pow(x_box - x_i, 2) + arma::pow(y_box - y_i, 2));
-    idx = idx(arma::find(dists < eps));
-    dists = dists(arma::find(dists < eps));
+    subidx = arma::find(dists < eps);
+    idx = idx(subidx);
+    dists = dists(subidx);
     id.push_back(Rcpp::IntegerVector(idx.begin(), idx.end()) + 1);
     dist.push_back(Rcpp::NumericVector(dists.begin(), dists.end()));
     p.increment();
