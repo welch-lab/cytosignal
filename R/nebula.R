@@ -463,25 +463,30 @@ checkDependence <- function(X){
         stop("Not all covariates specified are available in the metadata.")
     }
 
-
+    message("Using original model...")
     model <- stats::model.matrix(
-        stats::formula(paste0("~ ", paste0(c(-1, covariates), collapse = " + "))),
-        data = object@metadata
+      stats::formula(paste0("~ ", paste0(covariates, collapse = " + "))),
+      data = object@metadata
     )
-    m.names <- colnames(model)
-    
-    model <- cbind(1, model)
-    colnames(model) <- c("(Intercept)", m.names)
-    
-    # check for linear dependence
-    dep.cols <- checkDependence(model)
-    
-    if (length(dep.cols) > 0) {
-      cat("Removing linearly dependent columns from model matrix.\n")
-      print(dep.cols)
-      remove.idx <- which(colnames(model) %in% dep.cols)
-      model <- model[, -remove.idx]
-    }
+
+    # model <- stats::model.matrix(
+    #     stats::formula(paste0("~ ", paste0(c(-1, covariates), collapse = " + "))),
+    #     data = object@metadata
+    # )
+    # m.names <- colnames(model)
+    # 
+    # model <- cbind(1, model)
+    # colnames(model) <- c("(Intercept)", m.names)
+    # 
+    # # check for linear dependence
+    # dep.cols <- checkDependence(model)
+    # 
+    # if (length(dep.cols) > 0) {
+    #   cat("Removing linearly dependent columns from model matrix.\n")
+    #   print(dep.cols)
+    #   remove.idx <- which(colnames(model) %in% dep.cols)
+    #   model <- model[, -remove.idx]
+    # }
     
     # Organize cov.use for future use
     cov.use <- lapply(covariates, function(cov) {
@@ -571,6 +576,9 @@ checkDependence <- function(X){
 #' @param object A \linkS4class{mergedCytoSignal} object
 #' @param covariates A character vector of metadata covariates to include in the
 #' model.
+#' @param cpc_thresh Counts per cell threshold for filtering out lowly expressed
+#' genes. This is defined by the ratio between the total count of the gene and 
+#' the number of cells.
 #' @param ncore Integer, number of cores to use for parallel computation.
 #' Default \code{1L}.
 #' @param verbose Logical, print progress messages. Default \code{TRUE}.
@@ -581,6 +589,7 @@ checkDependence <- function(X){
 runNEBULA <- function(
         object,
         covariates,
+        cpc_thresh = 0.005,
         ncore = 1L,
         verbose = TRUE
 ) {
@@ -595,12 +604,14 @@ runNEBULA <- function(
     if (isTRUE(verbose)) {
         message(Sys.time(), " - Running on Diffusion-dependent interactions...")
     }
-    diff.res <- nebula::nebula(object@diff.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose)
+    diff.res <- nebula::nebula(object@diff.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose,
+                               offset = Matrix::colSums(object@diff.lrscore), cpc = cpc_thresh)
 
     if (isTRUE(verbose)) {
         message(Sys.time(), " - Running on Contact-dependent interactions...")
     }
-    cont.res <- nebula::nebula(object@cont.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose)
+    cont.res <- nebula::nebula(object@cont.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose, 
+                               offset = Matrix::colSums(object@cont.lrscore), cpc = cpc_thresh)
 
     diff.res.summary <- diff.res$summary
     cont.res.summary <- cont.res$summary
