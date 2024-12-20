@@ -90,7 +90,7 @@ gene_select_group_by_permute <- function(
     verbose = TRUE
 ) {
   expression <- object@raw.counts
-  expression <- normCounts.dgCMatrix(expression, scale.fac = colSums(expression), method = "default")
+  expression <- normCounts.dgCMatrix(expression, scale.fac = Matrix::colSums(expression), method = "default")
   permute_res <- object@lrscore[[slot.use]]@res.list[[signif.use]]
   if (is.null(intr)) {
     intr <- names(permute_res)
@@ -250,7 +250,7 @@ refine_score <- function(
   expression <- object@raw.counts
   clusters <- object@clusters
   expression <- normCounts.dgCMatrix(expression,
-                                     scale.fac = colSums(expression),
+                                     scale.fac = Matrix::colSums(expression),
                                      method = "default")
   # clean the gene names
   gene_to_uniprot <- object@intr.valid$gene_to_uniprot
@@ -356,7 +356,7 @@ plotRefinedScore <- function(
   xRange <- c(min(plotDF$x), max(plotDF$x))
   yRange <- c(min(plotDF$y), max(plotDF$y))
   for (interaction in intr) {
-    intrName <- getIntrNames(cs, interaction)
+    intrName <- getIntrNames(object, interaction)
     score_refine <- intrDEGRes[[interaction]]$score_refine[rownames(plotDF),]
     plotDF$score <- score_refine
     plotList[[interaction]] <-
