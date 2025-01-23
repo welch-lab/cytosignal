@@ -18,7 +18,7 @@
 #' @param self.weight Gaussian Epsilon Ball method parameter. Weight of the
 #' index cell. Use a number between 0-1 or a string \code{"auto"} or
 #' \code{"sum_1"}. Default \code{"auto"}.
-#' @param weight Delaunay Triangulation method parameter. A numeric scalar for
+#' @param dt.weight Delaunay Triangulation method parameter. A numeric scalar for
 #' the sum of the weights of the edges of the Delaunay Triangulation. Default
 #' \code{2}.
 #' @param max.r Delaunay Triangulation method parameter. A numeric scalar for
@@ -37,12 +37,12 @@ findNN <- function(
     # GauEB params
     eps = NULL,
     sigma = NULL,
-    diff.weight = "auto",
+    self.weight = "auto",
     # DT params
     dt.weight = 2,
     max.r = NULL
 ) {
-    object <- findNNGauEB(object, eps = eps, sigma = sigma, self.weight = diff.weight)
+    object <- findNNGauEB(object, eps = eps, sigma = sigma, self.weight = self.weight)
     object <- findNNDT(object, weight = dt.weight, max.r = max.r)
     object <- findNNRaw(object)
     return(object)
@@ -72,8 +72,8 @@ imputeLR <- function(
     weights = c("none", "mean", "counts", "dist")
 ) {
   weights = match.arg(weights)
-  object <- imputeNiche(object, nn.type = "GauEps", weights = weights)
-  object <- imputeNiche(object, nn.type = "DT", weights = weights)
+  object <- imputeNiche(object, imp.use = "GauEps", weights = weights)
+  object <- imputeNiche(object, imp.use = "DT", weights = weights)
 
   return(object)
 }
@@ -128,9 +128,9 @@ inferIntrScore <- function(
   # fdr.method <- match.arg(fdr.method)
   norm.method <- match.arg(norm.method)
   if (isTRUE(recep.smooth)) {
-    recep.slot <- "DT"
+    recep.imp <- "DT"
   } else {
-    recep.slot <- "Raw"
+    recep.imp <- "Raw"
   }
   if (any(!intr.type %in% c("diff", "cont")) ||
       is.null(intr.type)) {
@@ -139,8 +139,8 @@ inferIntrScore <- function(
   if ("diff" %in% intr.type) {
     message("== Calculating diffusible ligand-receptor scores ==")
     # Calculate the ligand-receptor scores for diffusible ligands and raw receptors
-    object <- inferScoreLR(object, lig.slot = "GauEps", recep.slot = recep.slot, 
-                           norm.method = norm.method, intr.db.name = "diff_dep")
+    object <- inferScoreLR(object, lig.imp = "GauEps", recep.imp = recep.imp,
+                           norm.method = norm.method, intr.db.use = "diff_dep")
     # Permutation test to calculate the null distribution of the imputed ligands and receptors
     object <- permuteLR(object, perm.size = perm.size, norm.method = norm.method)
     # Calculate the null distribution of the ligand-receptor scores
@@ -151,12 +151,12 @@ inferIntrScore <- function(
   }
   if ("cont" %in% intr.type) {
     message("== Calculating contact-dependent ligand-receptor scores ==")
-    object <- inferScoreLR(object, lig.slot = "DT", recep.slot = recep.slot, intr.db.name = "cont_dep",
+    object <- inferScoreLR(object, lig.imp = "DT", recep.imp = recep.imp, intr.db.use = "cont_dep",
                            norm.method = norm.method)
     object <- permuteLR(object, perm.size = perm.size)
     object <- inferNullScoreLR(object)
     if (!isTRUE(recep.smooth)) {
-      object <- inferScoreLR(object, lig.slot = "Raw", recep.slot = "Raw", intr.db.name = "cont_dep",
+      object <- inferScoreLR(object, lig.imp = "Raw", recep.imp = "Raw", intr.db.use = "cont_dep",
                              norm.method = norm.method)
       object <- permuteLR(object, perm.size = perm.size)
       object <- inferNullScoreLR(object)

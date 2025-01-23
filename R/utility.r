@@ -25,50 +25,12 @@ filterGene <- function(dge.raw, gene_to_uniprot, thresh = 50){
   return(!gene.del)
 }
 
-addIndex <- function(fac.use){
-  fac.use = sort(fac.use)
-
-  new.fac = as.integer(c(as.character(fac.use), levels(fac.use)))
-  new.fac = factor(new.fac)
-
-  names(new.fac) = as.integer(c(names(fac.use), levels(fac.use)))
-  new.fac = sort(new.fac)
-
-  return(new.fac)
-}
-
-addIndexZero <- function(fac.use){
-  fac.use = sort(fac.use)
-
-  new.fac = as.integer(c(as.character(fac.use), levels(fac.use)))
-  new.fac = factor(new.fac)
-
-  names(new.fac) = as.numeric(c(names(fac.use), rep(0, length(levels(fac.use)))))
-  new.fac = sort(new.fac)
-
-  return(new.fac)
-}
-
-addIndexOne <- function(fac.use){
-  fac.use = sort(fac.use)
-
-  new.fac = as.integer(c(as.character(fac.use), levels(fac.use)))
-  new.fac = factor(new.fac)
-
-  names(new.fac) = as.numeric(c(names(fac.use), rep(1, length(levels(fac.use)))))
-  new.fac = sort(new.fac)
-
-  return(new.fac)
-}
-
 lowwords <- function(w){
   paste0(
     substr(w, 1, 1),
     tolower(substr(w, 2, 999))
   )
 }
-
-
 
 facToIndex <- function(fac.use){
   # Note that i_index and nb_index start with 0 --> add 0 to the front
@@ -120,14 +82,14 @@ getPvalues <- function(
     adjust = F
 ){
   if (ncol(i.mtx) < ncol(null.i.mtx)){
-    cat("Real lr-score mtx has fewer features than NULL lr-score mtx.\n")
-    cat("Removing extra", ncol(null.i.mtx) - ncol(i.mtx), "interactions from NULL lr-score mtx.\n")
+    warning("Real lr-score mtx has fewer features than NULL lr-score mtx.")
+    warning("Removing extra", ncol(null.i.mtx) - ncol(i.mtx), "interactions from NULL lr-score mtx.")
     null.i.mtx <- null.i.mtx[, colnames(i.mtx)]
   }
 
   if (ncol(i.mtx) > ncol(null.i.mtx)){
-    cat("NULL lr-score mtx has fewer features than Real lr-score mtx.\n")
-    cat("Removing extra", ncol(i.mtx) - ncol(null.i.mtx), "interactions from Real lr-score mtx.\n")
+    warning("NULL lr-score mtx has fewer features than Real lr-score mtx.")
+    warning("Removing extra", ncol(i.mtx) - ncol(null.i.mtx), "interactions from Real lr-score mtx.")
     i.mtx <- i.mtx[, colnames(null.i.mtx)]
   }
 
@@ -142,7 +104,66 @@ getPvalues <- function(
   return(p.val.mtx)
 }
 
+graphSpatialFDRNew <- function(
+    nn.graph,
+    pval.mtx,
+    spatial.coords = NULL,
+    weighting = "DT",
+    k = NULL,
+    reciprocal = TRUE
+) {
+  if (ncol(nn.graph) != nrow(pval.mtx)){
+    stop("Cell numbers in pvalue mtx and neighbor graph do not match!")
+  }
 
+  if (weighting == "DT"){
+    # for DT, we use the max distance within the nb as the weight
+    t.connect <- rep(NA, ncol(nn.graph))
+    for (j in seq(ncol(nn.graph))) {
+      weights <- nn.graph[, j]
+      # Remove the self-weight
+      weights <- weights[-j]
+      t.connect[j] <- max(weights)
+    }
+  } else if (weighting == "EB"){
+    stop("EB weighting not developed yet.")
+  } else if (weighting == "KNN"){
+    stop("KNN weighting not developed yet.")
+  } else{
+    stop("Weighting must be one of 'DT', 'EB', 'KNN'.")
+  }
+
+  # use 1/connectivity as the weighting for the weighted BH adjustment from Cydar
+  if (reciprocal){
+    w <- 1/t.connect
+  } else{
+    w <- t.connect
+  }
+  # w <- 1/t.connect
+  w[is.infinite(w)] <- 1
+
+  # Compute a adjusted pvalues for every interaction
+  padj.mtx = sapply(1:ncol(pval.mtx), function(intr){
+    pvalues = unname(pval.mtx[ ,intr])
+    haspval <- !is.na(pvalues)
+    o <- order(pvalues)
+    pvalues <- pvalues[o]
+    w.sub <- w[o]
+
+    adjp <- numeric(length(o))
+    adjp[o] <- rev(cummin(rev(sum(w.sub)*pvalues/cumsum(w.sub))))
+    adjp <- pmin(adjp, 1)
+
+    if (!all(haspval)) {
+      refp <- rep(NA_real_, length(haspval))
+      refp[haspval] <- adjp
+      adjp <- refp
+    }
+    return(adjp)
+  })
+
+  return(padj.mtx)
+}
 
 graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT',
                             k=NULL, reciprocal=T){
@@ -171,7 +192,7 @@ graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT
   # pvalues = pval.mtx
 
   if (length(levels(nn.index)) != nrow(pval.mtx)){
-    stop("Cell numbers in pvalue mtx and neighbor factor do not match!!\n")
+    stop("Cell numbers in pvalue mtx and neighbor factor do not match!")
   }
 
   if (weighting == "DT"){
@@ -182,10 +203,13 @@ graphSpatialFDR <- function(nb.fac, pval.mtx, spatial.coords=NULL, weighting='DT
     #     return(max(nb.dist))
     # })
 
-    t.connect <- sapply(split(as.numeric(names(nn.dist)), nn.dist), function(x){
-      # return(max(x))
-      return(max(x[-which(x == max(x))[1]]))
-    })
+    t.connect <- sapply(
+      split(as.numeric(names(nn.dist)), nn.dist),
+      function(x){
+        # return(max(x))
+        return(max(x[-which(x == max(x))[1]]))
+      }
+    )
 
   } else if (weighting == "EB"){
     stop("EB weighting not developed yet.")
@@ -575,6 +599,19 @@ to_mean <- function(mat) {
 
 #     return(null.data)
 # }
+.checkImpUse <- function(object, imp.use = NULL) {
+  avail <- names(object@imputation)
+  avail <- avail[avail != "default"]
+  if (is.null(imp.use)) {
+    imp.use <- object@imputation[["default"]]
+  }
+  if (!imp.use %in% avail) {
+    stop("Specified imputation (`imp.use = '", imp.use, "'`) is not available. ",
+         "Available ones are: ",
+         paste(paste0('"', avail, '"'), collapse = ", "))
+  }
+  return(imp.use)
+}
 
 .checkSlotUse <- function(object, slot.use = NULL, velo = FALSE) {
   avail <- if (velo) names(object@lrvelo) else names(object@lrscore)

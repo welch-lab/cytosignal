@@ -7,11 +7,14 @@
 findNNRaw(object)
 }
 \arguments{
-\item{object}{A Cytosignal object}
+\item{object}{A CytoSignal object}
 }
 \value{
-A Cytosignal object
+Returns the original object with result updated in "imputation" slot.
+An "ImpData" object is created with its "nn.graph" taken from the result of
+\code{\link{findNNDT}}.
 }
 \description{
-Create a ImpData object using raw data without imputation
+This function do not attempt to find neighbors but simply creates internal
+data structure which is helpful for downstream analysis.
 }

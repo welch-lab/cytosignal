@@ -6,29 +6,49 @@
 \usage{
 inferScoreLR(
   object,
-  lig.slot,
-  recep.slot,
+  lig.imp,
+  recep.imp,
   norm.method = c("default", "cpm", "none", "scanpy"),
-  intr.db.name = c("diff_dep", "cont_dep"),
-  tag = paste0(lig.slot, "-", recep.slot)
+  intr.db.use = c("diff_dep", "cont_dep"),
+  lrscore.name = paste0(lig.imp, "-", recep.imp)
 )
 }
 \arguments{
-\item{object}{A Cytosignal object}
+\item{object}{A CytoSignal object, with \code{\link{imputeNiche}} performed
+for desired analyses.}
 
-\item{lig.slot}{The ligand slot to use}
+\item{lig.imp}{The ligand imputation result to use. Specify the "imp.name"
+used at \code{findNN*} functions.}
 
-\item{recep.slot}{The receptor slot to use}
+\item{recep.imp}{The receptor imputation result to use. Specify the
+"imp.name" used at \code{findNN*} functions.}
 
 \item{norm.method}{Method to normalize the data. Default is "default".}
 
-\item{intr.db.name}{The intr database name to use}
+\item{intr.db.use}{The interaction database name to use. Choose from
+\code{"diff_dep"} for diffusion-dependent interactions, and \code{"cont_dep"}
+for contact-dependent interactions.}
 
-\item{tag}{Name of the result to be stored in object.}
+\item{lrscore.name}{Name of the result to be stored in object. Default a
+combination of the ligand and receptor imputation result names.}
 }
 \value{
-A Cytosignal object
+Returns the input object with result updated within its "lrscore"
+slot. A new "lrScores" object is created there and with LR-score stored in
+"score" slot.
 }
 \description{
-Compute the LR score for specific ligand-receptor imputation pairs
+This function uses imputed ligand expression and receptor expression at each
+spot to compute the ligand-receptor interaction scores (LR score). Usually,
+for diffusion-dependent interactions, the ligand imputation is performed with
+Gaussion-Epsilon (GauEps) neighbors, while the contact-dependent interactions
+areinferred using Delaunay triangulation (DT) neighbors. Raw imputation can
+be used for receptor, while DT imputation can also be used for receptor for
+smoothing the imputation results.
+
+As explained above, the most common scenarios are: 1) Inferring
+diffusion-dependent LR scores with \code{inferScoreLR(object, lig.imp =
+"GauEps", recep.imp = "Raw", intr.db.name = "diff_dep")}, and 2) Inferring
+contact-dependent LR scores with \code{inferScoreLR(object, lig.imp = "DT",
+recep.imp = "Raw", intr.db.name = "cont_dep")}.
 }

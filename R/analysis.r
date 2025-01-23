@@ -18,496 +18,317 @@ inferEpsParams <- function(object, scale.factor = NULL, r.eps.real = 200, thresh
   return(object)
 }
 
-
 #' Find the neighbors of each cell in the Epsilon Ball
-#' @rdname findNNGauEB
-#' @param object A CytoSignal object or a matrix object for the cell spatial
-#' location.
+#' @description
+#' Find neighbors within a range from each cell, and determine the neighbors'
+#' weights using a Gaussian kernel.
+#' @param object A CytoSignal object with cell location matrix available.
 #' @param eps The radius of the epsilon ball. For CytoSignal object, by default
 #' use parameter inferred with \code{\link{inferEpsParams}}.
-#' @param sigma The sigma of the Gaussian kernel. Default \code{0.15} for matrix
-#' method. For CytoSignal object, by default use parameter inferred with
-#' \code{\link{inferEpsParams}}.
-#' @param self.weight weight of the index cell. Use a number between 0-1, or
-#' choose from \code{"auto"} or \code{"sum_1"}.
-#' @param ... Arguments passed to other S3 methods.
-#' @return For CytoSignal object, the orignal object with result updated. For
-#' matrix object, a list of neighbors and their distances.
+#' @param sigma The sigma of the Gaussian kernel. By default use parameter
+#' inferred with \code{\link{inferEpsParams}}.
+#' @param self.weight Weight of the index cell. Use a number between 0-1, or
+#' choose from \code{"auto"} or \code{"sum_1"} for automatic self-weighting.
+#' @param imp.name Name prefix of the analysis.
+#' @return Returns the original object with result updated in "imputation" slot.
+#' An "ImpData" object is created with its "nn.graph" slot filled a NxN sparse
+#' matrix indicating the NN relationship and weights. A column is considered as
+#' a center of the epsilon ball and the rows containing non-zero values are
+#' its neighbors.
 #' @export
 findNNGauEB <- function(
     object,
     eps = NULL,
     sigma = NULL,
     self.weight = "auto",
-    ...
+    imp.name = "GauEps"
 ) {
-  UseMethod(generic = 'findNNGauEB', object = object)
-}
+  cells.loc <- object@cells.loc
 
-#' @rdname findNNGauEB
-#' @export
-findNNGauEB.matrix <- function(
-    object,
-    eps,
-    sigma = 0.15,
-    self.weight = "auto",
-    ...
-){
+  if (is.null(imp.name)) {imp.name <- "GauEps"}
+
+  if (is.null(eps)) {
+    eps <- object@parameters$r.diffuse.scale
+  } else{
+    imp.name <- paste0(imp.name, "_eps-", eps)
+  }
+
+  if (is.null(sigma)) {
+    sigma <- object@parameters$sigma.scale
+  } else{
+    imp.name <- paste0(imp.name, "_sigma-", sigma)
+  }
+
+  message("Finding neighbors in epsilon circle with imp.name: ", imp.name, "...")
+
   if (is.null(sigma)) stop("`sigma` has to be specified for matrix method.")
-  # cat("Finding neighbors in epsilon circle...\n")
-  # nn <- dbscan::frNN(object, eps = eps, sort = F)
-  nn <- select_EB_rcpp(object, eps = eps)
+
+  dis_mat <- select_EB_rcpp2(cells.loc, eps = eps)
+  gauss_vec_inplace_cpp(dis_mat@x, sigma)
+
   if (is.numeric(self.weight)) {
     if (self.weight < 0 || self.weight > 1) {
       stop("Self weight should be within (0,1)!")
     }
     message("Using manual self weight: ", self.weight, "...")
+    # Gaussian kernel for neighbors, normalize neighbors for each center, and hard-set self-weight
+    dis_mat <- normCounts.dgCMatrix(dis_mat, scale.fac = Matrix::colSums(dis_mat), method = "none")
+    Matrix::diag(dis_mat) <- self.weight
   } else if (self.weight == "auto") {
     message("Determining self weight automatically...")
+    # Gaussian kernel with 0-self-dist, multiply self-weight by 5, normalize for each center
+    Matrix::diag(dis_mat) <- gauss_vec_cpp(1e-9, sigma) * 5
+    dis_mat <- normCounts.dgCMatrix(dis_mat, scale.fac = Matrix::colSums(dis_mat), method = "none")
   } else if (self.weight == "sum_1") {
     message("Using self weight: all NB weights sum to 1...")
+    # Gaussian kernel with 0-self-dist, normalize for each center
+    Matrix::diag(dis_mat) <- gauss_vec_cpp(1e-9, sigma)
+    dis_mat <- normCounts.dgCMatrix(dis_mat, scale.fac = Matrix::colSums(dis_mat), method = "none")
   } else {
     stop("Please set `self.weight` to a number within (0, 1) ",
          "or use \"auto\" or \"sum_1\".")
   }
 
-  # get a sorted nn factor
-  nn.fac <- factor(rep(seq_along(nn$id), lengths(nn$id)))
-  names(nn.fac) = unlist(nn$id)
-  # add index cell itself
-  nn.fac <- addIndex(nn.fac)
-
-  # get a sorted nn dist factor
-  nn.dist.fac <- factor(rep(seq_along(nn$dist), lengths(nn$dist)))
-  names(nn.dist.fac) = as.numeric(unlist(nn$dist))
-  nn.dist.fac = addIndexOne(nn.dist.fac)
-
-  # dist.list.gau = lapply(nn$dist, function(x){
-  #     y = gauss_vec_cpp(c(x, 1e-8), sigma)[,1]
-  #     return(y/sum(y))
-  # })
-
-  dist.list.gau = lapply(nn$dist, function(x){
-    if (self.weight == "auto"){
-      # times the index cell weight by 10
-      y = gauss_vec_cpp(c(x, 1e-9), sigma)[,1]
-      y[length(y)] <- y[length(y)] * 5
-      return(y/sum(y))
-    } else if (is.numeric(self.weight)) {
-      # norm the sum except the index cell to 1
-      y = gauss_vec_cpp(x, sigma)[,1]
-      return(c(y/sum(y), self.weight))
-    } else if (self.weight == "sum_1") {
-      # norm the sum to 1
-      y = gauss_vec_cpp(c(x, 1e-9), sigma)[,1]
-      return(y/sum(y))
-    }
-  })
-
-  # discard the cell that has no neighbors
-  rm.index = which(lengths(dist.list.gau) == 1)
-  if (length(rm.index) > 0) dist.list.gau = dist.list.gau[-rm.index]
-  dist.list.gau = as.numeric(unlist(dist.list.gau))
-  names(nn.dist.fac) = dist.list.gau
-
-  # nn.dist.fac <- addIndexOne(nn.dist.fac)
-
-  num.diff = nrow(object) - length(levels(nn.fac))
-  if (num.diff > 0){
-    message("A total of ", num.diff, " beads do not have NNs.")
-  } else if (num.diff < 0) {
-    stop("Result fac longer than original beads length!\n")
-  }
-
-  # message("Mean num of neighbors: ", ceiling(mean(table(nn.fac))))
-  # message("Median num of neighbors: ", median(table(nn.fac)))
-
-  return(list(
-    "id" = nn.fac,
-    "dist" = nn.dist.fac
-  ))
-}
-
-
-#' @rdname findNNGauEB
-#' @export
-#' @param tag Name prefix of the analysis.
-findNNGauEB.CytoSignal <- function(
-    object,
-    eps = NULL,
-    sigma = NULL,
-    self.weight = "auto",
-    tag = NULL,
-    ...
-){
-  cells.loc <- object@cells.loc
-
-  if (is.null(tag)){tag <- "GauEps"}
-
-  if (is.null(eps)){
-    eps <- object@parameters$r.diffuse.scale
-  } else{
-    tag <- paste0(tag, "_eps-", eps)
-  }
-
-  if (is.null(sigma)){
-    sigma <- object@parameters$sigma.scale
-  } else{
-    tag <- paste0(tag, "_sigma-", sigma)
-  }
-
-  message("Finding neighbors in epsilon circle with tag: ", tag, "...")
-
-  nn <- findNNGauEB.matrix(cells.loc, eps, sigma, self.weight)
-
+  colnames(dis_mat) <- rownames(cells.loc)
   nn.obj <- methods::new(
     "ImpData",
-    method = tag,
+    method = "GauEps",
     imp.data = new("dgCMatrix"),
-    # imp.data.null = new("dgCMatrix"),
-    # imp.data.null = list(),
-    # intr.data = new("dgCMatrix"),
     imp.velo = new("matrix"),
-    nn.graph = new("dgCMatrix"),
-    nn.id = nn$id,
-    nn.dist = nn$dist,
+    nn.graph = dis_mat,
     scale.fac = new("numeric"),
     scale.fac.velo = new("numeric"),
     log = list(
-      "Parameters" = paste0("eps: ", eps, ", sigma: ", sigma),
-      "Num of neighbors" = paste0("Mean: ", mean(table(nn$id)), ", Median: ", median(table(nn$id)))
+      "Parameters" = paste0("eps: ", eps, ", sigma: ", sigma)
     )
   )
 
-  object@imputation[[tag]] <- nn.obj
-  object@imputation[["default"]] <- tag
+  object@imputation[[imp.name]] <- nn.obj
+  object@imputation[["default"]] <- imp.name
 
   return(object)
 }
 
-
 #' Find the direct connected neighbor of each cell, using Delaunay triangulation
-#' @rdname findNNDT
+#' @description
+#' Find the direct connected neighbors of each cell, and assigning an averaged
+#' weight to each neighbor.
 #' @param object A CytoSignal object or a matrix of cell location.
-#' @param weight.sum The sum of the weights
 #' @param max.r The maximum radius of the edges, by default is the r.diffuse.scale,
-#' @param ... Arguments passed to other S3 methods
-#' @return For CytoSignal object, the original object with result updated. For matrix
-#' object, a list of neighbors.
+#' or the value inferred by \code{\link{inferEpsParams}}.
+#' @param weight.sum The sum of the weights
+#' @param imp.name The name of the analysis.
+#' @return Returns the original object with result updated in "imputation" slot.
+#' An "ImpData" object is created with its "nn.graph" slot filled a NxN sparse
+#' matrix indicating the NN relationship and weights. A column is considered as
+#' a center of the epsilon ball and the rows containing non-zero values are
+#' its neighbors.
 #' @export
 findNNDT <- function(
     object,
-    ...
-) {
-  UseMethod(generic = 'findNNDT', object = object)
-}
-
-#' @rdname findNNDT
-#' @export
-#' @method findNNDT matrix
-findNNDT.matrix <- function(
-    object,
+    max.r = NULL,
     weight.sum = 2,
-    max.r = NULL,
-    ...
-){
-  # cells.loc <- RTriangle::pslg(P=cells.loc)
-  cells.dt <- RTriangle::triangulate(RTriangle::pslg(P=object))
-  egdes <- cells.dt$E
-
-  #### construct a double-corresponded factor
-  nn.fac <- factor(c(egdes[, 1], egdes[, 2])) # neighbors.factor
-  names(nn.fac) <- c(egdes[, 2], egdes[, 1])
-  nn.fac <- sort(nn.fac)
-
-  index.loc = object[as.integer(nn.fac),]
-  nb.loc = object[as.integer(names(nn.fac)),]
-
-  dist.euc.list <- as.double(euclidean_cpp(index.loc, nb.loc))
-  nn.valid <- which(dist.euc.list <= max.r)
-  nn.fac.old <- nn.fac
-  nn.fac <- nn.fac[nn.valid, drop = T]
-
-  # message("Filtering out ", length(dist.euc.list) - length(nn.valid), " edges out of range.")
-  noNN <- as.numeric(setdiff(levels(nn.fac.old), levels(nn.fac)))
-
-  if (length(noNN) > 0){
-    message("A total of ", length(noNN), " beads do not have NNs!")
-  }# else {
-  #   message("All beads have NNs.")
-  # }
-
-  # set distance for each niche, based on the cell number of each niche
-  nb.size <- table(nn.fac)
-  dist.list <- lapply(levels(nn.fac), function(x){
-    use.size <- unname(nb.size[x])
-    if (weight.sum == 1){
-      # norm the sum to 1
-      y = rep(1/(use.size+1), use.size)
-      return(y)
-    } else if (weight.sum == 2) {
-      # norm the sum except the index cell to 1
-      y = rep(1/use.size, use.size)
-      return(c(y, 1))
-    }
-  })
-  dist.list <- unlist(dist.list)
-
-  # add index bead it self to the neighbor list
-  nn.fac <- addIndex(nn.fac)
-
-  nn.dist.fac <- nn.fac
-  names(nn.dist.fac) <- dist.list
-
-  # cat("Mean num of neighbors: ", ceiling(mean(nb.size)), "\n")
-  # cat("Median num of neighbors: ", median(nb.size), "\n")
-
-  # return(nn.fac)
-  return(list(
-    "id" = nn.fac,
-    "dist" = nn.dist.fac
-  ))
-}
-
-
-#' @rdname findNNDT
-#' @export
-#' @method findNNDT CytoSignal
-findNNDT.CytoSignal <- function(
-    object,
-    weight = 2,
-    max.r = NULL,
-    ...
+    imp.name = "DT"
 ) {
-  tag <- "DT"
+  if (is.null(imp.name)) imp.name <- "DT"
 
-  # if (tag %in% names(object@imputation)){
-  # 	stop("This imputation has been done before.")
-  # }
-
-  message("Finding neighbors using DT with tag: ", tag, "...")
+  message("Finding neighbors using DT with imp.name: ", imp.name, "...")
 
   cells.loc <- object@cells.loc
 
   # filter out the edges that are over given radius
   if (is.null(max.r)) {
     max.r <- object@parameters$r.diffuse.scale
-  }
-
-  if (!is.numeric(max.r)){
+    if (is.null(max.r)) {
+      stop("No default `max.r` specified or inferred.")
+    }
+  } else if (!is.numeric(max.r)) {
     stop("max.r should be a numeric value.")
   }
 
-  # message("Filtering out the edges over given radius: ", max.r, "...")
+  cells.dt <- RTriangle::triangulate(RTriangle::pslg(P = cells.loc))
+  edges <- cells.dt$E
+  node1.loc <- cells.loc[edges[, 1],]
+  node2.loc <- cells.loc[edges[, 2],]
+  # Check Euclidean distance for dropping edges over max.r
+  dist <- euclidean_elementwise_cpp(node1.loc, node2.loc)
+  nn.valid <- dist <= max.r
+  edges <- edges[nn.valid, , drop = FALSE]
 
-  nn <- findNNDT.matrix(cells.loc, weight.sum = weight, max.r = max.r)
+  # Build neighbor graph temporarily with weights as 1, then normalize by column
+  # so that the colSums is the niche size.
+  weight.mtx <- Matrix::sparseMatrix(
+    i = c(edges[, 1], edges[, 2]),
+    j = c(edges[, 2], edges[, 1]),
+    x = rep(1, 2*nrow(edges)),
+    dims = c(nrow(cells.loc), nrow(cells.loc)),
+    dimnames = list(NULL, rownames(cells.loc))
+  )
+
+  norm.param <- Matrix::colSums(weight.mtx)
+  if (weight.sum == 1) norm.param = norm.param + 1
+  # weight.mtx@x <- weight.mtx@x / rep.int(norm.param, diff(weight.mtx@p))
+  weight.mtx <- normCounts.dgCMatrix(weight.mtx, scale.fac = norm.param, method = "none")
+  Matrix::diag(weight.mtx) <- 1
 
   nn.obj <- methods::new(
     "ImpData",
-    method = tag,
+    method = "DT",
     imp.data = new("dgCMatrix"),
     # imp.data.null = new("dgCMatrix"),
     # imp.data.null = list(),
     # intr.data = new("dgCMatrix"),
     imp.velo = new("matrix"),
-    nn.graph = new("dgCMatrix"),
-    nn.id = nn$id,
-    nn.dist = nn$dist,
+    nn.graph = weight.mtx,
     scale.fac = new("numeric"),
     scale.fac.velo = new("numeric"),
     log = list(
       "Parameters" = "Delauany Triangulation",
-      "Num of neighbors" = paste0("Mean: ", mean(table(nn$id)), ", Median: ", median(table(nn$id)))
+      "Num of neighbors" = paste0("Mean: ", mean(norm.param), ", Median: ", median(norm.param))
     )
   )
 
-  object@imputation[[tag]] <- nn.obj
-  object@imputation[["default"]] <- tag
+  object@imputation[[imp.name]] <- nn.obj
+  object@imputation[["default"]] <- imp.name
 
   return(object)
 }
 
 
 #' Create a ImpData object using raw data without imputation
-#'
-#' @param object A Cytosignal object
-#'
-#' @return A Cytosignal object
+#' @description
+#' This function do not attempt to find neighbors but simply creates internal
+#' data structure which is helpful for downstream analysis.
+#' @param object A CytoSignal object
+#' @return Returns the original object with result updated in "imputation" slot.
+#' An "ImpData" object is created with its "nn.graph" taken from the result of
+#' \code{\link{findNNDT}}.
 #' @export
 findNNRaw <- function(
     object
 ) {
-  tag <- "Raw"
+  imp.name <- "Raw"
 
-  message("Setting ImpData obj using NO imputation...")
+  message("Setting original expression as raw imputation...")
 
   if ("DT" %in% names(object@imputation)){
     message("DT has been done before, taking the same neighbors.")
-    nn <- new("list")
-    nn$id <- object@imputation[["DT"]]@nn.id
-    nn$dist <- object@imputation[["DT"]]@nn.dist
+    # nn <- new("list")
+    # nn$id <- object@imputation[["DT"]]@nn.id
+    # nn$dist <- object@imputation[["DT"]]@nn.dist
   } else {
-    cells.loc <- object@cells.loc
-    nn <- findNNDT.matrix(cells.loc)
+    object <- findNNDT(object)
+    # cells.loc <- object@cells.loc
+    # nn <- findNNDT.matrix(cells.loc)
   }
+  nn.graph <- object@imputation[["DT"]]@nn.graph
 
   nn.obj <- methods::new(
     "ImpData",
-    method = tag,
+    method = "Raw",
     imp.data = object@counts,
     # imp.data.null = new("dgCMatrix"),
     # imp.norm.data = new("list"),
     imp.velo = new("matrix"),
     # intr.data = new("dgCMatrix"),
-    nn.graph = Matrix::Diagonal(ncol(object@counts)),
-    nn.id = nn$id,
-    nn.dist = nn$dist,
+    nn.graph = nn.graph,
+    # nn.id = nn$id,
+    # nn.dist = nn$dist,
     scale.fac = object@parameters[["lib.size"]],
     scale.fac.velo = new("numeric"),
     log = list(
-      "Parameters" = "Raw data without imputation",
-      "Num of neighbors" = paste0("Mean: ", mean(table(nn$id)), ", Median: ", median(table(nn$id)))
+      "Parameters" = "Raw data without imputation"#,
+      # "Num of neighbors" = paste0("Mean: ", mean(table(nn$id)), ", Median: ", median(table(nn$id)))
     )
   )
 
-  object@imputation[[tag]] <- nn.obj
-  object@imputation[["default"]] <- tag
+  object@imputation[[imp.name]] <- nn.obj
+  object@imputation[["default"]] <- imp.name
 
   return(object)
 }
 
-
 #' Impute the data
-#' @rdname imputeNiche
-#' @param object A Cytosignal object or a dgCMatrix object of raw gene
-#' expression matrix
-#' @param weights The weight of the Delaunay triangulation. Choose from
-#' \code{"mean"}, \code{"counts"}, \code{"dist"} or \code{"none"}.
-#' @param ... Arguments passed to other S3 methods
-#' @return For CytoSignal object, the original object with imputation result
-#' updated. For dgCMatrix object, a sparse N x N graph presented as another
-#' dgCMatrix object.
+#' @description
+#' Impute the quantitative value of ligand received or receptor expressed at
+#' each bead basing on the NN weighting previously determined with
+#' \code{findNN*} functions.
+#' @param object A Cytosignal object with \code{findNN*} performed.
+#' @param imp.use The type of neighbors. The \code{imp.name} used when finding
+#' neighbors. Default \code{NULL} uses the last NN type computed.
+#' @param weights Weighting strategy. Default \code{"none"} use weights computed
+#' in \code{findNN*}. Alternatively, choose from \code{"mean"}, \code{"counts"},
+#' \code{"dist"}.
+#' @return Returns the original object with imputation result updated. For the
+#' selected "ImpData" specified by \code{imp.use}, the following slots are
+#' updated:
+#' \itemize{
+#' \item{"imp.data"}{The imputed data.}
+#' \item{"nn.graph"}{The neighbor graph, updated if \code{"weights"} is not
+#' "none".}
+#' \item{"scale.fac"}{The scale factor of the imputed data.}
+#' }
 #' @export
 imputeNiche <- function(
     object,
-    weights = c("mean", "counts", "dist", "none"),
-    ...
-) {
-  UseMethod(generic = 'imputeNiche', object = object)
-}
-
-#' @rdname imputeNiche
-#' @param nb.id.fac A factor of neighbors
-#' @param nb.dist.fac A factor of weights
-#' @export
-imputeNiche.dgCMatrix <- function(
-    object,
-    nb.id.fac,
-    nb.dist.fac,
-    weights = c("mean", "counts", "dist", "none"),
-    ...
-){
-  weights <- match.arg(weights)
-  i.list = as.integer(names(nb.id.fac)) # x coords, row number
-  j.list = as.numeric(as.character(nb.id.fac)) # y coords, col number, hq beads
-
-  if (weights == "avg") { # just do the mean
-    x.list = rep(1, length(i.list))
-    do.norm <- TRUE
-  } else if (weights == "counts") { # use total counts in each bead as weights
-    x.list = colSums(object)[i.list]
-    do.norm <- TRUE
-  } else if (weights == "dist") {
-    x.list = exp(-as.numeric(names(nb.dist.fac))) # exp(-dist) as similarities
-    do.norm <- TRUE
-  } else if (weights == "none") {
-    x.list = as.numeric(names(nb.dist.fac)) # gaussian distances has been calculated
-    do.norm <- FALSE
-  }
-
-  weights.mtx <- Matrix::sparseMatrix(
-    i = i.list, j = j.list, x = x.list,
-    dims = c(ncol(object), ncol(object)),
-    dimnames = list(NULL, colnames(object))
-  )
-
-  # re-weight the weight mtx across each niche (column)
-  if (do.norm) {
-    weights.mtx@x = weights.mtx@x / rep.int(Matrix::colSums(weights.mtx), diff(weights.mtx@p))
-  }
-
-  dge.raw.imputed = object %*% weights.mtx
-
-  # if (return.graph){
-  # 	return(list(dge.raw.imputed, weights.mtx))
-  # }
-
-  # return(object.imputed)
-
-  return(weights.mtx)
-}
-
-#' @rdname imputeNiche
-#' @param nn.type The type of neighbors. The \code{tag} used when finding
-#' nearest neighbors in the upstream step. If not customized, use
-#' \code{"GauEps"} for NN found with \code{\link{findNNGauEB}}, or use
-#' \code{"DT"} for NN found with \code{\link{findNNDT}}. Default use the most
-#' lastly computed NN.
-#' @export
-imputeNiche.CytoSignal <- function(
-    object,
-    nn.type = NULL,
-    weights = c("mean", "counts", "dist", "none"),
-    ...
+    imp.use = NULL,
+    weights = c("none", "mean", "counts", "dist")
 ) {
   weights <- match.arg(weights)
-  if (is.null(nn.type)) {
-    nn.type <- object@imputation[["default"]]
+  imp.use <- .checkImpUse(object, imp.use)
+  if (imp.use == "Raw") {
+    warning("Raw imputation data is the original counts and is already available. Returning input object without doing anything.")
+    return(object)
   }
-
-  message("Imputing using ", nn.type, "...")
+  message("Imputing using ", imp.use, "...")
 
   dge.raw <- object@counts
 
-  if (nn.type %in% names(object@imputation)) {
-    nb.id.fac <- object@imputation[[nn.type]]@nn.id
-    nb.dist.fac <- object@imputation[[nn.type]]@nn.dist
-  } else {
-    stop("NN type not found. See options with `names(object@imputation)`.")
+  weight.mtx <- object@imputation[[imp.use]]@nn.graph
+
+  if (ncol(dge.raw) != nrow(weight.mtx) ||
+      ncol(dge.raw) != ncol(weight.mtx)) {
+    stop("Number of beads in DGE does not match the number of beads in NN graph.")
   }
 
-  if (ncol(dge.raw) < length(levels(nb.id.fac))) {
-    stop("Number of index beads larger than the number of beads in DGE.")
+  do.norm <- TRUE
+  if (weights == "none") {
+    do.norm <- FALSE
+  } else if (weights == "mean") {
+    weight.mtx@x <- rep(1, length(weight.mtx@x))
+  } else if (weights == "counts") {
+    weight.mtx@x <- Matrix::colSums(dge.raw)[weight.mtx@i]
+  } else if (weights == "dist") {
+    weight.mtx@x <- exp(-weight.mtx@x)
   }
 
-  weights.mtx <- imputeNiche.dgCMatrix(
-    dge.raw,
-    nb.id.fac,
-    nb.dist.fac,
-    weights = weights
-  )
+  # re-weight the weight mtx across each niche (column)
+  if (do.norm) {
+    weight.mtx <- normCounts.dgCMatrix(weight.mtx, scale.fac = Matrix::colSums(weight.mtx), method = "none")
+    # weight.mtx@x = weight.mtx@x / rep.int(Matrix::colSums(weight.mtx), diff(weight.mtx@p))
+  }
 
-  dge.raw.imputed <- dge.raw %*% weights.mtx; gc()
+  dge.raw.imputed <- dge.raw %*% weight.mtx; gc()
 
   # weighted sum of scale factors as well
   scale.fac <- Matrix::Matrix(object@parameters$lib.size,
                               sparse = TRUE, nrow = 1,
                               dimnames = list(NULL, colnames(dge.raw)))
-  scale.fac.imp <- scale.fac %*% weights.mtx
+  scale.fac.imp <- scale.fac %*% weight.mtx
 
   scale.fac.imp <- as.numeric(scale.fac.imp)
   names(scale.fac.imp) <- names(object@parameters$lib.size)
 
-  res.density <- sum(dge.raw.imputed != 0)/length(dge.raw.imputed) # density 6.2%
-  # message("Density after imputation: ", res.density*100, "%")
+  res.density <- sum(dge.raw.imputed != 0)/length(dge.raw.imputed)
 
-  object@imputation[[nn.type]]@imp.data <- dge.raw.imputed
-  object@imputation[[nn.type]]@nn.graph <- weights.mtx
-  object@imputation[[nn.type]]@scale.fac <- scale.fac.imp
-  object@imputation[[nn.type]]@log[["Density:"]] <- paste0(res.density*100, "%")
+  object@imputation[[imp.use]]@imp.data <- dge.raw.imputed
+  object@imputation[[imp.use]]@nn.graph <- weight.mtx
+  object@imputation[[imp.use]]@scale.fac <- scale.fac.imp
+  object@imputation[[imp.use]]@log[["Density:"]] <- paste0(res.density*100, "%")
 
   return(object)
 }
+
 
 #' Normalize the data using the specified method
 #' @rdname normCounts
@@ -531,6 +352,7 @@ normCounts <- function(
 #' @rdname normCounts
 #' @param scale.fac Numeric vector of length equals to \code{ncol(object)}. For
 #' CytoSignal method, this is pre-determined.
+#' @method normCounts dgCMatrix
 #' @noRd
 normCounts.dgCMatrix <- function(
     object,
@@ -559,7 +381,7 @@ normCounts.dgCMatrix <- function(
 }
 
 #' @rdname normCounts
-#' @param slot.use The type of neighbors. The \code{tag} used when finding
+#' @param imp.use The type of neighbors. The \code{imp.name} used when finding
 #' nearest neighbors in the upstream step. If not customized, use
 #' \code{"GauEps"} for NN found with \code{\link{findNNGauEB}}, or use
 #' \code{"DT"} for NN found with \code{\link{findNNDT}}. Default use the most
@@ -567,28 +389,22 @@ normCounts.dgCMatrix <- function(
 #' @param verbose Whether to print out the progress. Default \code{TRUE}.
 #' @param method The method to use for normalization. default: seurat style \code{"default"}
 #' @return A dgCMatrix of normalized data.
+#' @method normCounts CytoSignal
 #' @noRd
 normCounts.CytoSignal <- function(
     object,
     method = c("default", "cpm", "none", "scanpy"),
-    slot.use = NULL,
+    imp.use = NULL,
     verbose = TRUE,
     ...
 ){
   method <- match.arg(method)
-
-  if (is.null(slot.use)) {
-    slot.use <- object@imputation[["default"]]
-  }
-
-  if (!slot.use %in% names(object@imputation)) {
-    stop("Data not found.")
-  }
+  imp.use <- .checkImpUse(object, imp.use = imp.use)
   if (isTRUE(verbose))
-  message(paste0("Normalizing method: ", method, " on Imputation slot: ", slot.use, "..."))
+  message(paste0("Normalizing method: ", method, " on Imputation slot: ", imp.use, "..."))
 
-  mat <- object@imputation[[slot.use]]@imp.data
-  scale.fac <- object@imputation[[slot.use]]@scale.fac
+  mat <- object@imputation[[imp.use]]@imp.data
+  scale.fac <- object@imputation[[imp.use]]@scale.fac
 
   if (method == "none"){
     return(mat)
@@ -607,166 +423,116 @@ normCounts.CytoSignal <- function(
 
 }
 
-
-#' Sub function for inferSignif, input is a sparse matrix
-#'
-#' @param dge.raw A sparse matrix of raw counts
-#' @param lrscore.mtx A matrix of LR scores
-#' @param null.lrscore.mtx A matrix of NULL LR scores
-#' @param nb.fac A factor of nearest neighbors index
-#' @param intr.db A interaction database
-#' @param gene_to_uniprot A dataframe of gene to uniprot mapping
-#' @param p.thresh A numeric value of p-value threshold
-#' @param reads.thresh A numeric value of reads threshold
-#' @param sig.thresh A numeric value of significance threshold
-#'
-#' @return A list of indexes of significant cells
-#' @noRd
-.inferSignif.matrix_like <- function(
-    dge.raw,
-    lrscore.mtx,
-    null.lrscore.mtx,
-    fdr.method = c("spatialFDR", "fdr"),
-    nb.fac,
-    intr.db,
-    gene_to_uniprot,
-    p.thresh = 0.05,
-    reads.thresh = 100,
-    sig.thresh = 100
-){
-  fdr.method <- match.arg(fdr.method)
-  # if Cell numbers in pvalue mtx and nb.fac do not match
-  cellsNN = as.integer(levels(nb.fac[["id"]]))
-  if (!identical(nrow(lrscore.mtx), length(cellsNN))) {
-    cellsNoNN <- setdiff(1:nrow(lrscore.mtx), cellsNN)
-    lrscore.mtx <- lrscore.mtx[-cellsNoNN, ]
-  }
-
-  pval.mtx <- getPvalues(lrscore.mtx, null.lrscore.mtx)
-
-  if (fdr.method == "spatialFDR"){
-    pval.spatial <- graphSpatialFDR(nb.fac, pval.mtx)
-    dimnames(pval.spatial) <- dimnames(lrscore.mtx); gc()
-  } else if (fdr.method == "fdr"){
-    pval.spatial <- sapply(1:nrow(pval.mtx), function(i) {
-      p.adjust(pval.mtx[i, ], method = "BH")
-    })
-    pval.spatial <- t(pval.spatial)
-    dimnames(pval.spatial) <- dimnames(lrscore.mtx); gc()
-  }
-  res.list <- lapply(colnames(pval.spatial), function(cp){
-    rownames(pval.spatial)[pval.spatial[, cp] < p.thresh]
-  })
-
-  names(res.list) <- colnames(pval.spatial)
-
-  res.list <- res.list[lengths(res.list) != 0]
-  message("- Number of interactions that have significant i-niche: ",
-          length(res.list))
-
-  res.list <- res.list[order(lengths(res.list), decreasing = T)]
-
-  res.list.hq = filterRes(dge.raw = dge.raw, res.list = res.list,
-                          intr.db = intr.db, gene_to_uniprot = gene_to_uniprot,
-                          reads.thresh = reads.thresh, sig.thresh = sig.thresh)
-
-  # lrscore.mtx.hq = lrscore.mtx[, names(res.list.hq)]
-  # moran.index = moranI(lrscore.mtx.hq, cells.loc)
-  # res.list.hq.moran = res.list.hq[names(moran.index)]
-
-  return(
-    list(
-      result = res.list,
-      result.hq = res.list.hq
-      # result.hq.moran = res.list.hq.moran
-    )
-  )
-
-}
-
 #' Infer significance of LR scores
-#'
-#' @param object A Cytosignal object
-#' @param slot.use Which LR score to use. Use the name specified with \code{tag}
-#' when running \code{\link{inferIntrScore}}. Default \code{NULL} apply
-#' specified significance and filtering criteria to all available LRscore slots.
+#' @description
+#' After inferring the LR scores and conducting permutation tests, this function
+#' computes p-values for each interaction on each bead and also produces
+#' adjusted p-values.
+#' @param object A CytoSignal object with \code{\link{inferIntrScore}}
+#' performed, or with \code{\link{inferScoreLR}}, \code{\link{permuteLR}} and
+#' \code{\link{inferNullScoreLR}} done in sequence.
+#' @param lrscore.use Which LR score to use. Use the name specified with
+#' \code{lrscore.name} when running \code{\link{inferScoreLR}}. Default
+#' \code{NULL} apply specified significance and filtering criteria to all
+#' available LR-score inferred.
 #' @param fdr.method The false discovery rate method to use. Choose from
 #' \code{"spatialFDR"} and \code{"fdr"}. Default \code{"spatialFDR"}.
-#' @param p.value A numeric scalar. The p-value threshold to use for filtering
-#' significant interactions. Default \code{0.05}.
+#' @param p.thresh A numeric scalar. The adjusted p-value threshold to use for
+#' filtering significant interactions. Default \code{0.05}.
 #' @param reads.thresh A numeric scalar. The minimum number of reads for a
 #' ligand-receptor interaction to be considered. Default \code{100}.
 #' @param sig.thresh A numeric scalar. The minimum number of of beads for a
 #' ligand-receptor interaction to be considered. Default \code{100}.
-#' @param nn.use Which imputation to use. Default the imputation used for
-#' deriving the LRScore specified with \code{slot.use}. Use the name specified
-#' with \code{tag} when running \code{\link{findNNGauEB}}; use \code{"DT"} for
-#' imputation produced with \code{\link{findNNDT}}; or use \code{"Raw"} for
-#' imputation produced with \code{\link{findNNRaw}}.
-#' @return A Cytosignal object
+#' @return The input CytoSignal object with result updated in "lrscore" slot.
+#' For each "lrScores" object inside, the "res.list" slot will be updated with:
+#' \itemize{
+#' \item{"result"}{A list, each element is named by a significant interaction,
+#' the value of each element is a character vector of the beads ID where the
+#' interaction is significant. This is derived after filtering with
+#' \code{p.thresh}}
+#' \item{"result.hq"}{A list of the same format as "result", but after further
+#' quality control according to \code{reads.thresh} and \code{sig.thresh}}
+#' }
 #' @export
 inferSignif <- function(
     object,
+    lrscore.use = NULL,
     fdr.method = c("spatialFDR", "fdr"),
-    p.value = 0.05,
+    p.thresh = 0.05,
     reads.thresh = 100,
-    sig.thresh = 100,
-    slot.use = NULL,
-    nn.use = NULL
-){
-  if (is.null(slot.use)) {
-    slots <- names(object@lrscore)
-    slots <- slots[slots != "default"]
+    sig.thresh = 100
+) {
+  if (is.null(lrscore.use)) {
+    # By default use all
+    lrscore.use <- names(object@lrscore)
+    lrscore.use <- lrscore.use[lrscore.use != "default"]
   } else {
-    slots <- .checkSlotUse(object, slot.use = slot.use)
+    lrscore.use <- .checkSlotUse(object, slot.use = lrscore.use)
   }
 
-  for (slot.use in slots) {
-    if (is.null(nn.use)) {
-      nn.use <- object@lrscore[[slot.use]]@recep.slot
+  fdr.method <- match.arg(fdr.method)
+
+  dge.raw <- object@counts
+  gene_to_uniprot <- object@intr.valid[['gene_to_uniprot']]
+  for (lr in lrscore.use) {
+    imp.use <- object@lrscore[[lr]]@recep.slot
+    imp.use <- .checkImpUse(object, imp.use = imp.use)
+
+    message(sprintf(
+      "Inferring significant beads on LR-score '%s', using imputation '%s'... ",
+      lr, imp.use
+    ))
+
+    nn.graph <- object@imputation[[imp.use]]@nn.graph
+
+    intr.db <- object@intr.valid[[object@lrscore[[lr]]@intr.slot]]
+
+    lrscore.mtx <- object@lrscore[[lr]]@score
+    null.lrscore.mtx <- object@lrscore[[lr]]@score.null
+
+    pval.mtx <- getPvalues(lrscore.mtx, null.lrscore.mtx)
+
+    if (fdr.method == "spatialFDR"){
+      pval.spatial <- graphSpatialFDRNew(nn.graph, pval.mtx)
+      dimnames(pval.spatial) <- dimnames(lrscore.mtx); gc()
+    } else if (fdr.method == "fdr"){
+      pval.spatial <- sapply(1:nrow(pval.mtx), function(i) {
+        p.adjust(pval.mtx[i, ], method = "BH")
+      })
+      pval.spatial <- t(pval.spatial)
+      dimnames(pval.spatial) <- dimnames(lrscore.mtx); gc()
     }
 
-    if (is.character(nn.use)) {
-      if (!nn.use %in% names(object@imputation)){
-        stop("Imputation slot not found.")
-      }
-      nb.id.fac <- object@imputation[[nn.use]]@nn.id
-    } else {
-      stop("`nn.use` must be either or a character.")
-    }
+    res.list <- lapply(colnames(pval.spatial), function(cp){
+      rownames(pval.spatial)[pval.spatial[, cp] < p.thresh]
+    })
 
-    # else if (is.factor(nn.use)) {
-    # 	if (length(nn.use) != ncol(object@imputation[[nn.use]]@intr.data))
-    # 		stop("nn.use must have the same length as the number of cells.")
-    # 	nb.id.fac <- nn.use
-    # }
+    names(res.list) <- colnames(pval.spatial)
 
-    message("Inferring significant beads on Score slot ", slot.use, "... ")
+    res.list <- res.list[lengths(res.list) != 0]
+    message("- Number of interactions that have significant i-niche: ",
+            length(res.list))
 
-    # lrscore.mtx = object@lrscore[[slot.use]]@score
-    # null.lrscore.mtx = object@lrscore[[slot.use]]@score.null
+    res.list <- res.list[order(lengths(res.list), decreasing = TRUE)]
 
-    nb.fac = list(
-      id = object@imputation[[nn.use]]@nn.id,
-      dist = object@imputation[[nn.use]]@nn.dist
+    res.list.hq = filterRes(dge.raw = dge.raw, res.list = res.list,
+                            intr.db = intr.db, gene_to_uniprot = gene_to_uniprot,
+                            reads.thresh = reads.thresh, sig.thresh = sig.thresh)
+
+    res.list <- list(
+      result = res.list,
+      result.hq = res.list.hq
     )
 
-    use.intr.slot.name <- object@lrscore[[slot.use]]@intr.slot
-    use.intr.db <- object@intr.valid[[use.intr.slot.name]]
+    object@lrscore[[lr]]@res.list <- res.list
 
-    res.list = .inferSignif.matrix_like(object@counts, object@lrscore[[slot.use]]@score,
-                                        object@lrscore[[slot.use]]@score.null, fdr.method, nb.fac,
-                                        use.intr.db, object@intr.valid[["gene_to_uniprot"]], p.value,
-                                        reads.thresh, sig.thresh)
-    object@lrscore[[slot.use]]@res.list <- res.list
-
-    object@lrscore[[slot.use]]@log[["Parameters for Significant beads"]] <- list(
-      "p.value" = p.value,
+    object@lrscore[[lr]]@log[["Parameters for Significant beads"]] <- list(
+      "p.value" = p.thresh,
       "reads.thresh" = reads.thresh,
       "sig.thresh" = sig.thresh
     )
 
-    object@lrscore[[slot.use]]@log[["Significant Intrs"]] <- list(
+    object@lrscore[[lr]]@log[["Significant Intrs"]] <- list(
       paste0("Number of interactions that have significant i-niche: ", length(res.list[["result"]])),
       paste0("Number of high quality intr: ", length(res.list[["result.hq"]]))
     )
@@ -774,6 +540,7 @@ inferSignif <- function(
 
   return(object)
 }
+
 
 #' Identify spatially significant interactions using std-corrected pearson correlation
 

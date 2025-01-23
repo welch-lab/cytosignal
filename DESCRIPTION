@@ -1,6 +1,7 @@
 Package: cytosignal
 Title: What the Package Does (One Line, Title Case)
-Version: 0.2.0
+Version: 0.2.1
+Date: 2025-01-23
 Type: Package
 Authors@R: 
   c(

@@ -2,29 +2,28 @@
 % Please edit documentation in R/analysis.r
 \name{findNNDT}
 \alias{findNNDT}
-\alias{findNNDT.matrix}
-\alias{findNNDT.CytoSignal}
 \title{Find the direct connected neighbor of each cell, using Delaunay triangulation}
 \usage{
-findNNDT(object, ...)
-
-\method{findNNDT}{matrix}(object, weight.sum = 2, max.r = NULL, ...)
-
-\method{findNNDT}{CytoSignal}(object, weight = 2, max.r = NULL, ...)
+findNNDT(object, max.r = NULL, weight.sum = 2, imp.name = "DT")
 }
 \arguments{
 \item{object}{A CytoSignal object or a matrix of cell location.}
 
-\item{...}{Arguments passed to other S3 methods}
+\item{max.r}{The maximum radius of the edges, by default is the r.diffuse.scale,
+or the value inferred by \code{\link{inferEpsParams}}.}
 
 \item{weight.sum}{The sum of the weights}
 
-\item{max.r}{The maximum radius of the edges, by default is the r.diffuse.scale,}
+\item{imp.name}{The name of the analysis.}
 }
 \value{
-For CytoSignal object, the original object with result updated. For matrix
-object, a list of neighbors.
+Returns the original object with result updated in "imputation" slot.
+An "ImpData" object is created with its "nn.graph" slot filled a NxN sparse
+matrix indicating the NN relationship and weights. A column is considered as
+a center of the epsilon ball and the rows containing non-zero values are
+its neighbors.
 }
 \description{
-Find the direct connected neighbor of each cell, using Delaunay triangulation
+Find the direct connected neighbors of each cell, and assigning an averaged
+weight to each neighbor.
 }

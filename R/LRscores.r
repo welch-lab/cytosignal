@@ -1,3 +1,108 @@
+#' Compute the LR score for specific ligand-receptor imputation pairs
+#' @description
+#' This function uses imputed ligand expression and receptor expression at each
+#' spot to compute the ligand-receptor interaction scores (LR score). Usually,
+#' for diffusion-dependent interactions, the ligand imputation is performed with
+#' Gaussion-Epsilon (GauEps) neighbors, while the contact-dependent interactions
+#' areinferred using Delaunay triangulation (DT) neighbors. Raw imputation can
+#' be used for receptor, while DT imputation can also be used for receptor for
+#' smoothing the imputation results.
+#'
+#' As explained above, the most common scenarios are: 1) Inferring
+#' diffusion-dependent LR scores with \code{inferScoreLR(object, lig.imp =
+#' "GauEps", recep.imp = "Raw", intr.db.name = "diff_dep")}, and 2) Inferring
+#' contact-dependent LR scores with \code{inferScoreLR(object, lig.imp = "DT",
+#' recep.imp = "Raw", intr.db.name = "cont_dep")}.
+#' @param object A CytoSignal object, with \code{\link{imputeNiche}} performed
+#' for desired analyses.
+#' @param lig.imp The ligand imputation result to use. Specify the "imp.name"
+#' used at \code{findNN*} functions.
+#' @param recep.imp The receptor imputation result to use. Specify the
+#' "imp.name" used at \code{findNN*} functions.
+#' @param norm.method Method to normalize the data. Default is "default".
+#' @param intr.db.use The interaction database name to use. Choose from
+#' \code{"diff_dep"} for diffusion-dependent interactions, and \code{"cont_dep"}
+#' for contact-dependent interactions.
+#' @param lrscore.name Name of the result to be stored in object. Default a
+#' combination of the ligand and receptor imputation result names.
+#' @return Returns the input object with result updated within its "lrscore"
+#' slot. A new "lrScores" object is created there and with LR-score stored in
+#' "score" slot.
+#' @export
+inferScoreLR <- function(
+    object,
+    lig.imp,
+    recep.imp,
+    norm.method = c("default", "cpm", "none", "scanpy"),
+    intr.db.use = c("diff_dep", "cont_dep"),
+    lrscore.name = paste0(lig.imp, "-", recep.imp)
+) {
+  intr.db.use <- match.arg(intr.db.use)
+  norm.method <- match.arg(norm.method)
+
+  lig.imp <- .checkImpUse(object, lig.imp)
+  recep.imp <- .checkImpUse(object, recep.imp)
+
+  if (is.null(lrscore.name)) {
+    stop("A `lrscore.name` name has to be specified for storing this result.")
+  }
+
+  message("Computing LR-scores using ", intr.db.use, " database.")
+  message("- Ligand: ", lig.imp, ", Receptor: ", recep.imp, ".")
+
+  # normalize using default method, normCount has been revised to internal function
+  # dge.lig <- object@imputation[[lig.imp]]@imp.data
+  # dge.recep <- object@imputation[[recep.imp]]@imp.data
+  dge.lig <- normCounts(object, method = norm.method, imp.use = lig.imp,
+                        verbose = FALSE)
+  dge.recep <- normCounts(object, method = norm.method, imp.use = recep.imp,
+                          verbose = FALSE)
+
+  #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
+  if (norm.method != "none"){
+    dt.avg.g <- object@imputation[["DT"]]@nn.graph
+    dt.avg.g <- to_mean(dt.avg.g)
+
+    dge.lig <- dge.lig %*% dt.avg.g
+    dge.recep <- dge.recep %*% dt.avg.g
+  }
+  #-------------------------------------------------------------------------------------------#
+
+  if (!all.equal(dim(dge.lig), dim(dge.recep))){
+    stop("Imputed ligand and receptor expression do not have the same dimension.")
+  }
+
+  intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][["intr"]]),
+                            object@intr.valid[[intr.db.use]])
+
+  res.mtx <- .inferScoreLR.dgCMatrix(dge.lig, dge.recep,
+                                     intr.db.list[["ligands"]], intr.db.list[["receptors"]])
+
+
+  score.obj <- methods::new(
+    "lrScores",
+    lig.slot = lig.imp,
+    recep.slot = recep.imp,
+    lig.null = methods::new("dgCMatrix"),
+    recep.null = methods::new("dgCMatrix"),
+    intr.slot = intr.db.use,
+    intr.list = intr.db.list,
+    score = Matrix::Matrix(res.mtx, sparse = T),
+    score.null = methods::new("matrix"),
+    perm.idx = list(),
+    res.list = list(),
+    log = list(
+      "Parmaeters:" = c(lig.imp, recep.imp),
+      "Date:" = Sys.time()
+    )
+  )
+
+  object@lrscore[["default"]] <- lrscore.name
+  object@lrscore[[lrscore.name]] <- score.obj
+
+  return(object)
+}
+
 .inferScoreLR.dgCMatrix <- function(
     dge.lig,
     dge.recep,
@@ -27,168 +132,6 @@
 
   return(res.mtx)
 }
-
-#' Compute the LR score for specific ligand-receptor imputation pairs
-#' @param object A Cytosignal object
-#' @param lig.slot The ligand slot to use
-#' @param recep.slot The receptor slot to use
-#' @param intr.db.name The intr database name to use
-#' @param norm.method Method to normalize the data. Default is "default".
-#' @param tag Name of the result to be stored in object.
-#' @return A Cytosignal object
-#' @export
-inferScoreLR <- function(
-    object,
-    lig.slot,
-    recep.slot,
-    norm.method = c("default", "cpm", "none", "scanpy"),
-    intr.db.name = c("diff_dep", "cont_dep"),
-    tag = paste0(lig.slot, "-", recep.slot)
-){
-  intr.db.name <- match.arg(intr.db.name)
-  norm.method <- match.arg(norm.method)
-
-  if (!"DT" %in% names(object@imputation)) {
-    stop("Need to run DT imputation first.")
-  }
-
-  if (!lig.slot %in% names(object@imputation)){
-    stop("Ligand slot not found.")
-  }
-
-  if (!recep.slot %in% names(object@imputation)){
-    stop("Receptor slot not found.")
-  }
-
-  if (is.null(tag)) {
-    stop("A `tag` name has to be specified for storing this result.")
-  }
-
-  message("Computing LR-scores using ", intr.db.name, " database.")
-  message("- Ligand: ", lig.slot, ", Receptor: ", recep.slot, ".")
-
-  # normalize using default method, normCount has been revised to internal function
-  # dge.lig <- object@imputation[[lig.slot]]@imp.data
-  # dge.recep <- object@imputation[[recep.slot]]@imp.data
-  dge.lig <- normCounts(object, method = norm.method, slot.use = lig.slot,
-                        verbose = FALSE)
-  dge.recep <- normCounts(object, method = norm.method, slot.use = recep.slot,
-                          verbose = FALSE)
-
-  #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
-  if (norm.method != "none"){
-    dt.avg.g <- object@imputation[["DT"]]@nn.graph
-    dt.avg.g <- to_mean(dt.avg.g)
-    
-    dge.lig <- dge.lig %*% dt.avg.g
-    dge.recep <- dge.recep %*% dt.avg.g
-  }
-  #-------------------------------------------------------------------------------------------#
-
-  if (!all.equal(dim(dge.lig), dim(dge.recep))){
-    stop("dge.lig and dge.recep must have the same dimension.")
-  }
-
-  intr.db.list <- checkIntr(unname(object@intr.valid[["symbols"]][["intr"]]),
-                            object@intr.valid[[intr.db.name]])
-
-  res.mtx <- .inferScoreLR.dgCMatrix(dge.lig, dge.recep,
-                                     intr.db.list[["ligands"]], intr.db.list[["receptors"]])
-
-
-  score.obj <- methods::new(
-    "lrScores",
-    lig.slot = lig.slot,
-    recep.slot = recep.slot,
-    lig.null = methods::new("dgCMatrix"),
-    recep.null = methods::new("dgCMatrix"),
-    intr.slot = intr.db.name,
-    intr.list = intr.db.list,
-    score = Matrix::Matrix(res.mtx, sparse = T),
-    score.null = methods::new("matrix"),
-    perm.idx = list(),
-    res.list = list(),
-    log = list(
-      "Parmaeters:" = c(lig.slot, recep.slot),
-      "Date:" = Sys.time()
-    )
-  )
-
-  object@lrscore[["default"]] <- tag
-  object@lrscore[[tag]] <- score.obj
-
-  return(object)
-}
-
-
-
-
-#' Permute LR score for specific ligand-receptor imputation obj pairs
-#'
-#' This function is a follow-up function of inferScoreLR. It computes the NULL LR-scores
-#' using the NULL imputation results and stores the results in the LR score object.
-#' The null distribution of the LR scores can be used to test the significance of the LR scores.
-#'
-#' @param object A Cytosignal object
-#' @param slot.use Which LR score to use. Use the name specified with \code{tag}
-#' when running \code{\link{inferLRScore}}.
-#'
-#' @return A Cytosignal object
-#' @export
-#'
-inferNullScoreLR <- function(
-    object,
-    slot.use = NULL
-){
-  if (is.null(slot.use)){
-    slot.use <- object@lrscore[["default"]]
-  }
-
-  message("Permuting scores on Score slot: ", slot.use, "...")
-
-  # score.obj <- object@lrscore[[slot.use]]
-  # lig.slot <- object@lrscore[[slot.use]]@lig.slot
-  # recep.slot <- object@lrscore[[slot.use]]@recep.slot
-  intr.valid <- object@lrscore[[slot.use]]@intr.list
-  null.dge.lig <- object@lrscore[[slot.use]]@lig.null
-  null.dge.recep <- object@lrscore[[slot.use]]@recep.null
-
-  # if (ncol(null.dge.lig) != ncol(null.dge.recep)){
-  # 	null.dge.recep <- null.dge.recep[, sample(ncol(null.dge.recep),
-  # 						ncol(null.dge.lig), replace = T)]
-  # }
-
-  null.lrscore.mtx <- .inferScoreLR.dgCMatrix(null.dge.lig, null.dge.recep,
-                                              intr.valid[["ligands"]], intr.valid[["receptors"]]); gc()
-  null.lrscore.mtx <- Matrix::Matrix(null.lrscore.mtx, sparse = T)
-
-  colnames(null.lrscore.mtx) <- colnames(object@lrscore[[slot.use]]@score)
-  rownames(null.lrscore.mtx) <- paste0("perm_", 1:nrow(null.lrscore.mtx))
-
-  if (sum(colSums(null.lrscore.mtx) == 0) != 0){
-    message("- A total of ", sum(colSums(null.lrscore.mtx) == 0), " interactions are empty in NULL scores.")
-    null.lrscore.mtx = null.lrscore.mtx[, !colSums(null.lrscore.mtx) == 0]
-  }
-
-  intr.both <- intersect(colnames(null.lrscore.mtx), colnames(object@lrscore[[slot.use]]@score))
-
-  if (length(intr.both) != ncol(null.lrscore.mtx)) {
-    message("- Removing ", ncol(null.lrscore.mtx) - length(intr.both), " more intr from NULL scores.")
-    null.lrscore.mtx = null.lrscore.mtx[, intr.both]
-  }
-
-  if (length(intr.both) != ncol(object@lrscore[[slot.use]]@score)) {
-    message("- Removing ", ncol(object@lrscore[[slot.use]]@score) - length(intr.both), " corresponding intr from REAL scores.")
-    object@lrscore[[slot.use]]@score = object@lrscore[[slot.use]]@score[, intr.both]
-  }
-
-  object@lrscore[[slot.use]]@score.null <- null.lrscore.mtx
-
-  return(object)
-}
-
-
-
 
 #' Permute Imputation Results of specific imputation method
 #' @description
@@ -312,13 +255,7 @@ permuteLR.sparse <- function(
     stop("Need to run DT imputation first.")
   }
 
-  if (is.null(nn.type)){
-    nn.type <- object@imputation[["default"]]
-  }
-
-  if (!nn.type %in% names(object@imputation)){
-    stop("Cannot find corresponding imputation method.")
-  }
+  nn.type <- .checkImpUse(object, nn.type)
 
   if (!is.integer(perm.index)){
     stop("perm.index not valid.")
@@ -342,7 +279,13 @@ permuteLR.sparse <- function(
   scale.fac <- object@parameters[["lib.size"]]
   scale.fac <- Matrix::Matrix(scale.fac, nrow = 1, byrow = T, sparse = T)
 
-  nn.graph <- object@imputation[[nn.type]]@nn.graph
+  if (nn.type == "Raw") {
+    # The nn.graph stored in Raw imputation object is taken from DT, but we need
+    # to use the Diagonal (i.e. Identity) matrix here
+    nn.graph <- Matrix::Diagonal(ncol(dge.raw))
+  } else {
+    nn.graph <- object@imputation[[nn.type]]@nn.graph
+  }
   null.graph <- nn.graph[perm.index, ]
 
   # #---------------------------------------------------------------------------------------------------#
@@ -381,3 +324,65 @@ permuteLR.sparse <- function(
 
 }
 
+
+#' Permute LR score for specific ligand-receptor imputation obj pairs
+#'
+#' This function is a follow-up function of inferScoreLR. It computes the NULL LR-scores
+#' using the NULL imputation results and stores the results in the LR score object.
+#' The null distribution of the LR scores can be used to test the significance of the LR scores.
+#'
+#' @param object A Cytosignal object
+#' @param slot.use Which LR score to use. Use the name specified with \code{tag}
+#' when running \code{\link{inferLRScore}}.
+#'
+#' @return A Cytosignal object
+#' @export
+#'
+inferNullScoreLR <- function(
+    object,
+    slot.use = NULL
+){
+  slot.use <- .checkSlotUse(object, slot.use)
+
+  message("Permuting scores on Score slot: ", slot.use, "...")
+
+  # score.obj <- object@lrscore[[slot.use]]
+  # lig.slot <- object@lrscore[[slot.use]]@lig.slot
+  # recep.slot <- object@lrscore[[slot.use]]@recep.slot
+  intr.valid <- object@lrscore[[slot.use]]@intr.list
+  null.dge.lig <- object@lrscore[[slot.use]]@lig.null
+  null.dge.recep <- object@lrscore[[slot.use]]@recep.null
+
+  # if (ncol(null.dge.lig) != ncol(null.dge.recep)){
+  # 	null.dge.recep <- null.dge.recep[, sample(ncol(null.dge.recep),
+  # 						ncol(null.dge.lig), replace = T)]
+  # }
+
+  null.lrscore.mtx <- .inferScoreLR.dgCMatrix(null.dge.lig, null.dge.recep,
+                                              intr.valid[["ligands"]], intr.valid[["receptors"]]); gc()
+  null.lrscore.mtx <- Matrix::Matrix(null.lrscore.mtx, sparse = T)
+
+  colnames(null.lrscore.mtx) <- colnames(object@lrscore[[slot.use]]@score)
+  rownames(null.lrscore.mtx) <- paste0("perm_", 1:nrow(null.lrscore.mtx))
+
+  if (sum(colSums(null.lrscore.mtx) == 0) != 0){
+    message("- A total of ", sum(colSums(null.lrscore.mtx) == 0), " interactions are empty in NULL scores.")
+    null.lrscore.mtx = null.lrscore.mtx[, !colSums(null.lrscore.mtx) == 0]
+  }
+
+  intr.both <- intersect(colnames(null.lrscore.mtx), colnames(object@lrscore[[slot.use]]@score))
+
+  if (length(intr.both) != ncol(null.lrscore.mtx)) {
+    message("- Removing ", ncol(null.lrscore.mtx) - length(intr.both), " more intr from NULL scores.")
+    null.lrscore.mtx = null.lrscore.mtx[, intr.both]
+  }
+
+  if (length(intr.both) != ncol(object@lrscore[[slot.use]]@score)) {
+    message("- Removing ", ncol(object@lrscore[[slot.use]]@score) - length(intr.both), " corresponding intr from REAL scores.")
+    object@lrscore[[slot.use]]@score = object@lrscore[[slot.use]]@score[, intr.both]
+  }
+
+  object@lrscore[[slot.use]]@score.null <- null.lrscore.mtx
+
+  return(object)
+}

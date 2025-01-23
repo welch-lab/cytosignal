@@ -17,7 +17,8 @@ plotNebulaAll(
   yTitleSize = 12,
   legendTextSize = 12,
   legendTitleSize = 12,
-  stripTitleSize = 12
+  stripTitleSize = 12,
+  ylim = NULL
 )
 }
 \arguments{
@@ -62,6 +63,9 @@ legend. Default \code{12}.}
 
 \item{stripTitleSize}{A numeric value to set the size of the title in the
 strip on top of each grid for the covariate groups. Default \code{12}.}
+
+\item{ylim}{Numeric vector with 2 numbers to set the limits of y-axis.
+Default \code{NULL} shows the full figure.}
 }
 \value{
 A ggplot figure (\code{gg}, \code{ggplot} object).

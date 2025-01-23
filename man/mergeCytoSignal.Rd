@@ -4,13 +4,7 @@
 \alias{mergeCytoSignal}
 \title{Create mergedCytoSignal object}
 \usage{
-mergeCytoSignal(
-  objList,
-  metadata = NULL,
-  name.by = NULL,
-  counts.thresh = 0,
-  scale.factor = NULL
-)
+mergeCytoSignal(objList, metadata = NULL, name.by = NULL)
 }
 \arguments{
 \item{objList}{A list of CytoSignal objects or paths to CytoSignal objects

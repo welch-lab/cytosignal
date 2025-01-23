@@ -2,45 +2,38 @@
 % Please edit documentation in R/analysis.r
 \name{findNNGauEB}
 \alias{findNNGauEB}
-\alias{findNNGauEB.matrix}
-\alias{findNNGauEB.CytoSignal}
 \title{Find the neighbors of each cell in the Epsilon Ball}
 \usage{
-findNNGauEB(object, eps = NULL, sigma = NULL, self.weight = "auto", ...)
-
-\method{findNNGauEB}{matrix}(object, eps, sigma = 0.15, self.weight = "auto", ...)
-
-\method{findNNGauEB}{CytoSignal}(
+findNNGauEB(
   object,
   eps = NULL,
   sigma = NULL,
   self.weight = "auto",
-  tag = NULL,
-  ...
+  imp.name = "GauEps"
 )
 }
 \arguments{
-\item{object}{A CytoSignal object or a matrix object for the cell spatial
-location.}
+\item{object}{A CytoSignal object with cell location matrix available.}
 
 \item{eps}{The radius of the epsilon ball. For CytoSignal object, by default
 use parameter inferred with \code{\link{inferEpsParams}}.}
 
-\item{sigma}{The sigma of the Gaussian kernel. Default \code{0.15} for matrix
-method. For CytoSignal object, by default use parameter inferred with
-\code{\link{inferEpsParams}}.}
+\item{sigma}{The sigma of the Gaussian kernel. By default use parameter
+inferred with \code{\link{inferEpsParams}}.}
 
-\item{self.weight}{weight of the index cell. Use a number between 0-1, or
-choose from \code{"auto"} or \code{"sum_1"}.}
+\item{self.weight}{Weight of the index cell. Use a number between 0-1, or
+choose from \code{"auto"} or \code{"sum_1"} for automatic self-weighting.}
 
-\item{...}{Arguments passed to other S3 methods.}
-
-\item{tag}{Name prefix of the analysis.}
+\item{imp.name}{Name prefix of the analysis.}
 }
 \value{
-For CytoSignal object, the orignal object with result updated. For
-matrix object, a list of neighbors and their distances.
+Returns the original object with result updated in "imputation" slot.
+An "ImpData" object is created with its "nn.graph" slot filled a NxN sparse
+matrix indicating the NN relationship and weights. A column is considered as
+a center of the epsilon ball and the rows containing non-zero values are
+its neighbors.
 }
 \description{
-Find the neighbors of each cell in the Epsilon Ball
+Find neighbors within a range from each cell, and determine the neighbors'
+weights using a Gaussian kernel.
 }

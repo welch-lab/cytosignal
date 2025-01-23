@@ -5,6 +5,10 @@ gauss_vec_cpp <- function(x, sigma) {
     .Call('_cytosignal_gauss_vec_cpp', PACKAGE = 'cytosignal', x, sigma)
 }
 
+gauss_vec_inplace_cpp <- function(x, sigma) {
+    invisible(.Call('_cytosignal_gauss_vec_inplace_cpp', PACKAGE = 'cytosignal', x, sigma))
+}
+
 rep_each_cpp <- function(l, n) {
     .Call('_cytosignal_rep_each_cpp', PACKAGE = 'cytosignal', l, n)
 }
@@ -29,20 +33,16 @@ rbind_list <- function(sparse_matrix_list) {
     .Call('_cytosignal_rbind_list', PACKAGE = 'cytosignal', sparse_matrix_list)
 }
 
-euclidean_cpp <- function(x, y) {
-    .Call('_cytosignal_euclidean_cpp', PACKAGE = 'cytosignal', x, y)
+euclidean_elementwise_cpp <- function(x, y) {
+    .Call('_cytosignal_euclidean_elementwise_cpp', PACKAGE = 'cytosignal', x, y)
 }
 
 cleanLRscore_sparse_cpp <- function(i, p, x, nrow, ncol) {
     .Call('_cytosignal_cleanLRscore_sparse_cpp', PACKAGE = 'cytosignal', i, p, x, nrow, ncol)
 }
 
-select_EB_singleSpot_rcpp <- function(loc, x_i, y_i, eps) {
-    .Call('_cytosignal_select_EB_singleSpot_rcpp', PACKAGE = 'cytosignal', loc, x_i, y_i, eps)
-}
-
-select_EB_rcpp <- function(loc, eps) {
-    .Call('_cytosignal_select_EB_rcpp', PACKAGE = 'cytosignal', loc, eps)
+select_EB_rcpp2 <- function(loc, eps) {
+    .Call('_cytosignal_select_EB_rcpp2', PACKAGE = 'cytosignal', loc, eps)
 }
 
 inferScoreLR_cpp <- function(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list) {

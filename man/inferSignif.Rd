@@ -6,42 +6,49 @@
 \usage{
 inferSignif(
   object,
+  lrscore.use = NULL,
   fdr.method = c("spatialFDR", "fdr"),
-  p.value = 0.05,
+  p.thresh = 0.05,
   reads.thresh = 100,
-  sig.thresh = 100,
-  slot.use = NULL,
-  nn.use = NULL
+  sig.thresh = 100
 )
 }
 \arguments{
-\item{object}{A Cytosignal object}
+\item{object}{A CytoSignal object with \code{\link{inferIntrScore}}
+performed, or with \code{\link{inferScoreLR}}, \code{\link{permuteLR}} and
+\code{\link{inferNullScoreLR}} done in sequence.}
+
+\item{lrscore.use}{Which LR score to use. Use the name specified with
+\code{lrscore.name} when running \code{\link{inferScoreLR}}. Default
+\code{NULL} apply specified significance and filtering criteria to all
+available LR-score inferred.}
 
 \item{fdr.method}{The false discovery rate method to use. Choose from
 \code{"spatialFDR"} and \code{"fdr"}. Default \code{"spatialFDR"}.}
 
-\item{p.value}{A numeric scalar. The p-value threshold to use for filtering
-significant interactions. Default \code{0.05}.}
+\item{p.thresh}{A numeric scalar. The adjusted p-value threshold to use for
+filtering significant interactions. Default \code{0.05}.}
 
 \item{reads.thresh}{A numeric scalar. The minimum number of reads for a
 ligand-receptor interaction to be considered. Default \code{100}.}
 
 \item{sig.thresh}{A numeric scalar. The minimum number of of beads for a
 ligand-receptor interaction to be considered. Default \code{100}.}
-
-\item{slot.use}{Which LR score to use. Use the name specified with \code{tag}
-when running \code{\link{inferIntrScore}}. Default \code{NULL} apply
-specified significance and filtering criteria to all available LRscore slots.}
-
-\item{nn.use}{Which imputation to use. Default the imputation used for
-deriving the LRScore specified with \code{slot.use}. Use the name specified
-with \code{tag} when running \code{\link{findNNGauEB}}; use \code{"DT"} for
-imputation produced with \code{\link{findNNDT}}; or use \code{"Raw"} for
-imputation produced with \code{\link{findNNRaw}}.}
 }
 \value{
-A Cytosignal object
+The input CytoSignal object with result updated in "lrscore" slot.
+For each "lrScores" object inside, the "res.list" slot will be updated with:
+\itemize{
+\item{"result"}{A list, each element is named by a significant interaction,
+the value of each element is a character vector of the beads ID where the
+interaction is significant. This is derived after filtering with
+\code{p.thresh}}
+\item{"result.hq"}{A list of the same format as "result", but after further
+quality control according to \code{reads.thresh} and \code{sig.thresh}}
+}
 }
 \description{
-Infer significance of LR scores
+After inferring the LR scores and conducting permutation tests, this function
+computes p-values for each interaction on each bead and also produces
+adjusted p-values.
 }

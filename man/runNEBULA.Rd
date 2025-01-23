@@ -4,13 +4,17 @@
 \alias{runNEBULA}
 \title{Run NEBULA's association analysis to compare datasets within mergedCytoSignal object}
 \usage{
-runNEBULA(object, covariates, ncore = 1L, verbose = TRUE)
+runNEBULA(object, covariates, cpc_thresh = 0.005, ncore = 1L, verbose = TRUE)
 }
 \arguments{
 \item{object}{A \linkS4class{mergedCytoSignal} object}
 
 \item{covariates}{A character vector of metadata covariates to include in the
 model.}
+
+\item{cpc_thresh}{Counts per cell threshold for filtering out lowly expressed
+genes. This is defined by the ratio between the total count of the gene and
+the number of cells.}
 
 \item{ncore}{Integer, number of cores to use for parallel computation.
 Default \code{1L}.}

@@ -2,51 +2,37 @@
 % Please edit documentation in R/analysis.r
 \name{imputeNiche}
 \alias{imputeNiche}
-\alias{imputeNiche.dgCMatrix}
-\alias{imputeNiche.CytoSignal}
 \title{Impute the data}
 \usage{
-imputeNiche(object, weights = c("mean", "counts", "dist", "none"), ...)
-
-\method{imputeNiche}{dgCMatrix}(
+imputeNiche(
   object,
-  nb.id.fac,
-  nb.dist.fac,
-  weights = c("mean", "counts", "dist", "none"),
-  ...
-)
-
-\method{imputeNiche}{CytoSignal}(
-  object,
-  nn.type = NULL,
-  weights = c("mean", "counts", "dist", "none"),
-  ...
+  imp.use = NULL,
+  weights = c("none", "mean", "counts", "dist")
 )
 }
 \arguments{
-\item{object}{A Cytosignal object or a dgCMatrix object of raw gene
-expression matrix}
+\item{object}{A Cytosignal object with \code{findNN*} performed.}
 
-\item{weights}{The weight of the Delaunay triangulation. Choose from
-\code{"mean"}, \code{"counts"}, \code{"dist"} or \code{"none"}.}
+\item{imp.use}{The type of neighbors. The \code{imp.name} used when finding
+neighbors. Default \code{NULL} uses the last NN type computed.}
 
-\item{...}{Arguments passed to other S3 methods}
-
-\item{nb.id.fac}{A factor of neighbors}
-
-\item{nb.dist.fac}{A factor of weights}
-
-\item{nn.type}{The type of neighbors. The \code{tag} used when finding
-nearest neighbors in the upstream step. If not customized, use
-\code{"GauEps"} for NN found with \code{\link{findNNGauEB}}, or use
-\code{"DT"} for NN found with \code{\link{findNNDT}}. Default use the most
-lastly computed NN.}
+\item{weights}{Weighting strategy. Default \code{"none"} use weights computed
+in \code{findNN*}. Alternatively, choose from \code{"mean"}, \code{"counts"},
+\code{"dist"}.}
 }
 \value{
-For CytoSignal object, the original object with imputation result
-updated. For dgCMatrix object, a sparse N x N graph presented as another
-dgCMatrix object.
+Returns the original object with imputation result updated. For the
+selected "ImpData" specified by \code{imp.use}, the following slots are
+updated:
+\itemize{
+\item{"imp.data"}{The imputed data.}
+\item{"nn.graph"}{The neighbor graph, updated if \code{"weights"} is not
+"none".}
+\item{"scale.fac"}{The scale factor of the imputed data.}
+}
 }
 \description{
-Impute the data
+Impute the quantitative value of ligand received or receptor expressed at
+each bead basing on the NN weighting previously determined with
+\code{findNN*} functions.
 }
