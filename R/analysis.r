@@ -64,6 +64,7 @@ findNNGauEB <- function(
   if (is.null(sigma)) stop("`sigma` has to be specified for matrix method.")
 
   dis_mat <- select_EB_rcpp2(cells.loc, eps = eps)
+  has.neighbor.idx <- diff(dis_mat@p) > 0
   gauss_vec_inplace_cpp(dis_mat@x, sigma)
 
   if (is.numeric(self.weight)) {
@@ -73,16 +74,16 @@ findNNGauEB <- function(
     message("Using manual self weight: ", self.weight, "...")
     # Gaussian kernel for neighbors, normalize neighbors for each center, and hard-set self-weight
     dis_mat <- normCounts.dgCMatrix(dis_mat, scale.fac = Matrix::colSums(dis_mat), method = "none")
-    Matrix::diag(dis_mat) <- self.weight
+    Matrix::diag(dis_mat)[has.neighbor.idx] <- self.weight
   } else if (self.weight == "auto") {
     message("Determining self weight automatically...")
     # Gaussian kernel with 0-self-dist, multiply self-weight by 5, normalize for each center
-    Matrix::diag(dis_mat) <- gauss_vec_cpp(1e-9, sigma) * 5
+    Matrix::diag(dis_mat)[has.neighbor.idx] <- gauss_vec_cpp(1e-9, sigma) * 5
     dis_mat <- normCounts.dgCMatrix(dis_mat, scale.fac = Matrix::colSums(dis_mat), method = "none")
   } else if (self.weight == "sum_1") {
     message("Using self weight: all NB weights sum to 1...")
     # Gaussian kernel with 0-self-dist, normalize for each center
-    Matrix::diag(dis_mat) <- gauss_vec_cpp(1e-9, sigma)
+    Matrix::diag(dis_mat)[has.neighbor.idx] <- gauss_vec_cpp(1e-9, sigma)
     dis_mat <- normCounts.dgCMatrix(dis_mat, scale.fac = Matrix::colSums(dis_mat), method = "none")
   } else {
     stop("Please set `self.weight` to a number within (0, 1) ",
@@ -166,10 +167,11 @@ findNNDT <- function(
   )
 
   norm.param <- Matrix::colSums(weight.mtx)
+  has.neighbor.idx <- norm.param > 0
   if (weight.sum == 1) norm.param = norm.param + 1
   # weight.mtx@x <- weight.mtx@x / rep.int(norm.param, diff(weight.mtx@p))
   weight.mtx <- normCounts.dgCMatrix(weight.mtx, scale.fac = norm.param, method = "none")
-  Matrix::diag(weight.mtx) <- 1
+  Matrix::diag(weight.mtx)[has.neighbor.idx] <- 1
 
   nn.obj <- methods::new(
     "ImpData",
@@ -489,6 +491,11 @@ inferSignif <- function(
 
     lrscore.mtx <- object@lrscore[[lr]]@score
     null.lrscore.mtx <- object@lrscore[[lr]]@score.null
+
+    # Do not include cells without neighbors
+    has.neighbor.idx <- diff(nn.graph@p) > 0
+    lrscore.mtx <- lrscore.mtx[has.neighbor.idx, ]
+    nn.graph <- nn.graph[has.neighbor.idx, has.neighbor.idx]
 
     pval.mtx <- getPvalues(lrscore.mtx, null.lrscore.mtx)
 

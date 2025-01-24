@@ -121,10 +121,13 @@ graphSpatialFDRNew <- function(
     t.connect <- rep(NA, ncol(nn.graph))
     for (j in seq(ncol(nn.graph))) {
       weights <- nn.graph[, j]
+      # Do not include cell without neighbors
+      if (sum(weights) == 0) next
       # Remove the self-weight
       weights <- weights[-j]
       t.connect[j] <- max(weights)
     }
+    t.connect <- t.connect[!is.na(t.connect)]
   } else if (weighting == "EB"){
     stop("EB weighting not developed yet.")
   } else if (weighting == "KNN"){

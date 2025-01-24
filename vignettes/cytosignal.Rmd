@@ -136,9 +136,12 @@ The output of CytoSignal is a test statistic $S$ and adjusted p-value for each s
 
 The function `inferIntrScore` is an integrated function that performs the LRscore calculation and permutation tests. For the calculation of LRscore, by default, receptors are taken from the normalized expression. Ligands of diffusible interactions are imputed with Gaussian Epsilon ball (`GauEps-Raw`), while those from contact-dependent interactions are imputed with Delaunay Triangulation (`DT-Raw`). The function also provides an option `recep.smooth` to smooth the receptor expressions with Delaunay Triangulation (`GauEps-DT` and `DT-DT`), which is useful when the sparsity of the data is relatively high. The function `inferSignif()` should be called subsequently to identify significant interactions. For ranking the interactions by spatial variability statistics, we provide `rankIntrSpatialVar()`.
 
+Note that we perform a permutation test to infer the significance of the LR-score, where randomized sampling procedure is applied to the spatial locations. We set the seed at the beginning to ensure reproducible result in the tutorial. 
+
 ```{r lrscore}
+set.seed(42) # Optional
 cs <- inferIntrScore(cs)
-cs <- inferSignif(cs, p.value = 0.05, reads.thresh = 100, sig.thresh = 100)
+cs <- inferSignif(cs, p.thresh = 0.05, reads.thresh = 100, sig.thresh = 100)
 cs <- rankIntrSpatialVar(cs)
 ```
 
@@ -223,6 +226,7 @@ For instance, we provide a function `inferIntrDEG()` for detecting signaling-ass
 The returned object contains a list of results such as model parameters and significant genes for each interaction. Users can check the genes that are significant for a specific using `intrDEG[[intr.use]]$sign_genes`. 
 
 ```{r regress, results=TRUE}
+set.seed(233)
 intrDEG <- inferIntrDEG(cs, intr = intr.use, slot.use = "GauEps-Raw", signif.use = "result.spx")
 intrDEG[[1]]$sign_genes
 ```
