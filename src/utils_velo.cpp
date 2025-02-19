@@ -100,12 +100,12 @@ arma::mat graphNicheLR_cpp(
         for (uword j = 0; j < res_mtx.n_rows; j++){
             // All indices in Cpp starts with 0 --> all values -1
             // mean(x, dim): each column (dim = 0), or each row (dim = 1)
-            arma::mat lig_dge = dge_lig.submat( lig_list(span(lig_index(i), lig_index(i+1)-1)), 
+            arma::mat lig_dge = dge_lig.submat( lig_list(span(lig_index(i), lig_index(i+1)-1)),
                                             nb_list(span(nb_index(j), nb_index(j+1)-1)) );
             // arma::vec lig_vec = mean(lig_dge, 1); // n_ligs X 1
             double lig_val = arma::accu(mean(lig_dge, 1)); // n_ligs X 1
 
-            arma::mat recep_dge = dge_recep.submat( recep_list(span(recep_index(i), recep_index(i+1)-1)), 
+            arma::mat recep_dge = dge_recep.submat( recep_list(span(recep_index(i), recep_index(i+1)-1)),
                                             nb_list(span(nb_index(j), nb_index(j+1)-1)) );
             // arma::rowvec recep_vec = mean(recep_dge, 1).t(); // 1 X n_receps
             double recep_val = arma::accu(mean(recep_dge, 1)); // 1 X n_receps
@@ -141,27 +141,27 @@ arma::mat VelographNicheLR_cpp(
         for (uword j = 0; j < res_mtx.n_rows; j++){
             // All indices in Cpp starts with 0 --> all values -1
             // mean(x, dim): each column (dim = 0), or each row (dim = 1)
-            // arma::mat lig_dge = dge_lig.submat(nb_list(span(nb_index(j), nb_index(j+1)-1)), 
+            // arma::mat lig_dge = dge_lig.submat(nb_list(span(nb_index(j), nb_index(j+1)-1)),
             //                                 lig_list(span(lig_index(i), lig_index(i+1)-1)));
-            arma::mat lig_dge = dge_lig.submat( lig_list(span(lig_index(i), lig_index(i+1)-1)), 
+            arma::mat lig_dge = dge_lig.submat( lig_list(span(lig_index(i), lig_index(i+1)-1)),
                                             nb_list(span(nb_index(j), nb_index(j+1)-1)) );
             // arma::vec lig_vec = mean(lig_dge, 1); // n_ligs X 1
             double lig_val = arma::accu(mean(lig_dge, 1)); // n_ligs X 1
 
-            arma::mat lig_velo = dge_velo.submat( lig_list(span(lig_index(i), lig_index(i+1)-1)), 
+            arma::mat lig_velo = dge_velo.submat( lig_list(span(lig_index(i), lig_index(i+1)-1)),
                                             nb_list(span(nb_index(j), nb_index(j+1)-1)) );
             // arma::vec lig_velo_vec = mean(lig_velo, 1); // n_ligs X 1
             double lig_velo_val = arma::accu(mean(lig_velo, 1)); // n_ligs X 1
 
-            // arma::mat recep_dge = dge_recep.submat(nb_list(span(nb_index(j), nb_index(j+1)-1)), 
+            // arma::mat recep_dge = dge_recep.submat(nb_list(span(nb_index(j), nb_index(j+1)-1)),
             //                                 recep_list(span(recep_index(i), recep_index(i+1)-1)));
-            arma::mat recep_dge = dge_recep.submat( recep_list(span(recep_index(i), recep_index(i+1)-1)), 
+            arma::mat recep_dge = dge_recep.submat( recep_list(span(recep_index(i), recep_index(i+1)-1)),
                                             nb_list(span(nb_index(j), nb_index(j+1)-1)) );
             // arma::rowvec recep_vec = mean(recep_dge, 1).t(); // 1 X n_receps
             double recep_val = arma::accu(mean(recep_dge, 1)); // 1 X n_receps
 
 
-            arma::mat recep_velo = dge_velo.submat( recep_list(span(recep_index(i), recep_index(i+1)-1)), 
+            arma::mat recep_velo = dge_velo.submat( recep_list(span(recep_index(i), recep_index(i+1)-1)),
                                             nb_list(span(nb_index(j), nb_index(j+1)-1)) );
             // arma::rowvec recep_velo_vec = mean(recep_velo, 1).t(); // 1 X n_receps
             double recep_velo_val = arma::accu(mean(recep_velo, 1)); // 1 X n_receps
@@ -206,7 +206,7 @@ arma::mat VelographNicheLR_cpp(
 //             // res_mtx(j, i) = arma::accu(lig_vec * recep_vec.t());
 //             res_mtx(j, i) = lig_val*recep_val;
 //         }
-        
+
 //         // cout << i << endl;
 //     }
 
@@ -255,7 +255,7 @@ arma::mat VelographNicheLR_cpp(
 //             // res_mtx(j, i) = arma::accu(lig_vec * recep_vec.t());
 //             res_mtx(j, i) = lig_val * recep_velo_val + recep_val * lig_velo_val;
 //         }
-        
+
 //         // cout << i << endl;
 //     }
 
@@ -291,7 +291,7 @@ arma::mat VelographNicheLR_cpp(
 //         arma::vec recep_vec = arma::sum(recep_dge, 0); // 1 X n_beads
 
 //         res_mtx.col(i) = (lig_vec % recep_vec).t();
-    
+
 //         // cout << i << endl;
 //     }
 
@@ -317,7 +317,7 @@ arma::mat VelographNicheLR_cpp(
 //         for (uword j = 0; j < res_mtx.n_rows; j++){
 //             // All indices in Cpp starts with 0 --> all values -1
 //             // mean(x, dim): each column (dim = 0), or each row (dim = 1)
-//             arma::mat lig_dge = dge_lig.submat( lig_list(span(lig_index(i), lig_index(i+1)-1)), 
+//             arma::mat lig_dge = dge_lig.submat( lig_list(span(lig_index(i), lig_index(i+1)-1)),
 //                                             nb_list(span(nb_index(j), nb_index(j+1)-1)) );
 //             arma::vec lig_vec = mean(lig_dge, 1); // n_ligs X 1
 
@@ -326,12 +326,12 @@ arma::mat VelographNicheLR_cpp(
 
 //             // count the number of elements in the column which are greater than 1
 //             double lig_val = arma::accu(lig_vec > alpha_list(j))/lig_list_len;
-            
+
 //             // cout << lig_vec << endl;
 //             // cout << arma::accu(lig_vec > alpha_list(j)) <<endl;
 //             // cout << lig_list_len << endl;
 //             // cout << lig_val << endl;
-            
+
 //             res_mtx(j, i) = lig_val;
 //         }
 //     }
