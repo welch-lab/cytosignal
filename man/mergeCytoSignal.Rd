@@ -2,7 +2,7 @@
 % Please edit documentation in R/nebula.R
 \name{mergeCytoSignal}
 \alias{mergeCytoSignal}
-\title{Create mergedCytoSignal object}
+\title{Merge multiple CytoSignal objects for cross-dataset analysis}
 \usage{
 mergeCytoSignal(objList, metadata = NULL, name.by = NULL)
 }
@@ -30,7 +30,7 @@ A \linkS4class{mergedCytoSignal} object preprocessed.
 }
 \description{
 This function accepts a list of CytoSignal objects together with a metadata
-\code{data.frame} that provides dataset level metadata covariates, which will
+\code{data.frame} that provides dataset-level metadata covariates, which will
 be required for the cross-dataset analysis.
 
 The function will preprocess each CytoSignal object with cross-dataset

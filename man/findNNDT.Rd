@@ -4,17 +4,21 @@
 \alias{findNNDT}
 \title{Find the direct connected neighbor of each cell, using Delaunay triangulation}
 \usage{
-findNNDT(object, max.r = NULL, weight.sum = 2, imp.name = "DT")
+findNNDT(
+  object,
+  mode = c("weight_sum_2", "weight_sum_1"),
+  imp.name = "contact"
+)
 }
 \arguments{
 \item{object}{A CytoSignal object or a matrix of cell location.}
+
+\item{imp.name}{The name of the analysis.}
 
 \item{max.r}{The maximum radius of the edges, by default is the r.diffuse.scale,
 or the value inferred by \code{\link{inferEpsParams}}.}
 
 \item{weight.sum}{The sum of the weights}
-
-\item{imp.name}{The name of the analysis.}
 }
 \value{
 Returns the original object with result updated in "imputation" slot.

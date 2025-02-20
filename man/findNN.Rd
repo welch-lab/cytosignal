@@ -10,8 +10,7 @@ findNN(
   eps = NULL,
   sigma = NULL,
   self.weight = "auto",
-  dt.weight = 2,
-  max.r = NULL
+  dt.mode = "weight_sum_2"
 )
 }
 \arguments{
@@ -29,9 +28,10 @@ Gaussian kernel. Default \code{NULL} uses parameter inferred with
 index cell. Use a number between 0-1 or a string \code{"auto"} or
 \code{"sum_1"}. Default \code{"auto"}.}
 
-\item{dt.weight}{Delaunay Triangulation method parameter. A numeric scalar for
-the sum of the weights of the edges of the Delaunay Triangulation. Default
-\code{2}.}
+\item{dt.mode}{Delaunay Triangulation method parameter. A string to select
+weight normalization strategy. Default \code{"weight_sum_2"} normalizes
+neighbor weights and keep self-weights as 1, alternatively
+\code{"weight_sum_1"} normalizes all weights.}
 
 \item{max.r}{Delaunay Triangulation method parameter. A numeric scalar for
 the maximum radius of the edges. Default \code{NULL} uses parameter inferred

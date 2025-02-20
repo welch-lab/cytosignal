@@ -181,16 +181,22 @@ setMethod(
   f = "show",
   signature = "CytoSignal",
   definition = function(object) {
-    cat(
-      "An object of class CytoSignal\n",
-      "with raw data of dimension: ",
-      ncol(object@raw.counts),
-      "cells and ",
-      nrow(object@raw.counts),
-      "genes.\n"
-      # "Head of the raw data:\n"
-    )
-    # print(object@counts[1:5,1:5])
+    cat("An object of class CytoSignal\n")
+    cat("Number of cells:", ncol(object@raw.counts), "\n")
+    cat("Number of genes:", nrow(object@raw.counts), "\n")
+    cat("Number of clusters:", nlevels(object@clusters), "\n")
+    cat("Nearest neighbor imputation: ")
+    nn.avail <- names(object@imputation)
+    nn.avail <- nn.avail[nn.avail != "default"]
+    cat(paste(nn.avail, collapse = ", "), "\n")
+    cat("  (default: ", object@imputation$default, ")\n", sep = "")
+    cat("LR scores: ")
+    lr.avail <- names(object@lrscore)
+    lr.avail <- lr.avail[lr.avail != "default"]
+    cat(paste(lr.avail, collapse = ", "), "\n")
+    cat("  (default: ", object@lrscore$default, ")\n", sep = "")
+    cat("Parameters:\n")
+    cat(.makeParamChar(object@parameters), "\n")
     invisible(x = NULL)
   }
 )
@@ -390,22 +396,66 @@ showLog <- function(object){
   }
 }
 
+# param - a list of parameters, keys are param name values are exact param values
+.makeParamChar <- function(param, indent = 2) {
+  out <- ""
+  for (i in seq_along(param)) {
+    name <- names(param)[i]
+    val <- param[[i]]
+    if (length(val) > 8) {
+      repr <- paste0(class(val)[1], " of length ", length(val))
+    } else {
+      repr <- switch(
+        EXPR = class(val)[1],
+        numeric = paste(round(val, 2), collapse = ", "),
+        integer = paste(val, collapse = ", "),
+        logical = paste(val, collapse = ", "),
+        character = paste(val, collapse = ", "),
+        list = paste0("\n", .makeParamChar(val, indent = indent + 2)),
+        sprintf("Object of class %s", class(val)[1])
+      )
+    }
+    part <- paste0(name, ": ", repr)
+    end <- "\n"
+    if (i == length(param)) end <- ""
+    out <- paste0(out, paste0(rep(" ", indent), collapse = ""), part, end)
+  }
+  return(out)
+}
+
 #' show method for cytosignal obj
 #'
 setMethod(
   f = "show",
   signature = "ImpData",
   definition = function(object) {
-    cat(
-      "Imputed data using: \n",
-      object@method, "\n",
-      "Parameters: \n",
-      object@log[[1]],
-      "\nNeighbors: \n",
-      object@log[[2]],
-      "\n"
-    )
-    print(object@imp.data[1:5,1:5])
+    cat("Nearest neighbor imputation\n")
+    cat("  Method:", object@method, "\n")
+    cat(.makeParamChar(object@log), "\n")
+    if (all(dim(object@imp.data)) > 0) {
+      cat("  Head of the imputed data:\n    ")
+      print(object@imp.data[1:5,1:5])
+    } else {
+      cat("  Imputed data not available yet.")
+    }
+    invisible(x = NULL)
+  }
+)
+
+#' show method for lrScores object
+#' @param object lrScores object
+#' @export
+setMethod(
+  f = "show",
+  signature = "lrScores",
+  definition = function(object) {
+    cat("LR-scores\n")
+    cat("Ligand imputed with:", object@lig.slot, "\n")
+    cat("Receptor imputed with:", object@recep.slot, "\n")
+    cat("LR-scores:", nrow(object@score), "cells by", ncol(object@score), "interactions\n")
+    cat("Null scores from permutation test: ")
+    if (!is.null(object@score)) cat("Done\n") else cat("Not done yet\n")
+    cat("Significant interaction list(s): ", paste0(names(object@res.list), collapse = ", "), "\n")
     invisible(x = NULL)
   }
 )

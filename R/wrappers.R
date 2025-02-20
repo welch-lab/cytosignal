@@ -18,9 +18,10 @@
 #' @param self.weight Gaussian Epsilon Ball method parameter. Weight of the
 #' index cell. Use a number between 0-1 or a string \code{"auto"} or
 #' \code{"sum_1"}. Default \code{"auto"}.
-#' @param dt.weight Delaunay Triangulation method parameter. A numeric scalar for
-#' the sum of the weights of the edges of the Delaunay Triangulation. Default
-#' \code{2}.
+#' @param dt.mode Delaunay Triangulation method parameter. A string to select
+#' weight normalization strategy. Default \code{"weight_sum_2"} normalizes
+#' neighbor weights and keep self-weights as 1, alternatively
+#' \code{"weight_sum_1"} normalizes all weights.
 #' @param max.r Delaunay Triangulation method parameter. A numeric scalar for
 #' the maximum radius of the edges. Default \code{NULL} uses parameter inferred
 #' with \code{\link{inferEpsParams}}.
@@ -39,11 +40,10 @@ findNN <- function(
     sigma = NULL,
     self.weight = "auto",
     # DT params
-    dt.weight = 2,
-    max.r = NULL
+    dt.mode = "weight_sum_2"
 ) {
     object <- findNNGauEB(object, eps = eps, sigma = sigma, self.weight = self.weight)
-    object <- findNNDT(object, weight = dt.weight, max.r = max.r)
+    object <- findNNDT(object, mode = dt.mode)
     object <- findNNRaw(object)
     return(object)
 }
@@ -56,6 +56,10 @@ findNN <- function(
 #' nearest neighbors.
 #' @param object A \linkS4class{CytoSignal} object, with \code{\link{findNN}}
 #' already run.
+#' @param diff.imp,cont.imp Name of the NN imputation to use for
+#' diffusion-dependent and contact-dependent interactions, respectively. Must
+#' have been precalculated with \code{findNN*} functions. Default is
+#' \code{"diffusion"} and \code{"contact"} as calculated by \code{\link{findNN}}.
 #' @param weights The method to transform distances to weights. Choose from \code{"none"}, \code{"mean"},
 #' \code{"counts"} and \code{"dist"}. Default \code{"none"} since weights are already calculated by Gaussian
 #' kernel and DT mean.
@@ -69,11 +73,13 @@ findNN <- function(
 #' }
 imputeLR <- function(
     object,
+    diff.imp = "diffusion",
+    cont.imp = "contact",
     weights = c("none", "mean", "counts", "dist")
 ) {
   weights = match.arg(weights)
-  object <- imputeNiche(object, imp.use = "GauEps", weights = weights)
-  object <- imputeNiche(object, imp.use = "DT", weights = weights)
+  object <- imputeNiche(object, imp.use = diff.imp, weights = weights)
+  object <- imputeNiche(object, imp.use = cont.imp, weights = weights)
 
   return(object)
 }
@@ -128,9 +134,9 @@ inferIntrScore <- function(
   # fdr.method <- match.arg(fdr.method)
   norm.method <- match.arg(norm.method)
   if (isTRUE(recep.smooth)) {
-    recep.imp <- "DT"
+    recep.imp <- findImpByMethod(object, "DT")
   } else {
-    recep.imp <- "Raw"
+    recep.imp <- findImpByMethod(object, "Raw")
   }
   if (any(!intr.type %in% c("diff", "cont")) ||
       is.null(intr.type)) {
@@ -139,8 +145,9 @@ inferIntrScore <- function(
   if ("diff" %in% intr.type) {
     message("== Calculating diffusible ligand-receptor scores ==")
     # Calculate the ligand-receptor scores for diffusible ligands and raw receptors
-    object <- inferScoreLR(object, lig.imp = "GauEps", recep.imp = recep.imp,
-                           norm.method = norm.method, intr.db.use = "diff_dep")
+    object <- inferScoreLR(object, lig.imp = findImpByMethod(object, "GauEps"),
+                           recep.imp = recep.imp, norm.method = norm.method,
+                           intr.db.use = "diff_dep")
     # Permutation test to calculate the null distribution of the imputed ligands and receptors
     object <- permuteLR(object, perm.size = perm.size, norm.method = norm.method)
     # Calculate the null distribution of the ligand-receptor scores
@@ -151,12 +158,14 @@ inferIntrScore <- function(
   }
   if ("cont" %in% intr.type) {
     message("== Calculating contact-dependent ligand-receptor scores ==")
-    object <- inferScoreLR(object, lig.imp = "DT", recep.imp = recep.imp, intr.db.use = "cont_dep",
+    object <- inferScoreLR(object, lig.imp = findImpByMethod(object, "DT"),
+                           recep.imp = recep.imp, intr.db.use = "cont_dep",
                            norm.method = norm.method)
     object <- permuteLR(object, perm.size = perm.size)
     object <- inferNullScoreLR(object)
     if (!isTRUE(recep.smooth)) {
-      object <- inferScoreLR(object, lig.imp = "Raw", recep.imp = "Raw", intr.db.use = "cont_dep",
+      object <- inferScoreLR(object, lig.imp = "Raw", recep.imp = "Raw",
+                             intr.db.use = "cont_dep",
                              norm.method = norm.method)
       object <- permuteLR(object, perm.size = perm.size)
       object <- inferNullScoreLR(object)

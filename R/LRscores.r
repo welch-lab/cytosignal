@@ -60,7 +60,7 @@ inferScoreLR <- function(
 
   #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
   if (norm.method != "none"){
-    dt.avg.g <- object@imputation[["DT"]]@nn.graph
+    dt.avg.g <- object@imputation[[findImpByMethod(object, "DT")]]@nn.graph
     dt.avg.g <- to_mean(dt.avg.g)
 
     dge.lig <- dge.lig %*% dt.avg.g
@@ -83,17 +83,11 @@ inferScoreLR <- function(
     "lrScores",
     lig.slot = lig.imp,
     recep.slot = recep.imp,
-    lig.null = methods::new("dgCMatrix"),
-    recep.null = methods::new("dgCMatrix"),
     intr.slot = intr.db.use,
     intr.list = intr.db.list,
-    score = Matrix::Matrix(res.mtx, sparse = T),
-    score.null = methods::new("matrix"),
-    perm.idx = list(),
-    res.list = list(),
+    score = Matrix::Matrix(res.mtx, sparse = TRUE),
     log = list(
-      "Parmaeters:" = c(lig.imp, recep.imp),
-      "Date:" = Sys.time()
+      Date = Sys.time()
     )
   )
 
@@ -251,8 +245,9 @@ permuteLR.sparse <- function(
     norm.method = "default"
 ){
   # check DT imputation first, this is for pre-computing lrscore.mtx
-  if (!"DT" %in% names(object@imputation)) {
-    stop("Need to run DT imputation first.")
+  DT.imp <- findImpByMethod(object, "DT")
+  if (is.null(DT.imp)) {
+    stop("Need to infer NN with DT method first.")
   }
 
   nn.type <- .checkImpUse(object, nn.type)
@@ -310,7 +305,7 @@ permuteLR.sparse <- function(
                          norm.method)
 
   # #----------- pre-computing the lrscores by averaging the DT scores, without norm -----------#
-  dt.avg.g <- object@imputation[["DT"]]@nn.graph
+  dt.avg.g <- object@imputation[[DT.imp]]@nn.graph
   dt.avg.g <- to_mean(dt.avg.g)[perm.index, ]
 
   # sample the null graph to control the size of the permutation
@@ -383,6 +378,81 @@ inferNullScoreLR <- function(
   }
 
   object@lrscore[[slot.use]]@score.null <- null.lrscore.mtx
+
+  return(object)
+}
+
+#' Smooth existing LR-scores using spatial nearest neighbors
+#' @description
+#' This function takes an existing LR-score out and smooth it using the spatial
+#' nearest neighbor graph inferred with Gaussian-Epsilon method. If the radius
+#' queried (\code{eps}) is the same as any pre-calculated NN graph during
+#' imputation stage, this function will directly use it. However, a different
+#' \code{eps} can also be used. In this case, a new NN graph will be inferred
+#' and stored in the object.
+#' @param object A CytoSignal object with existing LR-scores available in
+#' "lrscore" slot.
+#' @param score.use Name of LR-scores to be smoothed. Default use the most
+#' recently calculated LR-scores.
+#' @param eps The radius of the epsilon ball. Default use parameter inferred
+#' with \code{\link{inferEpsParams}}. See Description as well.
+#' @param lrscore.name Name of the smoothed LR-scores to be stored in the object.
+#' Default appending \code{"_smoothed"} after \code{score.use}.
+#' @return Returns the original object with result updated in "lrscore" slot.
+#' An "lrScores" object is created with its "score" slot filled a cell by
+#' interaction sparse matrix indicating the smoothed LR-score. When a new GauEps
+#' NN graph is inferred, it will be stored in the "imputation" slot. See
+#' \code{\link{findNNGauEB}} for detail.
+#' @export
+smoothScoreLR <- function(
+    object,
+    score.use = NULL,
+    eps = NULL,
+    lrscore.name = NULL
+) {
+  # Find the score to be smoothed
+  score.use <- .checkSlotUse(object, slot.use = score.use, velo = FALSE)
+  lrscore.name <- lrscore.name %||% paste0(score.use, "_smooth")
+  eps <- eps %||% object@parameters$r.diffuse.scale
+  # Check if there has been GauEps NN with the same `eps` pre-calculated
+  nn.avail <- names(object@imputation)
+  nn.avail <- nn.avail[nn.avail != "default"]
+  nn.precal <- NULL
+  for (nn.name in nn.avail) {
+    if (object@imputation[[nn.name]]@method != "GauEps") next
+    pre.eps <- object@imputation[[nn.name]]@log$parameters$eps
+    if (is.null(pre.eps)) next
+    if (!is.numeric(pre.eps)) next
+    if (length(pre.eps) != 1) next
+    if (pre.eps != eps) next
+    nn.precal <- nn.name
+    break
+  }
+  if (!is.null(nn.precal)) {
+    message("GauEps NN with eps = ", eps, " already pre-calculated, using it.")
+  } else {
+    message("Capculating GauEps NN with eps = ", eps, "...")
+    nn.precal <- paste0("GauEps_eps", round(eps, 2))
+    object <- findNNGauEB(object, eps = eps, imp.name = nn.precal)
+    message("New NN stored at ", nn.precal, ".")
+  }
+  message("Smoothing LR-scores from ", score.use, " using NN from ", nn.precal, "...")
+  # nn.graph: N cell x N cell
+  nn.graph <- object@imputation[[nn.precal]]@nn.graph
+  # score: N cell x I intr
+  score <- object@lrscore[[score.use]]@score
+  score.smooth <- t(t(score) %*% nn.graph)
+  lrscoreObj <- object@lrscore[[score.use]]
+  lrscoreObj@score <- score.smooth
+  lrscoreObj@lig.null <- new("dgCMatrix")
+  lrscoreObj@recep.null <- new("dgCMatrix")
+  lrscoreObj@score.null <- new("dgCMatrix")
+  lrscoreObj@perm.idx <- list()
+  lrscoreObj@res.list <- list()
+  lrscoreObj@log$Smooth.NN <- nn.precal
+  lrscoreObj@log$Date <- Sys.time()
+  object@lrscore[["default"]] <- lrscore.name
+  object@lrscore[[lrscore.name]] <- lrscoreObj
 
   return(object)
 }

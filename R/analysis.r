@@ -41,30 +41,19 @@ findNNGauEB <- function(
     eps = NULL,
     sigma = NULL,
     self.weight = "auto",
-    imp.name = "GauEps"
+    imp.name = "diffusion"
 ) {
   cells.loc <- object@cells.loc
 
-  if (is.null(imp.name)) {imp.name <- "GauEps"}
+  imp.name <- imp.name %||% "diffusion"
+  eps <- eps %||% object@parameters$r.diffuse.scale
+  sigma <- sigma %||% object@parameters$sigma.scale
 
-  if (is.null(eps)) {
-    eps <- object@parameters$r.diffuse.scale
-  } else{
-    imp.name <- paste0(imp.name, "_eps-", eps)
-  }
-
-  if (is.null(sigma)) {
-    sigma <- object@parameters$sigma.scale
-  } else{
-    imp.name <- paste0(imp.name, "_sigma-", sigma)
-  }
-
-  message("Finding neighbors in epsilon circle with imp.name: ", imp.name, "...")
-
-  if (is.null(sigma)) stop("`sigma` has to be specified for matrix method.")
+  message("Finding neighbors in epsilon circle for imputing diffusion-dependent interaction, storing at: ", imp.name)
 
   dis_mat <- select_EB_rcpp2(cells.loc, eps = eps)
-  has.neighbor.idx <- diff(dis_mat@p) > 0
+  n_neighbor <- diff(dis_mat@p)
+  has.neighbor.idx <- n_neighbor > 0
   gauss_vec_inplace_cpp(dis_mat@x, sigma)
 
   if (is.numeric(self.weight)) {
@@ -100,7 +89,15 @@ findNNGauEB <- function(
     scale.fac = new("numeric"),
     scale.fac.velo = new("numeric"),
     log = list(
-      "Parameters" = paste0("eps: ", eps, ", sigma: ", sigma)
+      parameters = list(
+        eps = eps,
+        sigma = sigma,
+        self.weight = self.weight
+      ),
+      n_neighbors = list(
+        mean = mean(n_neighbor),
+        median = median(n_neighbor)
+      )
     )
   )
 
@@ -127,26 +124,16 @@ findNNGauEB <- function(
 #' @export
 findNNDT <- function(
     object,
-    max.r = NULL,
-    weight.sum = 2,
-    imp.name = "DT"
+    mode = c("weight_sum_2", "weight_sum_1"),
+    imp.name = "contact"
 ) {
-  if (is.null(imp.name)) imp.name <- "DT"
-
-  message("Finding neighbors using DT with imp.name: ", imp.name, "...")
+  imp.name <- imp.name %||% "contact"
+  max.r <- object@parameters$r.diffuse.scale
+  mode <- match.arg(mode)
+  if (!is.numeric(max.r)) stop("Numeric `max.r` must be provided. Default can be inferred with `inferEpsParams()`.")
+  message("Finding neighbors using DT for contact-dependent interactions, stored at: ", imp.name)
 
   cells.loc <- object@cells.loc
-
-  # filter out the edges that are over given radius
-  if (is.null(max.r)) {
-    max.r <- object@parameters$r.diffuse.scale
-    if (is.null(max.r)) {
-      stop("No default `max.r` specified or inferred.")
-    }
-  } else if (!is.numeric(max.r)) {
-    stop("max.r should be a numeric value.")
-  }
-
   cells.dt <- RTriangle::triangulate(RTriangle::pslg(P = cells.loc))
   edges <- cells.dt$E
   node1.loc <- cells.loc[edges[, 1],]
@@ -165,28 +152,33 @@ findNNDT <- function(
     dims = c(nrow(cells.loc), nrow(cells.loc)),
     dimnames = list(NULL, rownames(cells.loc))
   )
-
   norm.param <- Matrix::colSums(weight.mtx)
   has.neighbor.idx <- norm.param > 0
-  if (weight.sum == 1) norm.param = norm.param + 1
-  # weight.mtx@x <- weight.mtx@x / rep.int(norm.param, diff(weight.mtx@p))
-  weight.mtx <- normCounts.dgCMatrix(weight.mtx, scale.fac = norm.param, method = "none")
-  Matrix::diag(weight.mtx)[has.neighbor.idx] <- 1
+  if (mode == "weight_sum_2") {
+    weight.mtx <- normCounts.dgCMatrix(weight.mtx, scale.fac = norm.param, method = "none")
+    Matrix::diag(weight.mtx)[has.neighbor.idx] <- 1
+  } else {
+    norm.param <- norm.param + 1
+    Matrix::diag(weight.mtx)[has.neighbor.idx] <- 1
+    weight.mtx <- normCounts.dgCMatrix(weight.mtx, scale.fac = norm.param, method = "none")
+  }
 
   nn.obj <- methods::new(
     "ImpData",
     method = "DT",
-    imp.data = new("dgCMatrix"),
-    # imp.data.null = new("dgCMatrix"),
-    # imp.data.null = list(),
-    # intr.data = new("dgCMatrix"),
     imp.velo = new("matrix"),
     nn.graph = weight.mtx,
     scale.fac = new("numeric"),
     scale.fac.velo = new("numeric"),
     log = list(
-      "Parameters" = "Delauany Triangulation",
-      "Num of neighbors" = paste0("Mean: ", mean(norm.param), ", Median: ", median(norm.param))
+      parmeters = list(
+        max.r = max.r,
+        mode = mode
+      ),
+      n_neighbors = list(
+        mean = mean(norm.param),
+        median = median(norm.param)
+      )
     )
   )
 
@@ -211,36 +203,28 @@ findNNRaw <- function(
 ) {
   imp.name <- "Raw"
 
-  message("Setting original expression as raw imputation...")
+  message("Setting original expression as raw imputation, stored at: Raw")
 
-  if ("DT" %in% names(object@imputation)){
-    message("DT has been done before, taking the same neighbors.")
-    # nn <- new("list")
-    # nn$id <- object@imputation[["DT"]]@nn.id
-    # nn$dist <- object@imputation[["DT"]]@nn.dist
+  DT.imp <- findImpByMethod(object, "DT")
+  if (is.null(DT.imp)) {
+    message("Pre-caluculating Delaunay triangulation NN finding...")
+    object <- findNNDT(object, imp.name = "contact")
+    DT.imp <- "contact"
   } else {
-    object <- findNNDT(object)
-    # cells.loc <- object@cells.loc
-    # nn <- findNNDT.matrix(cells.loc)
+    message("DT has been done before, taking the same neighbors.")
   }
-  nn.graph <- object@imputation[["DT"]]@nn.graph
+  nn.graph <- object@imputation[[DT.imp]]@nn.graph
 
   nn.obj <- methods::new(
     "ImpData",
     method = "Raw",
     imp.data = object@counts,
-    # imp.data.null = new("dgCMatrix"),
-    # imp.norm.data = new("list"),
     imp.velo = new("matrix"),
-    # intr.data = new("dgCMatrix"),
     nn.graph = nn.graph,
-    # nn.id = nn$id,
-    # nn.dist = nn$dist,
     scale.fac = object@parameters[["lib.size"]],
     scale.fac.velo = new("numeric"),
     log = list(
-      "Parameters" = "Raw data without imputation"#,
-      # "Num of neighbors" = paste0("Mean: ", mean(table(nn$id)), ", Median: ", median(table(nn$id)))
+      DT_used = DT.imp
     )
   )
 

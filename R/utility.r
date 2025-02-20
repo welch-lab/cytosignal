@@ -674,3 +674,16 @@ to_mean <- function(mat) {
   }
   return(arg)
 }
+
+findImpByMethod <- function(object, method) {
+  nn.avail <- names(object@imputation)
+  nn.avail <- nn.avail[nn.avail != "default"]
+  nn.target <- NULL
+  for (nn in nn.avail) {
+    if (object@imputation[[nn]]@method == method) {
+      nn.target <- nn
+      break
+    }
+  }
+  return(nn.target)
+}

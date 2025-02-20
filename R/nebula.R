@@ -197,10 +197,10 @@ names.mergedCytoSignal <- function(x) {
 setValidity("mergedCytoSignal", .valid.mergedCytoSignal)
 
 
-#' Create mergedCytoSignal object
+#' Merge multiple CytoSignal objects for cross-dataset analysis
 #' @description
 #' This function accepts a list of CytoSignal objects together with a metadata
-#' \code{data.frame} that provides dataset level metadata covariates, which will
+#' \code{data.frame} that provides dataset-level metadata covariates, which will
 #' be required for the cross-dataset analysis.
 #'
 #' The function will preprocess each CytoSignal object with cross-dataset
@@ -217,8 +217,8 @@ setValidity("mergedCytoSignal", .valid.mergedCytoSignal)
 #' and etc, and will create column "dataset" in the metadata.
 #' @param counts.thresh A number indicating the threshold for removing low-quality
 #' spots. Default 0.
-#' @param scale.factor A number indicating 1 spatial coord unit equals to how 
-#' many µm. 
+#' @param scale.factor A number indicating 1 spatial coord unit equals to how
+#' many µm.
 #' @return A \linkS4class{mergedCytoSignal} object preprocessed.
 #' @export
 #' @seealso [runNEBULA()]
@@ -268,7 +268,7 @@ mergeCytoSignal <- function(
             }
         }
     }
-    
+
     # if (is.null(scale.factor)) {
     #     stop("Please provide `scale.factor`.")
     # }
@@ -325,7 +325,7 @@ mergeCytoSignal <- function(
 
         # Preprocessing
         message(Sys.time(), " - Preprocessing dataset: ", i)
-        
+
         # Hard coded parameters, pay attention to these
         #------------------- steps already run, skip for now ---------------#
         # obj <- addIntrDB(obj, g_to_u, db.diff, db.cont, inter.index)
@@ -333,15 +333,15 @@ mergeCytoSignal <- function(
         # obj <- changeUniprot(obj)
         # obj <- inferEpsParams(obj, scale.factor = scale.factor)
         # obj <- findNN(obj, diff.weight = 1)
-        
-        #----------------- Running Diff only, Hard coded params ------------#
-        obj <- findNNGauEB(obj, self.weight = 1)
-        # obj <- imputeLR(obj)
-        obj <- imputeNiche(obj, nn.type = "GauEps", weights = "none")
 
-        obj <- inferScoreLR(obj, lig.slot = "GauEps", recep.slot = "Raw",
-                            norm.method = "none", intr.db.name = "diff_dep")
-        diffscore <- obj@lrscore[["GauEps-Raw"]]@score
+        #----------------- Running Diff only, Hard coded params ------------#
+        obj <- findNNGauEB(obj, self.weight = 1, imp.name = "GauEps_sw1")
+        # obj <- imputeLR(obj)
+        obj <- imputeNiche(obj, imp.use = "GauEps_sw1", weights = "none")
+
+        obj <- inferScoreLR(obj, lig.imp = "GauEps_sw1", recep.imp = "Raw",
+                            norm.method = "none", intr.db.use = "diff_dep")
+        diffscore <- obj@lrscore[["GauEps_sw1-Raw"]]@score
         diff.dimnames <- list(
             newids,
             unname(getIntrNames(obj, colnames(diffscore)))
@@ -352,8 +352,14 @@ mergeCytoSignal <- function(
         dimnames(diffscore) <- diff.dimnames
         diffList[[i]] <- diffscore
 
-        obj <- inferScoreLR(obj, lig.slot = "DT", recep.slot = "Raw",
-                            norm.method = "none", intr.db.name = "cont_dep")
+        obj <- inferScoreLR(
+          obj,
+          lig.imp = findImpByMethod(obj, "DT"),
+          recep.imp = findImpByMethod(obj, "Raw"),
+          norm.method = "none",
+          intr.db.use = "cont_dep",
+          lrscore.name = "DT-Raw"
+        )
         contscore <- obj@lrscore[["DT-Raw"]]@score
         cont.dimnames <- list(
             newids,
@@ -411,32 +417,32 @@ mergeCytoSignal <- function(
 checkDependence <- function(X){
   # Perform QR decomposition
   qrX <- qr(X)
-  
+
   # Get the rank
   matrix_rank <- qrX$rank
-  
+
   # Get the pivot indices
   pivot_indices <- qrX$pivot
-  
+
   # identify linear dependent columns
   # Get the R matrix
   R_matrix <- qr.R(qrX)
-  
+
   # Extract the absolute values of the diagonal elements
   diag_R <- abs(diag(R_matrix))
-  
+
   # Set tolerance level
   tolerance <- max(dim(X)) * .Machine$double.eps * max(diag_R)
-  
+
   # Identify dependent diagonals
   dependent_diagonals <- diag_R < tolerance
-  
+
   # Get the indices of dependent columns
   dependent_indices <- pivot_indices[which(dependent_diagonals)]
-  
+
   # Get the names of dependent columns
   dependent_columns <- colnames(X)[dependent_indices]
-  
+
   # # Output dependent columns
   # if (length(dependent_columns) > 0) {
   #   cat("Linearly dependent columns detected:\n")
@@ -474,20 +480,20 @@ checkDependence <- function(X){
     #     data = object@metadata
     # )
     # m.names <- colnames(model)
-    # 
+    #
     # model <- cbind(1, model)
     # colnames(model) <- c("(Intercept)", m.names)
-    # 
+    #
     # # check for linear dependence
     # dep.cols <- checkDependence(model)
-    # 
+    #
     # if (length(dep.cols) > 0) {
     #   cat("Removing linearly dependent columns from model matrix.\n")
     #   print(dep.cols)
     #   remove.idx <- which(colnames(model) %in% dep.cols)
     #   model <- model[, -remove.idx]
     # }
-    
+
     # Organize cov.use for future use
     cov.use <- lapply(covariates, function(cov) {
         var <- object@metadata[[cov]]
@@ -577,7 +583,7 @@ checkDependence <- function(X){
 #' @param covariates A character vector of metadata covariates to include in the
 #' model.
 #' @param cpc_thresh Counts per cell threshold for filtering out lowly expressed
-#' genes. This is defined by the ratio between the total count of the gene and 
+#' genes. This is defined by the ratio between the total count of the gene and
 #' the number of cells.
 #' @param ncore Integer, number of cores to use for parallel computation.
 #' Default \code{1L}.
@@ -610,7 +616,7 @@ runNEBULA <- function(
     if (isTRUE(verbose)) {
         message(Sys.time(), " - Running on Contact-dependent interactions...")
     }
-    cont.res <- nebula::nebula(object@cont.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose, 
+    cont.res <- nebula::nebula(object@cont.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose,
                                offset = Matrix::colSums(object@cont.lrscore), cpc = cpc_thresh)
 
     diff.res.summary <- diff.res$summary

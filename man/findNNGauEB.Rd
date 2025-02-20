@@ -9,7 +9,7 @@ findNNGauEB(
   eps = NULL,
   sigma = NULL,
   self.weight = "auto",
-  imp.name = "GauEps"
+  imp.name = "diffusion"
 )
 }
 \arguments{

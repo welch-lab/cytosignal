@@ -5,11 +5,21 @@
 \title{Impute the \eqn{L} or \eqn{R} value from the nearest neighbors of each
 location}
 \usage{
-imputeLR(object, weights = c("none", "mean", "counts", "dist"))
+imputeLR(
+  object,
+  diff.imp = "diffusion",
+  cont.imp = "contact",
+  weights = c("none", "mean", "counts", "dist")
+)
 }
 \arguments{
 \item{object}{A \linkS4class{CytoSignal} object, with \code{\link{findNN}}
 already run.}
+
+\item{diff.imp, cont.imp}{Name of the NN imputation to use for
+diffusion-dependent and contact-dependent interactions, respectively. Must
+have been precalculated with \code{findNN*} functions. Default is
+\code{"diffusion"} and \code{"contact"} as calculated by \code{\link{findNN}}.}
 
 \item{weights}{The method to transform distances to weights. Choose from \code{"none"}, \code{"mean"},
 \code{"counts"} and \code{"dist"}. Default \code{"none"} since weights are already calculated by Gaussian
