@@ -32,9 +32,13 @@ getIntrValue <- function(
     res.intr.list <- names(res.list)
 
     lig.slot <- score.obj@lig.slot
-    dge.lig <- object@imputation[[lig.slot]]@imp.data
+    # use normalized ligand data for visualization
+    # dge.lig <- object@imputation[[lig.slot]]@imp.data
+    dge.lig <- normCounts(object, imp.use = lig.slot, verbose = FALSE)
     recep.slot <- score.obj@recep.slot
-    dge.recep <- object@imputation[[recep.slot]]@imp.data
+    # use normalized receptor data for visualization
+    # dge.recep <- object@imputation[[recep.slot]]@imp.data
+    dge.recep <- normCounts(object, imp.use = recep.slot, verbose = FALSE)
     dge.raw <- object@counts
     score.mtx <- score.obj@score
 
