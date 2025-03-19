@@ -148,6 +148,7 @@ inferIntrScore <- function(
     object <- inferScoreLR(object, lig.imp = findImpByMethod(object, "GauEps"),
                            recep.imp = recep.imp, norm.method = norm.method,
                            intr.db.use = "diff_dep")
+
     # Permutation test to calculate the null distribution of the imputed ligands and receptors
     object <- permuteLR(object, perm.size = perm.size, norm.method = norm.method)
     # Calculate the null distribution of the ligand-receptor scores
