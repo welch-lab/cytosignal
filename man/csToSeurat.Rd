@@ -42,11 +42,12 @@ raw counts, coordinates, and cluster identities of the spatial assay.
 \code{csToSeurat} returns a Seurat object with "Spatial" assay that contains
 the raw counts. When LR-score and signifcance inferrence results are present,
 another assay called "CytoSignal" is created to store the LR-score matrices
-and binary matrices indicating whether an interaction is significant at a
-spot. The spatial coordinates are coerced to a "SlideSeq" object regardless
-of the exact technology being imported from. Interpretable interaction names,
-rather than the CPI IDs of each interaction, are available as feature
-metadata of the CytoSignal assay.
+and sparse binary matrices indicating whether an interaction is significant
+at a spot. The spatial coordinates are coerced to a "SlideSeq" object
+regardless of the exact technology being imported from. A interaction
+metadata data frame is stored at the feature metadata slot of the assay. It
+contains interpretable interaction names, and the ranking of the interaction
+at different significance inferrence levels (NA indicating not significant).
 }
 }
 }

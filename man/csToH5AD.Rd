@@ -7,7 +7,7 @@
 \usage{
 csToH5AD(object, filename, overwrite = FALSE)
 
-H5ADToCS(filename, layer = "X")
+H5ADToCS(filename, clusterKey, layer = "X", spatialKey = "spatial")
 }
 \arguments{
 \item{object}{A CytoSignal object.}
@@ -17,13 +17,46 @@ H5ADToCS(filename, layer = "X")
 \item{overwrite}{Whether to overwrite the existing H5AD file. Default
 \code{FALSE}.}
 
+\item{clusterKey}{Variable name in \code{adata.obs} that provides categorical
+clustering.}
+
 \item{layer}{Data from the H5AD file to extract. Default \code{"X"} extracts
 \code{adata.X}. Use \code{"raw/X"} to extract \code{adata.raw.X}. Use
-\code{"layers/key"} to extract layer data with key \code{"key"}.}
+\code{"layers/key"} to extract layer data at \code{adata.layers['key']}.}
+
+\item{spatialKey}{Key to extract spatial coordinate matrix from
+\code{adata.obsm}. Default \code{"spatial"}.}
 }
 \value{
-\code{csToH5AD} writes an H5AD file to disk and returns \code{NULL}.
-\code{H5ADToCS} returns a CytoSignal object.
+\itemize{
+\item{
+\code{H5ADToCS} returns a CytoSignal object, within only the raw counts
+expression matrix, spatial coordinates, and optional cluster identities
+extracted.
+}
+\item{
+\code{csToH5AD} writes an H5AD file to disk and returns \code{NULL}. with the
+following information written to corresponding location:
+\itemize{
+\item{Raw counts - \code{adata.X}}
+\item{Clusters - \code{adata.obs['cluster']}}
+\item{Spatial coordinates - \code{adata.obsm['spatial']}}
+\item{LR-score for analysis type, e.g. 'GauEps-Raw' - \code{adata.obsm['GauEps-Raw_score']}}
+\item{Significant spots for analysis type, e.g. 'GauEps-Raw', inferred with
+level, e.g. 'result.spx' - \code{adata.obsm['GauEps-Raw_signif_result.spx']}.
+These are stored in form of sparse matrices, where value 1 means the
+interaction is tested to be significant at the spot.}
+\item{Interaction metadata for analysis type, e.g. 'GauEps-Raw' - \code{adata.uns['CytoSignal']['GauEps-Raw']}}
+This is stored as a DataFrame containing
+\itemize{
+\item{id - Interaction ID}
+\item{name - Interpretable name of the interaction}
+\item{rank_result.spx - Rank of the interaction in the significance
+inferrence level 'result.spx'}
+}
+}
+}
+}
 }
 \description{
 Extract data from H5AD file to a CytoSignal object or write a CytoSignal
