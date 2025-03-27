@@ -133,7 +133,7 @@ For calculating the LRscore of each interaction within each spatial neighborhood
 
 The output of CytoSignal is a test statistic $S$ and adjusted p-value for each signaling interaction within each location in the tissue. Finally, cells with significant signaling activity can be identified by setting a significance level such as `p.value = 0.05`. For convenience, we rank interactions by either the number of significant spatial positions or the spatial variability statistics of the LRscore calculated by SPARK-X.
 
-The function `inferIntrScore` is an integrated function that performs the LRscore calculation and permutation tests. For the calculation of LRscore, by default, receptors are taken from the normalized expression. Ligands of diffusible interactions are imputed with Gaussian Epsilon ball (`GauEps-Raw`), while those from contact-dependent interactions are imputed with Delaunay Triangulation (`DT-Raw`). The function also provides an option `recep.smooth` to smooth the receptor expressions with Delaunay Triangulation (`GauEps-DT` and `DT-DT`), which is useful when the sparsity of the data is relatively high. The function `inferSignif()` should be called subsequently to identify significant interactions. For ranking the interactions by spatial variability statistics, we provide `rankIntrSpatialVar()`.
+The function `inferIntrScore` is an integrated function that performs the LRscore calculation and permutation tests. For the calculation of LRscore, by default, receptors are taken from the normalized expression. Ligands of diffusible interactions are imputed with Gaussian Epsilon ball (`diffusion-Raw`), while those from contact-dependent interactions are imputed with Delaunay Triangulation (`contact-Raw`). The function also provides an option `recep.smooth` to smooth the receptor expressions with Delaunay Triangulation (`diffusion-DT` and `contact-DT`), which is useful when the sparsity of the data is relatively high. The function `inferSignif()` should be called subsequently to identify significant interactions. For ranking the interactions by spatial variability statistics, we provide `rankIntrSpatialVar()`.
 
 Note that we perform a permutation test to infer the significance of the LR-score, where randomized sampling procedure is applied to the spatial locations. We set the seed at the beginning to ensure reproducible result in the tutorial. 
 
@@ -148,11 +148,9 @@ cs <- rankIntrSpatialVar(cs)
 
 Users can use function `showIntr()` to view all significant interactions, where the argument `slot.use` is for specifying the LRscore calculation model used. Possible options are explained as followed:
 
-- `"GauEps-Raw"`: Ligand expressions are imputed with Gaussian Epsilon ball and receptor expressions are taken from normalized expression. Typically for the diffusion-dependent interactions.
-- `"DT-Raw"`: Ligand expressions are imputed with Delaunay Triangulation and receptor values are taken from raw expression. Typically for the contact-dependent interactions.
-- `"Raw-Raw"`: Ligand and receptor expressions are all taken from the raw expression. Typically for the contact-dependent interactions that are expected to happen in the same spot that contains multiple cells. This can be useful for Visium data (See description below).
-- `"GauEps-DT"`: Ligand expressions are imputed with Gaussian Epsilon ball and receptor values are imputed with Delaunay Triangulation. This is for diffusion-dependent interactions, but exists only when `inferIntrScore()` is run with `recep.smooth = TRUE`.
-- `"DT-DT"`: Ligand values and receptor values are all imputed with Delaunay Triangulation. This is for contact-dependent interactions, but exists only when `inferIntrScore()` is run with `recep.smooth = TRUE`.
+- `"diffusion-Raw_smooth"`: Ligand expressions are imputed with Gaussian Epsilon ball and receptor expressions are taken from normalized expression. Typically for the diffusion-dependent interactions.
+- `"contact-Raw_smooth"`: Ligand expressions are imputed with Delaunay Triangulation and receptor values are taken from raw expression. Typically for the contact-dependent interactions.
+- `"Raw-Raw_smooth"`: Ligand and receptor expressions are all taken from the raw expression. Typically for the contact-dependent interactions that are expected to happen in the same spot that contains multiple cells. This can be useful for Visium data (See description below).
 
 The argument `signif.use` can return interactions that are ranked by different metrics:
 
@@ -163,11 +161,11 @@ The argument `signif.use` can return interactions that are ranked by different m
 Setting `return.name = TRUE` displays both interaction unique IDs and the interaction names for easier interpretation. Interaction names are shown as a "ligand-receptor" gene symbol.
 
 ```{r showIntr, results=TRUE}
-allIntrs <- showIntr(cs, slot.use = "diffusion-Raw", signif.use = "result.spx", return.name = TRUE)
+allIntrs <- showIntr(cs, slot.use = "diffusion-Raw_smooth", signif.use = "result.spx", return.name = TRUE)
 print(head(allIntrs))
 ```
 
-When working with spatial technology where each spot contains multiple cells (e.g. 10X Visium), CytoSignal is able to quantify signaling at spot level without requiring deconvolution. For diffusion-dependent interactions, if the spot size is smaller than the preset diffusion radius, we can still infer signaling activities for spatial neighbors within a given radius. The result of such inference can be retrieved by setting `slot.use = "diffusion-Raw"`. For contact-dependent interactions, because cells will only touch their directly connected neighbor cells within the same spot, we only need to consider the gene expression within each spot without applying spatial smoothing across spots. This step is already performed along with `inferIntrScore()`, and the result significant interactions should be accessed with `slot.use = "Raw-Raw"`.
+When working with spatial technology where each spot contains multiple cells (e.g. 10X Visium), CytoSignal is able to quantify signaling at spot level without requiring deconvolution. For diffusion-dependent interactions, if the spot size is smaller than the preset diffusion radius, we can still infer signaling activities for spatial neighbors within a given radius. The result of such inference can be retrieved by setting `slot.use = "diffusion-Raw_smooth"`. For contact-dependent interactions, because cells will only touch their directly connected neighbor cells within the same spot, we only need to consider the gene expression within each spot without applying spatial smoothing across spots. This step is already performed along with `inferIntrScore()`, and the result significant interactions should be accessed with `slot.use = "Raw-Raw"`.
 
 ## Visualization
 
@@ -181,7 +179,7 @@ We developed a 3D edge plot for visualizing the signal-sending and signal-receiv
 
 ```{r plotEdge}
 intr.use <- names(allIntrs)[1]
-plotEdge(cs, intr.use, slot.use = "diffusion-Raw", pt.size = 0.15)
+plotEdge(cs, intr.use, slot.use = "diffusion-Raw_smooth", pt.size = 0.15)
 ```
 
 To plot the cluster annotation legend alone, users can simply use `plotCluster()` for reference.
@@ -192,28 +190,28 @@ plotCluster(cs)
 
 ### Combination plots of 3D edge plot, gene expression, LRscore and cluster annotation
 
-We provide a function named `plotSignif2` for making a general combination figure. This function plots on a per-interaction basis, and for each interaction it shows 1) the imputed gene expression of the ligand and receptor; 2) the original raw expression values of the ligand and receptor; 3) the inferred LRscore; 4) cluster annotations for each location; 5) 3D edge plot for visualizing the signal-sending and signal-receiving cells. General graphical setting can be found in the documentation of the function (`?plotSignif2`). 
+We provide a function named `plotSignif` for making a general combination figure. This function plots on a per-interaction basis, and for each interaction it shows 1) the imputed gene expression of the ligand and receptor; 2) the original raw expression values of the ligand and receptor; 3) the inferred LRscore; 4) cluster annotations for each location; 5) 3D edge plot for visualizing the signal-sending and signal-receiving cells. General graphical setting can be found in the documentation of the function (`?plotSignif`). 
 
 ```{r signif, fig.width=14, fig.height=6}
-plotSignif2(cs, intr = intr.use, slot.use = "diffusion-Raw", return.plot = TRUE, edge = TRUE, pt.size = 0.2)
+plotSignif(cs, intr = intr.use, slot.use = "diffusion-Raw_smooth", return.plot = TRUE, edge = TRUE, pt.size = 0.2)
 ```
 
 **Recommended:** When plotting a large number of interactions, it’s recommended to use numeric index with `intr` and turn to `return.plot = FALSE` (by default). In this way, plots of all input interactions at high resolution will be stored on the device instead of on the screen.
 
 The codes below show the top 5 significant interactions ranked by SPARK-X for both diffusion-dependent and contact-dependent interactions.
 
-```{r plotsignif2, eval=FALSE}
+```{r plotSignif, eval=FALSE}
 # For diffusion dependent interactions
 signif.use <- "result.spx"
-lrscore.slot <- "diffusion-Raw"
+lrscore.slot <- "diffusion-Raw_smooth"
 plot_dir <- paste0("path_to_result/diff-dep_", signif.use, "_", lrscore.slot, "/")
-plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+plotSignif(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
 
 # For contact dependent interactions
 ## Choose a level of significance metric
-lrscore.slot <- "contact-Raw"
+lrscore.slot <- "contact-Raw_smooth"
 plot_dir <- paste0("path_to_result/cont-dep_", signif.use, "_", lrscore.slot, "/")
-plotSignif2(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
+plotSignif(cs, intr = 1:5, slot.use = lrscore.slot, signif.use = signif.use, plot_dir = plot_dir)
 ```
 
 ## Detection of signaling-associated differentially expressed genes
@@ -226,7 +224,7 @@ The returned object contains a list of results such as model parameters and sign
 
 ```{r regress, results=TRUE}
 set.seed(233)
-intrDEG <- inferIntrDEG(cs, intr = intr.use, slot.use = "diffusion-Raw", signif.use = "result.spx")
+intrDEG <- inferIntrDEG(cs, intr = intr.use, slot.use = "diffusion-Raw_smooth", signif.use = "result.spx")
 intrDEG[[1]]$sign_genes
 ```
 

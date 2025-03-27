@@ -6,38 +6,35 @@
 \usage{
 plotSignif(
   object,
-  num.plot = NULL,
-  res_dir,
-  plot.details = T,
+  intr,
+  edge = FALSE,
+  velo = FALSE,
   slot.use = NULL,
   signif.use = NULL,
-  plot.clusters = T,
-  plot.velo = F,
   colors.list = NULL,
   pt.size = 0.1,
   pt.stroke = 0.2,
-  u_width = 6,
-  u_hgt = 5,
-  set.res = 200,
-  return.plot = F
+  return.plot = FALSE,
+  plot_dir = "csSignifPlot/",
+  plot.fmt = c("png", "pdf", "svg"),
+  raster = NULL,
+  resolution = 300,
+  verbose = FALSE
 )
 }
 \arguments{
 \item{object}{A cytosignal object}
 
-\item{num.plot}{Number of interactions to plot}
+\item{intr}{Specify interactions to be plotted. A vector of either the unique
+ID of interactions or the numeric indices. Available IDs can be shown with
+\code{showIntr(object)}. Availability of an interaction depends on the
+LRscore slot to be used as well as the significance metric to be used.}
 
-\item{res_dir}{Directory to save the plots}
-
-\item{plot.details}{Whether to plot NULL imputed values and scores}
+\item{edge, velo}{Logical, whether to plot edge or velocity, respectively.}
 
 \item{slot.use}{The LRscore slot to use for plotting}
 
 \item{signif.use}{The metric used to rank the interactions, by default "result.hq.pear"}
-
-\item{plot.clusters}{Whether to plot the clusters}
-
-\item{plot.velo}{Whether to plot the velocity}
 
 \item{colors.list}{A list of colors to use for plotting}
 
@@ -45,13 +42,15 @@ plotSignif(
 
 \item{pt.stroke}{Stroke of the points}
 
-\item{u_width}{Width of the plot}
-
-\item{u_hgt}{Height of the plot}
-
-\item{set.res}{Resolution of the plot}
-
 \item{return.plot}{Whether to return the plot}
+
+\item{plot_dir}{Directory to save the plots}
+
+\item{plot.fmt}{Format of output file. "png", "pdf", or "svg".}
+
+\item{resolution}{Resolution of the output figure.}
+
+\item{verbose}{Logical, whether to show progress.}
 }
 \value{
 A plot if return.plot is TRUE. Otherwise, plots are saved to the specified directory.

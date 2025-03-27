@@ -442,12 +442,35 @@ smoothScoreLR <- function(
   # score: N cell x I intr
   score <- object@lrscore[[score.use]]@score
   score.smooth <- t(t(score) %*% nn.graph)
+
+  # impute Null lrscore
+  null.score <- t(object@lrscore[[score.use]]@score.null)
+  perm.idx <- object@lrscore[[score.use]]@perm.idx[[1]]
+  size.idx <- object@lrscore[[score.use]]@perm.idx[[2]]
+  n_cell <- length(size.idx)
+
+  message("Imputing Null LR-scores...")
+  new.null.score <- lapply(1:length(perm.idx), function(i){
+    start.idx <- 1+(i-1)*n_cell
+    end.idx <- i*n_cell
+    sub.null.score <- null.score[, start.idx:end.idx]
+
+    null.graph <- nn.graph[sample(n_cell), sample(n_cell)]
+
+    smooth.score <- sub.null.score %*% null.graph
+
+    return(smooth.score)
+  })
+
+  smooth.null.score <- t(cbind_list(new.null.score))
+
+  colnames(smooth.null.score) <- colnames(score)
+  rownames(smooth.null.score) <- paste0("perm_", 1:nrow(smooth.null.score))
+  # object@lrscore[[score.use]]@score.null <- t(smooth.null.score)
+
   lrscoreObj <- object@lrscore[[score.use]]
   lrscoreObj@score <- score.smooth
-  lrscoreObj@lig.null <- new("dgCMatrix")
-  lrscoreObj@recep.null <- new("dgCMatrix")
-  lrscoreObj@score.null <- new("dgCMatrix")
-  lrscoreObj@perm.idx <- list()
+  lrscoreObj@score.null <- smooth.null.score
   lrscoreObj@res.list <- list()
   lrscoreObj@log$Smooth.NN <- nn.precal
   lrscoreObj@log$Date <- Sys.time()

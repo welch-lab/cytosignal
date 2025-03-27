@@ -153,6 +153,7 @@ inferIntrScore <- function(
     object <- permuteLR(object, perm.size = perm.size, norm.method = norm.method)
     # Calculate the null distribution of the ligand-receptor scores
     object <- inferNullScoreLR(object)
+    object <- smoothScoreLR(object)
     # Infer the significant ligand-receptor interactions by comparing real scores with the null distribution
     # object <- inferSignif(object, fdr.method = fdr.method, p.value = p.value, reads.thresh = reads.thresh, sig.thresh = sig.thresh)
     # object <- rankIntrSpatialVar(object, numCores = numCores, verbose = FALSE)
@@ -164,12 +165,14 @@ inferIntrScore <- function(
                            norm.method = norm.method)
     object <- permuteLR(object, perm.size = perm.size)
     object <- inferNullScoreLR(object)
+    object <- smoothScoreLR(object)
     if (!isTRUE(recep.smooth)) {
       object <- inferScoreLR(object, lig.imp = "Raw", recep.imp = "Raw",
                              intr.db.use = "cont_dep",
                              norm.method = norm.method)
       object <- permuteLR(object, perm.size = perm.size)
       object <- inferNullScoreLR(object)
+      object <- smoothScoreLR(object)
     }
     # object <- inferSignif(object, fdr.method = fdr.method, p.value = p.value, reads.thresh = reads.thresh, sig.thresh = sig.thresh)
     # object <- rankIntrSpatialVar(object, numCores = numCores, verbose = FALSE)

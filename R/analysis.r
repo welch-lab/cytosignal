@@ -452,6 +452,8 @@ inferSignif <- function(
     # By default use all
     lrscore.use <- names(object@lrscore)
     lrscore.use <- lrscore.use[lrscore.use != "default"]
+    # use only smoothed score
+    lrscore.use <- lrscore.use[grep("smooth", lrscore.use)]
   } else {
     lrscore.use <- .checkSlotUse(object, slot.use = lrscore.use)
   }
@@ -786,6 +788,7 @@ rankIntrSpatialVar <- function(
   if (is.null(slot.use)) {
     slots <- names(object@lrscore)
     slots <- slots[slots != "default"]
+    slots <- slots[grep("_smooth", slots)]
   } else {
     slots <- .checkSlotUse(object, slot.use = slot.use)
   }
