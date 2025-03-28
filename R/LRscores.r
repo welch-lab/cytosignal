@@ -412,8 +412,10 @@ smoothScoreLR <- function(
 ) {
   # Find the score to be smoothed
   score.use <- .checkSlotUse(object, slot.use = score.use, velo = FALSE)
-  lrscore.name <- lrscore.name %||% paste0(score.use, "_smooth")
-  eps <- eps %||% object@parameters$r.diffuse.scale
+  # lrscore.name <- lrscore.name %||% paste0(score.use, "_smooth")
+  # eps <- eps %||% object@parameters$r.diffuse.scale
+  lrscore.name <- if (!is.null(lrscore.name)) lrscore.name else paste0(score.use, "_smooth")
+  eps <- if (!is.null(eps)) eps else object@parameters$r.diffuse.scale
   # Check if there has been GauEps NN with the same `eps` pre-calculated
   nn.avail <- names(object@imputation)
   nn.avail <- nn.avail[nn.avail != "default"]

@@ -397,7 +397,8 @@ makeSignifMat <- function(res, spotNames, intrNames = NULL) {
         # Here, res is a list, where each element is a character vector of
         # spot IDs that are significant for a given interaction.
         allIntr <- names(res)
-        intrNames <- intrNames %||% allIntr
+        # intrNames <- intrNames %||% allIntr
+        intrNames <- if (!is.null(intrNames)) intrNames else allIntr
         sparseIJ <- list()
         for (intr in allIntr) {
             IJ <- data.frame(
