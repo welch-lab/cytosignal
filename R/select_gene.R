@@ -1,80 +1,3 @@
-#' Infer significant genes for each interaction
-#' @description
-#' This function performs wilcoxon one-sided test for each cell type, between
-#' cells enriched with an interaction against other cells. The top significant
-#' genes are selected for each interaction. The expression profile of the
-#' selected genes, together with the cell type variable, are then feeded into a
-#' regression model for further refinement. This analysis infers the significant
-#' genes for each interaction, and refines the LRScore using the selected genes.
-#' @param object A \code{Cytosignal} object with \code{\link{inferIntrScore}}
-#' already run.
-#' @param intr Specify interactions to be used. A vector of either the unique
-#' ID of interactions or the numeric rank indices. Available IDs can be shown
-#' with \code{showIntr(object)}. Availability of an interaction depends on the
-#' LRscore slot to be used as well as the significance metric to be used.
-#' @param slot.use The LRscore type to be used. See vignette for explanation.
-#' @param signif.use The significance metric to be used. See vignette for
-#' explanation.
-#' @param num.per.choose The maximum number of genes to be chosen for each
-#' wilcoxon test. A test happens for each interaction and each cell type.
-#' Default \code{50}.
-#' @param alpha.test A sequence of alpha values to be tested for the elastic net
-#' regression model. The best alpha value will be chosen based on the smallest
-#' loss. Larger alpha values result in less final selection. Default
-#' \code{seq(0.5, 1, 0.1)}.
-#' @param seed Random seed for controlling the cross validation. Default
-#' \code{1}.
-#' @param minCell Minimum number of cells where a gene is expressed to be
-#' considered. Default \code{50}.
-#' @param verbose Whether to print progress messages. Default \code{TRUE}.
-#' @return list object, each element is the result for each interaction. Each
-#' interaction result is a list object containing the following entries:
-#' \itemize{
-#' \item{\code{glmnet_model} - A "cv.glmnet" object, the regression model.}
-#' \item{\code{score_refine} - A 1-column matrix of refined LR scores of this
-#' interaction in each cell.}
-#' \item{\code{coef} - A matrix of coefficients of the regression model.}
-#' \item{\code{sign_clusters} - A character vector of significant clusters in
-#' selected by the model.}
-#' \item{\code{sign_genes} - A character vector of significant genes selected by
-#' the model.}
-#' \item{\code{alpha} - The alpha value used for the final chosen model.}
-#' \item{\code{slot.use} - The LRScore type used for this analysis.}
-#' \item{\code{signif.use} - The significance metric used for this analysis.}
-#' }
-#' @export
-inferIntrDEG <- function(
-    object,
-    intr = NULL,
-    slot.use = NULL,
-    signif.use = NULL,
-    num.per.choose = 50,
-    alpha.test = seq(0.5, 1, 0.1),
-    seed = 1,
-    minCell = 50,
-    verbose = TRUE
-) {
-  slot.use <- .checkSlotUse(object, slot.use)
-  signif.use <- .checkSignifUse(object, signif.use = signif.use,
-                                slot.use = slot.use)
-  intr_selected_gene <- gene_select_group_by_permute(
-    object, intr = intr, slot.use = slot.use, signif.use = signif.use,
-    num_per_choose = num.per.choose, verbose = verbose
-  )
-  res <- refine_score(
-    object,
-    intr_selected_gene = intr_selected_gene,
-    alpha.test = alpha.test, slot.use = slot.use, minCell = minCell,
-    seed = seed, verbose = verbose
-  )
-  res <- lapply(res, function(x) {
-    x$slot.use <- slot.use
-    x$signif.use <- signif.use
-    return(x)
-  })
-  class(res) <- "CytosignalIntrDEG"
-  return(res)
-}
 
 
 # For each significant interaction, iterate through each cluster label and
@@ -276,7 +199,7 @@ refine_score <- function(
   curr <- 0
   for (test_intr in names(intr_selected_gene)) {
     selected_genes <- intr_selected_gene[[test_intr]]
-    exclude_uni <- names(cont_uni[cont_uni == test_intr])
+    exclude_uni <- c(names(cont_uni[cont_uni == test_intr]),names(diff_uni[diff_uni == test_intr]))
     exclude_gene_upper <- gene_to_uniprot[exclude_uni,"gene_name"]
     # exlcude genes that make the interaction
     exclude_names<- lowwords(exclude_gene_upper)
@@ -521,4 +444,118 @@ format.CytosignalIntrDEG <- function(x, ...) {
 #' @method print CytosignalIntrDEG
 print.CytosignalIntrDEG <- function(x, ...) {
   cat(format(x), "\n")
+}
+
+               
+               
+               
+               
+
+
+
+#' Infer significant genes (or TFs) for each interaction
+#' @description
+#' This function infers key genes associated with cell–cell interactions by
+#' performing gene selection followed by regularized regression modeling.
+#' By default, for each cell type and interaction, a Wilcoxon one-sided test is
+#' used to identify the most significant genes, and the expression of these
+#' genes is used to refine LR scores via elastic net regression.
+#' Alternatively, the user can provide a fixed list of transcription factors
+#' (TFs) to bypass gene selection and directly evaluate their predictive power
+#' for each interaction.
+#'
+#' @param object A \code{Cytosignal} object with \code{\link{inferIntrScore}}
+#' already run.
+#' @param TFs Optional. A character vector specifying transcription factors or
+#' marker genes to be used directly without performing Wilcoxon tests. If
+#' provided, the same set of genes will be used for all interactions.
+#' @param intr Specify interactions to be used. A vector of either the unique
+#' ID of interactions or the numeric rank indices. Available IDs can be shown
+#' with \code{showIntr(object)}.
+#' @param slot.use The LRscore type to be used. See vignette for explanation.
+#' @param signif.use The significance metric to be used. See vignette for
+#' explanation.
+#' @param num.per.choose The maximum number of genes to be chosen for each
+#' Wilcoxon test (ignored if \code{TFs} is provided). Default \code{50}.
+#' @param alpha.test A sequence of alpha values to be tested for the elastic net
+#' regression model. The best alpha value will be chosen based on the smallest
+#' loss. Larger alpha values result in fewer selected features. Default
+#' \code{seq(0.5, 1, 0.1)}.
+#' @param seed Random seed for cross-validation. Default \code{1}.
+#' @param minCell Minimum number of cells in which a gene must be expressed to
+#' be considered. Default \code{50}.
+#' @param verbose Whether to print progress messages. Default \code{TRUE}.
+#' @return A list of results, one for each interaction, with the following entries:
+#' \itemize{
+#' \item{\code{glmnet_model} - A "cv.glmnet" object (the fitted model).}
+#' \item{\code{score_refine} - A 1-column matrix of refined LR scores.}
+#' \item{\code{coef} - The coefficient matrix from the model.}
+#' \item{\code{sign_clusters} - A character vector of selected clusters.}
+#' \item{\code{sign_genes} - A character vector of selected genes or TFs.}
+#' \item{\code{alpha} - The alpha value used for the final model.}
+#' \item{\code{slot.use} - The LRScore slot used.}
+#' \item{\code{signif.use} - The significance metric used.}
+#' }
+#' @export
+inferIntrDEG <- function(
+  object,
+  TFs = NULL,
+  intr = NULL,
+  slot.use = NULL,
+  signif.use = NULL,
+  num.per.choose = 50,
+  alpha.test = seq(0.5, 1, 0.1),
+  seed = 1,
+  minCell = 50,
+  verbose = TRUE
+) {
+  slot.use <- cytosignal:::.checkSlotUse(object, slot.use)
+  signif.use <- cytosignal:::.checkSignifUse(object, signif.use = signif.use, slot.use = slot.use)
+
+  if (!is.null(TFs)) {
+    # Use provided TFs directly
+    permute_res <- object@lrscore[[slot.use]]@res.list[[signif.use]]
+    if (is.null(intr)) {
+      intr <- names(permute_res)
+    }
+    if (is.numeric(intr)) {
+      intrRanks <- intr
+      interaction <- cytosignal:::getCPIs(object, intrRanks, slot.use = slot.use, signif.use = signif.use)
+    } else if (is.character(intr)) {
+      interaction <- intr
+      intrRanks <- cytosignal:::getIntrRanks(object, interaction, slot.use = slot.use, signif.use = signif.use)
+    }
+    intr_selected_gene <- setNames(vector("list", length(interaction)), interaction)
+    for (i in seq_along(interaction)) {
+      intr_selected_gene[[interaction[i]]] <- TFs
+    }
+  } else {
+    # Perform Wilcoxon test to select genes
+    intr_selected_gene <- gene_select_group_by_permute(
+      object,
+      intr = intr,
+      slot.use = slot.use,
+      signif.use = signif.use,
+      num_per_choose = num.per.choose,
+      verbose = verbose
+    )
+  }
+
+  # Run regression model
+  res <- refine_score(
+    object,
+    intr_selected_gene = intr_selected_gene,
+    alpha.test = alpha.test,
+    slot.use = slot.use,
+    minCell = minCell,
+    seed = seed,
+    verbose = verbose
+  )
+  res <- lapply(res, function(x) {
+    x$slot.use <- slot.use
+    x$signif.use <- signif.use
+    return(x)
+  })
+  class(res) <- "CytosignalIntrDEG"
+  return(res)
 }
