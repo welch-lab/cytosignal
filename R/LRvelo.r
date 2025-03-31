@@ -120,11 +120,11 @@ imputeNicheVelo.CytoSignal <- function(
 		stop("Intr index out of dge bounds.")
 	}
 
-	lig.index = facToIndex(lig.fac)
-	recep.index = facToIndex(recep.fac)
+	lig.index <- facToIndex(lig.fac)
+	recep.index <- facToIndex(recep.fac)
 
 	# compute velos
-	res.mtx = inferVeloLR_cpp(
+	res.mtx <- inferVeloLR_cpp(
 		unname(as.matrix(dge.lig)),
 		unname(as.matrix(dge.recep)),
 		unname(as.matrix(dge.lig.velo)),
@@ -133,8 +133,8 @@ imputeNicheVelo.CytoSignal <- function(
 		recep.index[[1]], recep.index[[2]]
 	)
 
-	dimnames(res.mtx) = list(colnames(dge.lig), levels(lig.fac))
-	res.mtx = Matrix(res.mtx, sparse = T)
+	dimnames(res.mtx) <- list(colnames(dge.lig), levels(lig.fac))
+	res.mtx <- Matrix::Matrix(res.mtx, sparse = T)
 
 	return(res.mtx)
 }

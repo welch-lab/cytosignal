@@ -120,10 +120,10 @@ plotVelo(vcs, intr.use, slot.use = "GauEps-Raw", pt.size = 0.2, arrow.width = .1
 
 ### Combination plots of 3D velocity, gene expression, LRscore and cluster annotation
 
-We provide a function named `plotSignif2` for making a general combination figure. Specify `edge = TRUE` and `velo = TRUE` to include the 3D edge plot and the velocity estimates besides the gene expression and LRscore. 
+We provide a function named `plotSignif` for making a general combination figure. Specify `edge = TRUE` and `velo = TRUE` to include the 3D edge plot and the velocity estimates besides the gene expression and LRscore. 
 
 ```{r signif, fig.width=9, fig.height=10}
-plotSignif2(vcs, intr = intr.use, slot.use = "GauEps-Raw", return.plot = TRUE, 
+plotSignif(vcs, intr = intr.use, slot.use = "GauEps-Raw", return.plot = TRUE, 
             edge = TRUE, velo = TRUE, pt.size = 0.3)
 ```
 
