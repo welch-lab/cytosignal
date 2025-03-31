@@ -2,10 +2,11 @@
 % Please edit documentation in R/select_gene.R
 \name{inferIntrDEG}
 \alias{inferIntrDEG}
-\title{Infer significant genes for each interaction}
+\title{Infer significant genes (or TFs) for each interaction}
 \usage{
 inferIntrDEG(
   object,
+  TFs = NULL,
   intr = NULL,
   slot.use = NULL,
   signif.use = NULL,
@@ -20,10 +21,13 @@ inferIntrDEG(
 \item{object}{A \code{Cytosignal} object with \code{\link{inferIntrScore}}
 already run.}
 
+\item{TFs}{Optional. A character vector specifying transcription factors or
+marker genes to be used directly without performing Wilcoxon tests. If
+provided, the same set of genes will be used for all interactions.}
+
 \item{intr}{Specify interactions to be used. A vector of either the unique
 ID of interactions or the numeric rank indices. Available IDs can be shown
-with \code{showIntr(object)}. Availability of an interaction depends on the
-LRscore slot to be used as well as the significance metric to be used.}
+with \code{showIntr(object)}.}
 
 \item{slot.use}{The LRscore type to be used. See vignette for explanation.}
 
@@ -31,44 +35,40 @@ LRscore slot to be used as well as the significance metric to be used.}
 explanation.}
 
 \item{num.per.choose}{The maximum number of genes to be chosen for each
-wilcoxon test. A test happens for each interaction and each cell type.
-Default \code{50}.}
+Wilcoxon test (ignored if \code{TFs} is provided). Default \code{50}.}
 
 \item{alpha.test}{A sequence of alpha values to be tested for the elastic net
 regression model. The best alpha value will be chosen based on the smallest
-loss. Larger alpha values result in less final selection. Default
+loss. Larger alpha values result in fewer selected features. Default
 \code{seq(0.5, 1, 0.1)}.}
 
-\item{seed}{Random seed for controlling the cross validation. Default
-\code{1}.}
+\item{seed}{Random seed for cross-validation. Default \code{1}.}
 
-\item{minCell}{Minimum number of cells where a gene is expressed to be
-considered. Default \code{50}.}
+\item{minCell}{Minimum number of cells in which a gene must be expressed to
+be considered. Default \code{50}.}
 
 \item{verbose}{Whether to print progress messages. Default \code{TRUE}.}
 }
 \value{
-list object, each element is the result for each interaction. Each
-interaction result is a list object containing the following entries:
+A list of results, one for each interaction, with the following entries:
 \itemize{
-\item{\code{glmnet_model} - A "cv.glmnet" object, the regression model.}
-\item{\code{score_refine} - A 1-column matrix of refined LR scores of this
-interaction in each cell.}
-\item{\code{coef} - A matrix of coefficients of the regression model.}
-\item{\code{sign_clusters} - A character vector of significant clusters in
-selected by the model.}
-\item{\code{sign_genes} - A character vector of significant genes selected by
-the model.}
-\item{\code{alpha} - The alpha value used for the final chosen model.}
-\item{\code{slot.use} - The LRScore type used for this analysis.}
-\item{\code{signif.use} - The significance metric used for this analysis.}
+\item{\code{glmnet_model} - A "cv.glmnet" object (the fitted model).}
+\item{\code{score_refine} - A 1-column matrix of refined LR scores.}
+\item{\code{coef} - The coefficient matrix from the model.}
+\item{\code{sign_clusters} - A character vector of selected clusters.}
+\item{\code{sign_genes} - A character vector of selected genes or TFs.}
+\item{\code{alpha} - The alpha value used for the final model.}
+\item{\code{slot.use} - The LRScore slot used.}
+\item{\code{signif.use} - The significance metric used.}
 }
 }
 \description{
-This function performs wilcoxon one-sided test for each cell type, between
-cells enriched with an interaction against other cells. The top significant
-genes are selected for each interaction. The expression profile of the
-selected genes, together with the cell type variable, are then feeded into a
-regression model for further refinement. This analysis infers the significant
-genes for each interaction, and refines the LRScore using the selected genes.
+This function infers key genes associated with cell–cell interactions by
+performing gene selection followed by regularized regression modeling.
+By default, for each cell type and interaction, a Wilcoxon one-sided test is
+used to identify the most significant genes, and the expression of these
+genes is used to refine LR scores via elastic net regression.
+Alternatively, the user can provide a fixed list of transcription factors
+(TFs) to bypass gene selection and directly evaluate their predictive power
+for each interaction.
 }

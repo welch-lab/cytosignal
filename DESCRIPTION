@@ -31,6 +31,7 @@ Imports:
   rlang
 Suggests:
   cowplot,
+  hdf5r,
   httr,
   jsonlite,
   patchwork,
@@ -40,7 +41,11 @@ Suggests:
   png,
   pheatmap,
   gprofiler2,
-  knitr
+  knitr,
+  Seurat (>= 5.0.0),
+  SeuratObject (>= 5.0.0),
+  SingleCellExperiment,
+  SummarizedExperiment
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

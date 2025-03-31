@@ -1,3 +1,4 @@
+#################################### Seurat ####################################
 #' Conversion between CytoSignal object and Seurat object
 #' @description
 #' Converts a CytoSignal object to a Seurat object or from a Seurat object to a
@@ -158,6 +159,7 @@ SeuratToCS <- function(
     )
 }
 
+################################# AnnData/H5AD #################################
 #' Conversion between CytoSignal object and AnnData object in H5AD file
 #' @description
 #' Extract data from H5AD file to a CytoSignal object or write a CytoSignal
@@ -377,44 +379,6 @@ H5ADToCS <- function(filename, clusterKey, layer = "X", spatialKey = "spatial") 
     return(cs)
 }
 
-.checkDep <- function(pkgs, version = NULL) {
-    for (i in seq_along(pkgs)) {
-        pkg <- pkgs[i]
-        if (!requireNamespace(pkg, quietly = TRUE)) {
-            stop("Package ", pkg, " is required but not installed.")
-        }
-        if (!is.null(version[i])) {
-            hasVer <- utils::packageVersion(pkg)
-            requiredVer <- package_version(version[i])
-            if (hasVer < requiredVer) {
-                stop("Package ", pkg, " version ", version[i], " or higher is required.")
-            }
-        }
-    }
-}
-
-makeSignifMat <- function(res, spotNames, intrNames = NULL) {
-        # Here, res is a list, where each element is a character vector of
-        # spot IDs that are significant for a given interaction.
-        allIntr <- names(res)
-        # intrNames <- intrNames %||% allIntr
-        intrNames <- if (!is.null(intrNames)) intrNames else allIntr
-        sparseIJ <- list()
-        for (intr in allIntr) {
-            IJ <- data.frame(
-                i = rep(match(intr, intrNames), length(res[[intr]])),
-                j = match(res[[intr]], spotNames)
-            )
-            sparseIJ[[intr]] <- IJ
-        }
-        sparseIJ <- do.call(rbind, sparseIJ)
-        Matrix::sparseMatrix(
-            i = sparseIJ$i, j = sparseIJ$j, x = 1,
-            dims = c(length(intrNames), length(spotNames)),
-            dimnames = list(intrNames, spotNames), repr = "C"
-        )
-}
-
 .writeMatrixToH5AD <- function(
         x,
         dfile,
@@ -612,5 +576,180 @@ makeSignifMat <- function(res, spotNames, intrNames = NULL) {
             cset = hdf5r::h5const$H5T_CSET_UTF8
         ),
         ascii7 = hdf5r::H5T_STRING$new(size = 7L)
+    )
+}
+
+###################### BioConductor/SingleCellExperiment #######################
+
+#' Conversion between CytoSignal object and SingleCellExperiment object
+#' @description
+#' Converts a CytoSignal object to a SingleCellExperiment (SCE) object or from a
+#' SCE object to a CytoSignal object.
+#' @rdname csToSCE
+#' @export
+#' @param object A CytoSignal object or a Seurat object.
+#' @return
+#' \itemize{
+#' \item {
+#' \code{SCEToCS} returns a CytoSignal object that includes only the
+#' raw counts, coordinates, and cluster identities of the spatial assay.
+#' }
+#'
+#' \item {
+#' \code{csToSCE} returns a SingleCellExperiment object. The main experiment
+#' stores the transcriptomics data with the following information:
+#' \itemize{
+#'   \item{\code{assay(sce, 'counts')} - The raw counts.}
+#'   \item{\code{colData(sce)} - The metadata table for spots, only containing
+#'   column \code{'clusters'}.}
+#'   \item{\code{reducedDim(sce, 'spatial')} - The spatial coordinates.}
+#' }
+#' The CytoSignal analysis results are mainly stored in alternative experiments.
+#' For example, for the inference made with GauEps-Raw model will be stored in
+#' \code{altExp(sce, 'GauEps-Raw')}, with the following information:
+#' \itemize{
+#'   \item{\code{assay(altExp(sce, 'GauEps-Raw'), 'lrscore')} - The LR-score
+#'   matrix per diffusion-dependent interaction by spots.}
+#'   \item{\code{assay(altExp(sce, 'GauEps-Raw'), 'isSignif.spx')} - A binary
+#'   sparse matrix of the same dimensionality, where a 1-valued entry indicates
+#'   that the interaction is significant at the spot.}
+#'   \item{\code{rowData(altExp(sce, 'GauEps-Raw'))} - The interaction metadata
+#'   table. Column \code{'intr.name'} stores the interpretable interaction
+#'   names. The other columns stores the ranking of the interactions at
+#'   different significance inferrence levels.}
+#'   \item{\code{reducedDim(altExp(sce, 'GauEps-Raw'), 'spatial')} - A redundant
+#'   copy of the spatial coordinates, for convenience.}
+#' }
+#' }
+#' }
+csToSCE <- function(object) {
+    if (!inherits(object, "CytoSignal")) stop("Input object must be a CytoSignal object.")
+    .checkDep(c("SingleCellExperiment"))
+    loc <- object@cells.loc
+    cluster <- object@clusters
+    raw.counts <- object@raw.counts
+    se.rna <- SingleCellExperiment::SingleCellExperiment(
+        assays = list(counts = raw.counts),
+        colData = data.frame(clusters = cluster, row.names = colnames(raw.counts)),
+        mainExpName = 'RNA',
+        reducedDims = list(spatial = loc)
+    )
+
+    lrscores <- names(object@lrscore)
+    lrscores <- lrscores[lrscores != "default"]
+    altExpList <- list()
+    for (scoreName in lrscores) {
+        scoreMat <- t(object@lrscore[[scoreName]]@score)
+        allIntrs <- rownames(scoreMat)
+        signifList <- object@lrscore[[scoreName]]@res.list
+        resUse <- names(signifList)
+        resUse <- resUse[startsWith(resUse, "result.")]
+        signifList <- signifList[resUse]
+        names(signifList) <- sprintf('isSignif.%s', gsub('result.', '', resUse))
+        signifMats <- lapply(signifList, makeSignifMat,
+                             spotNames = colnames(raw.counts),
+                             intrNames = allIntrs)
+        signifRanks <- lapply(signifList, function(res) {
+            match(allIntrs, names(res))
+        })
+        names(signifRanks) <- gsub('isSignif', 'result', resUse)
+        rd <- do.call(data.frame, c(
+            list(intr.name = getIntrNames(object, allIntrs)),
+            signifRanks
+        ))
+        se.lr <- SingleCellExperiment::SingleCellExperiment(
+            assays = c(list(lrscore = scoreMat), signifMats),
+            rowData = rd,
+            reducedDims = list(spatial = loc)
+        )
+        altExpList[[scoreName]] <- se.lr
+    }
+
+    SingleCellExperiment::altExps(se.rna) <- altExpList
+    return(se.rna)
+}
+
+#' @rdname csToSCE
+#' @export
+#' @param coords Name of the \code{reducedDim} in the SCE object to get spatial
+#' coordinates. Required.
+#' @param assay Name of a SCE assay to extract raw count matrix from. Default
+#' \code{"counts"}
+#' @param clusters Name of the metadata variable in the SCE object
+#' \code{colData} that contains the cluster identities of each spot. Default
+#' \code{NULL} does not pull anything out.
+SCEToCS <- function(
+        object,
+        coords,
+        assay = 'counts',
+        clusters = NULL
+) {
+    if (!inherits(object, "SingleCellExperiment"))
+        stop("Input object must be a SingleCellExperiment object.")
+    .checkDep(c("SingleCellExperiment", "SummarizedExperiment"))
+    if (!coords %in% SingleCellExperiment::reducedDimNames(object)) {
+        avail <- SingleCellExperiment::reducedDimNames(object)
+        availTxt <- paste(paste0('"', avail, '"'), collapse = ', ')
+        stop('Spatial coordinates "', coords, '" not found in the ',
+             'SingleCellExperiment object. Available ones are: ', availTxt)
+    }
+    if (!assay %in% SummarizedExperiment::assayNames(object)) {
+        avail <- SummarizedExperiment::assayNames(object)
+        availTxt <- paste(paste0('"', avail, '"'), collapse = ', ')
+        stop('Assay "', assay, '" is not found in the SingleCellExperiment ',
+             'object. Available ones are: ', availTxt)
+    }
+    if (!is.null(clusters)) {
+        if (!clusters %in% names(SummarizedExperiment::colData(object))) {
+            avail <- names(SummarizedExperiment::colData(object))
+            availTxt <- paste(paste0('"', avail, '"'), collapse = ', ')
+            stop('Cluster variable "', clusters, '" is not found in the ',
+                 'metadata of the SingleCellExperiment object. Available ones ',
+                 'are: ', availTxt)
+        }
+    }
+    dge <- SummarizedExperiment::assay(object, assay)
+    loc <- SingleCellExperiment::reducedDim(object, coords)
+    clusters <- if (is.null(clusters)) NULL else SummarizedExperiment::colData(object)[[clusters]]
+    createCytoSignal(raw.data = dge, cells.loc = loc, clusters = clusters)
+}
+
+######################### Universal utility functions #########################
+
+.checkDep <- function(pkgs, version = NULL) {
+    for (i in seq_along(pkgs)) {
+        pkg <- pkgs[i]
+        if (!requireNamespace(pkg, quietly = TRUE)) {
+            stop("Package ", pkg, " is required but not installed.")
+        }
+        if (!is.null(version[i])) {
+            hasVer <- utils::packageVersion(pkg)
+            requiredVer <- package_version(version[i])
+            if (hasVer < requiredVer) {
+                stop("Package ", pkg, " version ", version[i], " or higher is required.")
+            }
+        }
+    }
+}
+
+makeSignifMat <- function(res, spotNames, intrNames = NULL) {
+    # Here, res is a list, where each element is a character vector of
+    # spot IDs that are significant for a given interaction.
+    allIntr <- names(res)
+    # intrNames <- intrNames %||% allIntr
+    intrNames <- if (!is.null(intrNames)) intrNames else allIntr
+    sparseIJ <- list()
+    for (intr in allIntr) {
+        IJ <- data.frame(
+            i = rep(match(intr, intrNames), length(res[[intr]])),
+            j = match(res[[intr]], spotNames)
+        )
+        sparseIJ[[intr]] <- IJ
+    }
+    sparseIJ <- do.call(rbind, sparseIJ)
+    Matrix::sparseMatrix(
+        i = sparseIJ$i, j = sparseIJ$j, x = 1,
+        dims = c(length(intrNames), length(spotNames)),
+        dimnames = list(intrNames, spotNames), repr = "C"
     )
 }
