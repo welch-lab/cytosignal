@@ -1,0 +1,131 @@
+---
+title: "Differential signaling interaction analysis across multiple datasets"
+author: "Yichen Wang"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Differential signaling interaction analysis across multiple datasets}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+CytoSignal provides quantitative inference on ligand-receptor interactions at cell/spot level within a single spatial transcriptomics dataset, with dedicated modeling to diffusion-dependent and contact-dependent molecules. This has been demonstrated in the [basic tutorial](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/cytosignal.html). 
+
+In this tutorial, we further extend our analysis to combine covariates contributed from multiple datasets. We use a negative binomial regression model to estimate the effect size of each covariate on the LRscore for each interaction. This allows us to flexibly incorporate any information available, including cell type or region annotations, case/control status, replicate structure, and other covariates such as age or sex. 
+
+## Example datasets
+
+In this tutorial, we present the analysis performed on a mouse model of Parkinson's disease, which is described in our manuscript in detail. The published dataset contains Stereo-Seq data from the brains of 18 mice (9 young and 9 old) ([Kilfeather, P., et. al. *Cell Reports*, 2024](https://doi.org/10.1016/j.celrep.2024.113784)). We take the subset of 9 samples, OLD_OVX_1-5 and YOUNG_OVX_1-4, that harbor a genetic knockout that results in age-related pathology similar to Parkinson’s disease in humans. We will show how to use CytoSignal to identify ligand/receptor interactions showing significant changes in signaling activity between the young and old mouse brains.
+
+Click to download the preprocessed example dataset: [Fig5_PKdataset_sub.RDS](#) /*TODO*/
+
+Optionally, users can download the dataset with the following R commands:
+
+```{r download, eval=TRUE}
+saveDir <- tempdir()
+# Or optionally
+# saveDir <- '/path/to/your/directory'
+
+destfile <- file.path(saveDir, 'Fig5_PKdataset_sub.RDS')
+destfile <- '/Users/wangych/work/Welch_Lab/cytosignal/Fig5_PKdataset_sub.RDS' # TODO to be deleted when finished
+if (!file.exists(destfile)) {
+    download.file('https://path/to/filename.rds', destfile = destfile)
+}
+```
+
+The RDS file provided contains a `mergedCytoSignal` object, which is produced by merging 9 individual `CytoSignal` objects analyzed following the [basic tutorial](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/cytosignal.html). We directly load the prepared `mergedCytoSignal` object for convenience, while the method to create such an object is introduced in the following sub-section.
+
+```{r load}
+library(cytosignal)
+
+multics <- readRDS(destfile)
+multics
+```
+### Creating a `mergedCytoSignal` object
+
+The multi-dataset analysis starts with `CytoSignal` objects for each. Please review the [basic tutorial](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/cytosignal.html) for details on how to create these objects. The individual CytoSignal objects are not required to be fully analyzed but only preprocessing is needed, including call of functions `addIntrDB()`, `removeLowQuality()`, `changeUniprot()` and `inferEpsParams()`. 
+
+```{r fake1, eval=FALSE}
+# NOT EXECUTED, EXAMPLE ONLY
+# For each dataset
+cs1 <- createCytoSignal(
+  raw.data = raw.counts.dgCMatrix,
+  clusters = cluster.factor.named,
+  cells.loc =  spatial.coords.cell.on.row.matrix
+)
+cs1 <- addIntrDB(cs1, g_to_u, db.diff, db.cont, inter.index)
+cs1 <- removeLowQuality(cs1)
+cs1 <- changeUniprot(cs1)
+cs1 <- inferEpsParams(cs1, scale.factor = how.many.um.per.unit)
+```
+
+Assuming that we have four datasets, preprocessed and loaded as `cs1`, `cs2`, `cs3` and `cs4`. Representing conditions of two controls and two diseases. We then construct a `mergedCytoSignal` object by combining the four datasets. The function `mergeCytoSignal()` takes a list of `CytoSignal` objects and a metadata `data.frame` describing the covariates on each dataset. Preprocessing on each dataset will be automatically conducted to ensure LRscores being tested against are tuned for the negative binomial regression model. 
+
+```{r fake, eval=FALSE}
+# NOT EXECUTED, EXAMPLE ONLY
+dataset.meta <- data.frame(
+  condition = factor(c("control", "control", "disease", "disease"))#,
+  # can also include
+  # age = factor(c('young', 'old', 'young', 'old')), 
+  # ...
+)
+multics <- mergeCytoSignal(list(cs1, cs2, cs3, cs4), metadata = dataset.meta)
+```
+
+## Perform multi-dataset test with NEBULA
+
+The multi-dataset test is implemented with the function `runNEBULA()`. NEBULA is an external tool that powers the fast nagative binomial mixed model ([He, L. et. al. *Commun Biol*, 2021](https://doi.org/10.1038/s42003-021-02146-6)). The function takes the `mergedCytoSignal` object as an input and test over one or more covariates specified with argument `covariates`. In this example, we test with `covariates = c('clusters', 'age')`, which means we will test the effect of each cell type and each age class on the LRscores of the interactions. Argument `cpc_thresh` sets a cutoff on the total sum of one interaction divided by the number of all cells/spots in the object. We set a low `cpc_thresh` value here to have as many interactions to be tested as possible. 
+
+```{r nebula, eval=FALSE}
+multics <- runNEBULA(multics, covariates = c('clusters', 'age'), cpc_thresh = 0.001, ncore = 4)
+```
+
+```{r loadResult, include=FALSE}
+multics <- readRDS('~/work/Welch_Lab/cytosignal/Fig5_PKdataset_sub_analyzed.RDS')
+```
+
+During the test, categorical variables will be decomposed to as many binary variables as the number of classes minus one, while continuous variables will be treated as is. There will be a statistics table generated for each variable. To show all available variable names:
+
+```{r showCov}
+showCov(multics)
+```
+
+To fetch the statistics table for a specific variable shown above (e.g. `"age_YOUNG"`, standing for class "YOUNG" in original covariate "age"), for diffusion-dependent interactions (use slot `diff.results` here, `cont.results` for contact-dependent ones), users need to access the `diff.results` slot and fetch the item `"age_YOUNG"`. Below is an example of showing the top 5 significant interactions affected by the variable `"age_YOUNG"`.
+
+```{r fetchTable}
+diff_age_YOUNG <- multics@diff.results$age_YOUNG
+diff_age_YOUNG[order(diff_age_YOUNG$padj)[1:5],]
+```
+
+## Visualize the results
+
+We provide function `plotNebulaVolcano()` to visualize all interactions affected by a single variable on a volcano plot. Here we separately make the volcano plots for diffusion-dependent and contact-dependent interactions. This function also features interactive browser mode, powered by Plotly, when setting `interactive = TRUE`. 
+
+```{r volcano, fig.align='center', fig.width=6, fig.height=5}
+plotNebulaVolcano(
+  multics, covariate = 'age_YOUNG', intr.type = 'diff', 
+  fdrThresh = 0.05, logfcThresh = 0.1, interactive = FALSE
+)
+plotNebulaVolcano(
+  multics, covariate = 'age_YOUNG', intr.type = 'cont', 
+  fdrThresh = 0.05, logfcThresh = 0.1, interactive = FALSE
+)
+```
+
+Positive logFC values indicate up-regulated signaling within the class specified by the variable. In the example above, interaction 'OSTP-CD44', a.k.a. Spp1-Cd44 signaling in mouse, is tested with negative logFC value and high -log10(padj). This indicates its significant up-regulation in non-YOUNG group, which is "OLD". This observation of increased signaling activity in the old mice is consistent with the finding reported in the original study.
+
+Furthermore, we also provide a faceted bubble plot to show the result of all variables. This can be helpful for quickly identifying the variable that has the most differentially signaling interactions.
+
+```{r volcanoAll, fig.align='center', fig.width=9, fig.height=4}
+plotNebulaAll(multics, intr.type = 'diff')
+plotNebulaAll(multics, intr.type = 'cont')
+```

@@ -30,22 +30,24 @@ Imports:
   RcppArmadillo,
   rlang
 Suggests:
-  cowplot,
-  hdf5r,
-  httr,
-  jsonlite,
-  patchwork,
-  scattermore,
-  stringi,
-  plot3D,
-  png,
-  pheatmap,
-  gprofiler2,
-  knitr,
-  Seurat (>= 5.0.0),
-  SeuratObject (>= 5.0.0),
-  SingleCellExperiment,
-  SummarizedExperiment
+    cowplot,
+    hdf5r,
+    httr,
+    jsonlite,
+    nebula,
+    patchwork,
+    scattermore,
+    stringi,
+    plot3D,
+    png,
+    pheatmap,
+    gprofiler2,
+    knitr,
+    Seurat (>= 5.0.0),
+    SeuratObject (>= 5.0.0),
+    SingleCellExperiment,
+    SummarizedExperiment,
+    rmarkdown
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

@@ -8,8 +8,8 @@
 #' Please use \code{\link{mergeCytoSignal}()} to create a
 #' \code{mergedCytoSignal} object
 #' @slot metadata A data.frame with spot/cell level metadata covariates. Column
-#' name "dataset", "originalID", "clusters", "x" and "y" are reserved for
-#' downstream analysis and object validity.
+#' name "dataset", "originalID", "clusters", "total_counts", "x" and "y" are
+#' reserved for downstream analysis and object validity.
 #' @slot diff.lrscore A sparse matrix (dgCMatrix) of LR scores for
 #' diffusion-dependent interactions, across all datasets.
 #' @slot diff.results A list of data.frame objects, each containing the results
@@ -161,6 +161,39 @@ names.mergedCytoSignal <- function(x) {
 .DollarNames.mergedCytoSignal <- function(x, pattern = "") {
     grep(pattern, colnames(x@metadata), value = TRUE)
 }
+
+#' Subset a mergedCytoSignal obejct
+#' @description
+#' Subset a \linkS4class{mergedCytoSignal} object by cells/spots. Mainly for
+#' conducting analyses over a subset of datasets within the current object.
+#' @param x A \linkS4class{mergedCytoSignal} object
+#' @param subset logical expression indicating the cell/spots to keep.
+#' @param drop passed on to \code{[} indexing operator.
+#' @param ... Not used
+#' @return A \linkS4class{mergedCytoSignal} object with metadata and LRscores
+#' for only selected cells/spots. All test results and modeling setup are
+#' cleaned.
+#' @method subset mergedCytoSignal
+#' @export
+#' @examples
+#' \dontrun{
+#' submultics <- subset(
+#'     x = multics,
+#'     subset = multics$dataset %in% c("disease1", "disease2"),
+#'     drop = TRUE
+#' )
+#' }
+subset.mergedCytoSignal <- function(x, subset, drop = FALSE, ...) {
+  x@metadata <- x@metadata[subset, , drop = drop]
+  x@diff.lrscore <- x@diff.lrscore[, subset, drop = drop]
+  x@cont.lrscore <- x@cont.lrscore[, subset, drop = drop]
+
+  x@diff.results <- list()
+  x@cont.results <- list()
+  x@cov.use <- list()
+  return(x)
+}
+
 
 .valid.mergedCytoSignal <- function(object) {
     # Check if spot IDs are identical from difflrscore, contlrscore and metadata
@@ -322,7 +355,7 @@ mergeCytoSignal <- function(
         newids <- paste0(sid[i], "_", ids)
         clusters[[i]] <- obj@clusters
         locations[[i]] <- obj@cells.loc
-
+        totalcounts[[i]] <- Matrix::colSums(obj@raw.counts)
         # Preprocessing
         message(Sys.time(), " - Preprocessing dataset: ", i)
 
@@ -382,7 +415,7 @@ mergeCytoSignal <- function(
     meta.full <- metadata[rep(seq_along(originalIDs), sizes), , drop = FALSE]
     meta.full$originalID <- unlist(originalIDs, use.names = FALSE)
     rownames(meta.full) <- paste0(meta.full$dataset, "_", meta.full$originalID)
-
+    meta.full$total_counts <- unlist(totalcounts, use.names = FALSE)
     clusterUnion <- Reduce(union, lapply(clusters, levels))
     meta.full$clusters <- factor(NA, levels = clusterUnion)
     meta.full$x <- NA
@@ -610,14 +643,18 @@ runNEBULA <- function(
     if (isTRUE(verbose)) {
         message(Sys.time(), " - Running on Diffusion-dependent interactions...")
     }
+    # diff.res <- nebula::nebula(object@diff.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose,
+    #                            offset = Matrix::colSums(object@diff.lrscore), cpc = cpc_thresh)
     diff.res <- nebula::nebula(object@diff.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose,
-                               offset = Matrix::colSums(object@diff.lrscore), cpc = cpc_thresh)
+                               offset = object@metadata[['total_counts']], cpc = cpc_thresh)
 
     if (isTRUE(verbose)) {
         message(Sys.time(), " - Running on Contact-dependent interactions...")
     }
+    # cont.res <- nebula::nebula(object@cont.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose,
+    #                            offset = Matrix::colSums(object@cont.lrscore), cpc = cpc_thresh)
     cont.res <- nebula::nebula(object@cont.lrscore, object$dataset, pred = model, ncore=ncore, verbose = verbose,
-                               offset = Matrix::colSums(object@cont.lrscore), cpc = cpc_thresh)
+                               offset = object@metadata[['total_counts']], cpc = cpc_thresh)
 
     diff.res.summary <- diff.res$summary
     cont.res.summary <- cont.res$summary
