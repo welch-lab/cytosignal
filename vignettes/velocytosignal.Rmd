@@ -30,7 +30,9 @@ As an extension to CytoSignal, we have also developed VeloCytoSignal to infer te
 
 In this tutorial, we demonstrate how to preform VeloCytoSignal on a mouse embryonic E15 brain data captured by Slide-seq V2, a spatial transcriptomic protocol at single-cell resolution. This data was originally produced in the work of [Stickels R.R. et al., 2020](https://doi.org/10.1038/s41587-020-0739-1), and is now publicly available on Single-Cell Portal via [SCP815](https://singlecell.broadinstitute.org/single_cell/study/SCP815). 
 
-To calculate RNA velocity estimates, we utilized our previously published tool, [VeloVAE](https://github.com/welch-lab/VeloVAE). VeloVAE uses gene-shared latent times to calculate much more accurate velocity estimates for individual genes than approaches that infers by single-gene. However, VeloCytoSignal is widely applicable on most kinds of RNA velocity approaches, as long as it provides the spliced ($s$) and unspliced ($u$) RNA velocity estimates in the gene-by-cell matrix format.
+To calculate RNA velocity estimates, we utilized our previously published tool, [VeloVAE](https://github.com/welch-lab/VeloVAE). However, VeloCytoSignal is widely applicable on most kinds of RNA velocity approaches, as long as it provides the spliced ($s$) and unspliced ($u$) RNA velocity estimates in the gene-by-cell matrix format.
+
+VeloVAE uses gene-shared latent times to calculate much more accurate velocity estimates for individual genes than approaches that infers by single-gene. We recommend that users follow this tutorial for the easiest way to obtain velocity estimates: [VeloVAE tutorial](https://github.com/welch-lab/VeloVAE/blob/34d86e7b5f019d4d97ea969653c397d56e38ad26/notebooks/velovae_example.ipynb)
 
 Here we provide the processed CytoSignal object and pre-calculated RNA velocity estimates.
 
