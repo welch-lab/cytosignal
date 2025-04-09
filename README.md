@@ -29,6 +29,7 @@ For usage examples and guided walkthroughs, check the vignettes directory of the
 * [Infer spatially resolved cell-cell communication signaling at cellular resolution](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/cytosignal.html)
 * [Infer spatially resolved temporal dynamics of cell-cell communication at cellular resolution](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/velocytosignal.html)
 * [Infer differentially signaling interactions across multiple datasets](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/multidata.html)
+* [Interoperate with Seurat/SingleCellExperiment/anndata](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/interoperate.html)
 
 ## License
 This project is covered under the **GNU General Public License 3.0**.
