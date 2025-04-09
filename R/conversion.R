@@ -57,10 +57,12 @@ csToSeurat <- function(object) {
             t(object@lrscore[[scoreName]]@score)
         })
         names(scoreMats) <- lrscores
-
         signifMats <- lapply(lrscores, function(scoreName) {
             signifLists <- object@lrscore[[scoreName]]@res.list
             resUse <- names(signifLists)
+            if (is.null(resUse)) {
+                return(NULL)
+            }
             resUse <- resUse[startsWith(resUse, "result.")]
             signifLists <- signifLists[resUse]
             names(signifLists) <- paste0("isSignif.", scoreName, ".", gsub("result.", "", resUse))
@@ -76,6 +78,9 @@ csToSeurat <- function(object) {
         for (scoreName in lrscores) {
             signifLists <- object@lrscore[[scoreName]]@res.list
             resUse <- names(signifLists)
+            if (is.null(resUse)) {
+                next
+            }
             resUse <- resUse[startsWith(resUse, "result.")]
             for (resName in resUse) {
                 metaName <- paste0("rank_", scoreName, "_", resName)
@@ -262,6 +267,7 @@ csToH5AD <- function(object, filename, overwrite = FALSE) {
         )
 
         signifLists <- object@lrscore[[scoreName]]@res.list
+        if (length(signifLists) == 0) next
         resUse <- names(signifLists)
         resUse <- resUse[startsWith(resUse, "result")]
         signifLists <- signifLists[resUse]
@@ -298,21 +304,23 @@ csToH5AD <- function(object, filename, overwrite = FALSE) {
 #' @rdname csToH5AD
 #' @export
 #' @param clusterKey Variable name in \code{adata.obs} that provides categorical
-#' clustering.
+#' clustering. Default \code{NULL}.
 #' @param layer Data from the H5AD file to extract. Default \code{"X"} extracts
 #' \code{adata.X}. Use \code{"raw/X"} to extract \code{adata.raw.X}. Use
 #' \code{"layers/key"} to extract layer data at \code{adata.layers['key']}.
 #' @param spatialKey Key to extract spatial coordinate matrix from
 #' \code{adata.obsm}. Default \code{"spatial"}.
-H5ADToCS <- function(filename, clusterKey, layer = "X", spatialKey = "spatial") {
+H5ADToCS <- function(filename, clusterKey = NULL, layer = "X", spatialKey = "spatial") {
     .checkDep("hdf5r")
     if (!file.exists(filename)) stop("File '", filename, "' not found.")
     adata <- hdf5r::H5File$new(filename, mode = "r")
     # Checking if specified fields exist
-    clusterKey <- match.arg(clusterKey, choices = names(adata[['obs']]))
+    if (!is.null(clusterKey)) {
+        clusterKey <- match.arg(clusterKey, choices = names(adata[['obs']]))
+    }
     spatialKey <- match.arg(spatialKey, choices = names(adata[['obsm']]))
     matOptions <- "X"
-    if (adata$exists('raw/X')) matOptions <- c(matOptions, "raw/X")
+    if (adata$exists('raw')) matOptions <- c(matOptions, "raw/X")
     if (adata$exists('layers'))
         matOptions <- c(matOptions, paste0('layers/', names(adata[['layers']])))
     layer <- match.arg(layer, choices = matOptions)
@@ -356,19 +364,24 @@ H5ADToCS <- function(filename, clusterKey, layer = "X", spatialKey = "spatial") 
     dimnames(mat) <- list(varNames, obsNames)
 
     # Load cluster key
-    clusterObj <- adata[[paste0('obs/', clusterKey)]]
-    if (inherits(clusterObj, "H5Group") &&
-        'categories' %in% names(clusterObj) &&
-        'codes' %in% names(clusterObj)) {
-        # Encoding-version 0.2.0, 'categories' and 'code' in a group for the categorical variable
-        cluster <- clusterObj[['categories']][clusterObj[['codes']][] + 1]
-        cluster <- factor(cluster, levels = clusterObj[['categories']][])
+    if (!is.null(clusterKey)) {
+        clusterObj <- adata[[paste0('obs/', clusterKey)]]
+        if (inherits(clusterObj, "H5Group") &&
+            'categories' %in% names(clusterObj) &&
+            'codes' %in% names(clusterObj)) {
+            # Encoding-version 0.2.0, 'categories' and 'code' in a group for the categorical variable
+            cluster <- clusterObj[['categories']][clusterObj[['codes']][] + 1]
+            cluster <- factor(cluster, levels = clusterObj[['categories']][])
+        } else {
+            encodingVer <- hdf5r::h5attr(clusterObj, 'encoding-version')
+            stop("adata.obs categorical encoding (version ", encodingVer,
+                 ") is not supported. Please submit an issue.")
+        }
+        names(cluster) <- obsNames
     } else {
-        encodingVer <- hdf5r::h5attr(clusterObj, 'encoding-version')
-        stop("adata.obs categorical encoding (version ", encodingVer,
-             ") is not supported. Please submit an issue.")
+        cluster <- NULL
     }
-    names(cluster) <- obsNames
+
 
     # Load location
     loc <- adata[[paste0('obsm/', spatialKey)]][,]
@@ -642,6 +655,7 @@ csToSCE <- function(object) {
         scoreMat <- t(object@lrscore[[scoreName]]@score)
         allIntrs <- rownames(scoreMat)
         signifList <- object@lrscore[[scoreName]]@res.list
+        if (length(signifList) == 0) next
         resUse <- names(signifList)
         resUse <- resUse[startsWith(resUse, "result.")]
         signifList <- signifList[resUse]

@@ -17,8 +17,8 @@ Please use \code{\link{mergeCytoSignal}()} to create a
 
 \describe{
 \item{\code{metadata}}{A data.frame with spot/cell level metadata covariates. Column
-name "dataset", "originalID", "clusters", "x" and "y" are reserved for
-downstream analysis and object validity.}
+name "dataset", "originalID", "clusters", "total_counts", "x" and "y" are
+reserved for downstream analysis and object validity.}
 
 \item{\code{diff.lrscore}}{A sparse matrix (dgCMatrix) of LR scores for
 diffusion-dependent interactions, across all datasets.}

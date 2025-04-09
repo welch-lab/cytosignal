@@ -7,7 +7,7 @@
 \usage{
 csToH5AD(object, filename, overwrite = FALSE)
 
-H5ADToCS(filename, clusterKey, layer = "X", spatialKey = "spatial")
+H5ADToCS(filename, clusterKey = NULL, layer = "X", spatialKey = "spatial")
 }
 \arguments{
 \item{object}{A CytoSignal object.}
@@ -18,7 +18,7 @@ H5ADToCS(filename, clusterKey, layer = "X", spatialKey = "spatial")
 \code{FALSE}.}
 
 \item{clusterKey}{Variable name in \code{adata.obs} that provides categorical
-clustering.}
+clustering. Default \code{NULL}.}
 
 \item{layer}{Data from the H5AD file to extract. Default \code{"X"} extracts
 \code{adata.X}. Use \code{"raw/X"} to extract \code{adata.raw.X}. Use

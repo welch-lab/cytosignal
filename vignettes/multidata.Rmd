@@ -2,7 +2,12 @@
 title: "Differential signaling interaction analysis across multiple datasets"
 author: "Yichen Wang"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      toc_collapsed: false
+    toc_depth: 3
 vignette: >
   %\VignetteIndexEntry{Differential signaling interaction analysis across multiple datasets}
   %\VignetteEngine{knitr::rmarkdown}
