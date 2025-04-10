@@ -132,7 +132,8 @@ findNNDT <- function(
     mode = c("weight_sum_2", "weight_sum_1"),
     imp.name = "contact"
 ) {
-  imp.name <- imp.name %||% "contact"
+  # imp.name <- imp.name %||% "contact"
+  imp.name <- if (!is.null(imp.name)) imp.name else "contact"
   max.r <- object@parameters$r.diffuse.scale
   mode <- match.arg(mode)
   if (!is.numeric(max.r)) stop("Numeric `max.r` must be provided. Default can be inferred with `inferEpsParams()`.")
