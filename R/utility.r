@@ -1,3 +1,215 @@
+#' Process Ligand–Receptor Data Without Assigning New Random CPI-CC IDs
+#'
+#' This function processes user-supplied ligand–receptor data frames (ligands, receptors, and interaction types) and a gene-to-UniProt mapping data frame. 
+#' Rather than generating new CPI-CC IDs, it retains the existing IDs (assumed to be in the first column of each input data frame). The function also 
+#' removes duplicated interactions that have the exact same sets of ligands and receptors, as well as the same interaction type.
+#'
+#' @param interaction_type_df A \code{data.frame} with columns \code{c("cpi_cc_id", "interaction_type")}.
+#' @param ligands_df A \code{data.frame} where the first column is \code{cpi_cc_id} and subsequent columns are ligand genes.
+#' @param receptors_df A \code{data.frame} where the first column is \code{cpi_cc_id} and subsequent columns are receptor genes.
+#' @param g_to_u A \code{data.frame} with columns \code{c("gene_name", "uniprot")}.
+#'
+#' @details
+#' \enumerate{
+#'   \item Merges the provided data frames by \code{cpi_cc_id} into a single data frame.
+#'   \item Builds a "signature" for each interaction by sorting the ligand genes, sorting the receptor genes, 
+#'         and combining them with the interaction type.
+#'   \item Removes duplicate rows with matching signatures, retaining only the first occurrence.
+#'   \item Preserves the user-provided \code{cpi_cc_id} rather than assigning new random IDs.
+#' }
+#'
+#' @return A list with three elements:
+#' \describe{
+#'   \item{db.diff}{A \code{data.frame} containing diffusion-dependent interactions 
+#'                  (ligands, receptors, and factor mappings from UniProt IDs to CPI-IDs).}
+#'   \item{db.cont}{A \code{data.frame} containing contact-dependent interactions, similarly structured.}
+#'   \item{intr.index}{A \code{data.frame} with columns \code{"id_cp_interaction"}, 
+#'                    \code{"partner_a"}, and \code{"partner_b"}.}
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' result <- process_LR_data(
+#'   interaction_type_df,  # data.frame with columns [cpi_cc_id, interaction_type]
+#'   ligands_df,           # data.frame with first column = cpi_cc_id, subsequent columns = ligand genes
+#'   receptors_df,         # data.frame with first column = cpi_cc_id, subsequent columns = receptor genes
+#'   g_to_u                # data.frame with columns [gene_name, uniprot]
+#' )
+#' }
+#'
+#' @export
+formatLRDB <- function(interaction_type_df, ligands_df, receptors_df, g_to_u) {
+  ############################
+  # 1) Basic Merging (base R)
+  ############################
+  
+  # For consistency, rename columns so that the first column is cpi_cc_id
+  # and the second column in the interaction_type_df is "interaction_type".
+  colnames(interaction_type_df)[1:2] <- c("cpi_cc_id", "interaction_type")
+  colnames(ligands_df)[1] <- "cpi_cc_id"
+  colnames(receptors_df)[1] <- "cpi_cc_id"
+  
+  # Manually merge data frames by cpi_cc_id using base R's merge.
+  merged_df <- merge(interaction_type_df, ligands_df, by = "cpi_cc_id", all.x = TRUE)
+  merged_df <- merge(merged_df, receptors_df, by = "cpi_cc_id", all.x = TRUE)
+  
+  # Identify columns for ligands and receptors
+  ligand_cols <- colnames(ligands_df)[-1]  # all except first col
+  receptor_cols <- colnames(receptors_df)[-1]
+  
+  #####################################
+  # 2) Gather ligand/receptor genes row by row,
+  #    build a signature, then remove duplicates.
+  #####################################
+  
+  n_rows <- nrow(merged_df)
+  ligand_genes_raw_list <- vector("list", n_rows)
+  receptor_genes_raw_list <- vector("list", n_rows)
+  signature_vec <- character(n_rows)
+  
+  gather_non_na <- function(row_data, cols) {
+    vals <- row_data[cols]
+    vals <- vals[!is.na(vals)]
+    as.character(vals)
+  }
+  
+  for (i in seq_len(n_rows)) {
+    row_data <- merged_df[i, ]
+    
+    # gather ligand genes
+    lig_vec <- gather_non_na(row_data, ligand_cols)
+    # gather receptor genes
+    rec_vec <- gather_non_na(row_data, receptor_cols)
+    
+    ligand_genes_raw_list[[i]] <- lig_vec
+    receptor_genes_raw_list[[i]] <- rec_vec
+    
+    # sort them for signature
+    lig_sorted <- paste(sort(lig_vec), collapse = "|")
+    rec_sorted <- paste(sort(rec_vec), collapse = "|")
+    type_val <- as.character(row_data$interaction_type)
+    
+    signature_vec[i] <- paste(lig_sorted, rec_sorted, type_val, sep = "##")
+  }
+  
+  # Mark duplicates (keep the first occurrence)
+  dup_mask <- duplicated(signature_vec)
+  keep_idx <- !dup_mask
+  
+  merged_df <- merged_df[keep_idx, ]
+  ligand_genes_raw_list <- ligand_genes_raw_list[keep_idx]
+  receptor_genes_raw_list <- receptor_genes_raw_list[keep_idx]
+  
+  ##########################
+  # 3) Build output structures
+  ##########################
+  
+  # We'll define a helper function to map gene -> uniprot from g_to_u
+  gene_to_uniprot <- function(gene) {
+    match_idx <- match(gene, g_to_u$gene_name)
+    if (!is.na(match_idx)) {
+      g_to_u$uniprot[match_idx]
+    } else {
+      NA
+    }
+  }
+  
+  # browser()
+  # create empty structures for diffusion- and contact-dependent data
+  db.diff <- list(ligands = factor(), receptors = factor(), combined = factor())
+  db.cont <- list(ligands = factor(), receptors = factor(), combined = factor())
+  
+  intr.index <- data.frame(
+    id_cp_interaction = character(0),
+    partner_a = character(0),
+    partner_b = character(0),
+    stringsAsFactors = FALSE
+  )
+  
+  # helper function to append factors
+  assign_factors <- function(uniprot_vec, cpi_id, existing_factor) {
+    new_factor <- factor(
+      rep(cpi_id, length(uniprot_vec)),
+      levels = unique(c(levels(existing_factor), cpi_id))
+    )
+    names(new_factor) <- uniprot_vec
+    c(existing_factor, new_factor)
+  }
+  
+  # iterate over each deduplicated row
+  n_dedup <- nrow(merged_df)
+  for (i in seq_len(n_dedup)) {
+    cpi_id_val <- as.character(merged_df$cpi_cc_id[i])
+    type_val <- as.character(merged_df$interaction_type[i])
+    
+    ligand_genes <- ligand_genes_raw_list[[i]]
+    receptor_genes <- receptor_genes_raw_list[[i]]
+    
+    # map genes to uniprot
+    ligand_uniprot <- sapply(ligand_genes, gene_to_uniprot)
+    receptor_uniprot <- sapply(receptor_genes, gene_to_uniprot)
+    
+    # Build partner_a, partner_b
+    # If there's only 1 ligand gene, omit "-ligand" suffix
+    if (length(ligand_genes) == 1) {
+      partner_a_val <- paste(ligand_genes, collapse = "_")
+    } else {
+      partner_a_val <- paste(paste(ligand_genes, collapse = "_"), "-ligand", sep = "")
+    }
+    
+    # If there's only 1 receptor gene, omit "-receptor" suffix
+    if (length(receptor_genes) == 1) {
+      partner_b_val <- paste(receptor_genes, collapse = "_")
+    } else {
+      partner_b_val <- paste(paste(receptor_genes, collapse = "_"), "-receptor", sep = "")
+    }
+    
+    intr.index <- rbind(
+      intr.index,
+      data.frame(
+        id_cp_interaction = cpi_id_val,
+        partner_a = partner_a_val,
+        partner_b = partner_b_val,
+        stringsAsFactors = FALSE
+      )
+    )
+    
+    # assign to db.diff or db.cont based on interaction type
+    if (length(ligand_uniprot) > 0) {
+      if (type_val == "diffusion-dependent") {
+        db.diff$ligands <- assign_factors(ligand_uniprot, cpi_id_val, db.diff$ligands)
+      } else {
+        db.cont$ligands <- assign_factors(ligand_uniprot, cpi_id_val, db.cont$ligands)
+      }
+    }
+    
+    if (length(receptor_uniprot) > 0) {
+      if (type_val == "diffusion-dependent") {
+        db.diff$receptors <- assign_factors(receptor_uniprot, cpi_id_val, db.diff$receptors)
+      } else {
+        db.cont$receptors <- assign_factors(receptor_uniprot, cpi_id_val, db.cont$receptors)
+      }
+    }
+    
+    # combined factor has both ligand & receptor uniprots
+    combined_uniprots <- unique(c(ligand_uniprot, receptor_uniprot))
+    if (length(combined_uniprots) > 0) {
+      if (type_val == "diffusion-dependent") {
+        db.diff$combined <- assign_factors(combined_uniprots, cpi_id_val, db.diff$combined)
+      } else {
+        db.cont$combined <- assign_factors(combined_uniprots, cpi_id_val, db.cont$combined)
+      }
+    }
+  }
+  
+  # return final structures
+  list(
+    db.diff = db.diff,
+    db.cont = db.cont,
+    intr.index = intr.index
+  )
+}
+
 filterGene <- function(dge.raw, gene_to_uniprot, thresh = 50){
   # find intr gene index
   rownames(dge.raw) <- toupper(rownames(dge.raw))
