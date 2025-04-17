@@ -312,6 +312,7 @@ mergeCytoSignal <- function(
     originalIDs <- list()
     clusters <- list()
     locations <- list()
+    totalcounts <- list()
     # Whether an object is read from RDS. If TRUE, need to remove from memory
     # after acquiring necessary information
     read <- FALSE
