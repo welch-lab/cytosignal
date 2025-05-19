@@ -373,6 +373,10 @@ mergeCytoSignal <- function(
         # obj <- imputeLR(obj)
         obj <- imputeNiche(obj, imp.use = "GauEps_sw1", weights = "none")
 
+        if (!"Raw" %in% names(obj@imputation)){
+            obj <- findNNRaw(obj)
+        }
+        
         obj <- inferScoreLR(obj, lig.imp = "GauEps_sw1", recep.imp = "Raw",
                             norm.method = "none", intr.db.use = "diff_dep")
         diffscore <- obj@lrscore[["GauEps_sw1-Raw"]]@score
