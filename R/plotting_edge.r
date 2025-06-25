@@ -267,7 +267,7 @@ plotEdge <- function(
                          colvar = NULL, col = up.df.transp$col, alpha = 0.2,
                          colkey = FALSE, pch = use.shape, cex = pt.size,
                          plot = FALSE, add = TRUE)
-    )
+    }
     #pr <- grDevices::recordPlot()
     p1 <- plot3D::getplist()
     dev.off()
