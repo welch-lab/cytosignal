@@ -261,11 +261,13 @@ plotEdge <- function(
                      plot = FALSE, add = TRUE)
 
     # plot non-receiver cells
-    plot3D::points3D(x = up.df.transp$x, y = up.df.transp$y,
-                     z = up.df.transp$z,
-                     colvar = NULL, col = up.df.transp$col, alpha = 0.2,
-                     colkey = FALSE, pch = use.shape, cex = pt.size,
-                     plot = FALSE, add = TRUE)
+    if (nrow(up.df.transp) > 0) {
+        plot3D::points3D(x = up.df.transp$x, y = up.df.transp$y,
+                         z = up.df.transp$z,
+                         colvar = NULL, col = up.df.transp$col, alpha = 0.2,
+                         colkey = FALSE, pch = use.shape, cex = pt.size,
+                         plot = FALSE, add = TRUE)
+    )
     #pr <- grDevices::recordPlot()
     p1 <- plot3D::getplist()
     dev.off()
