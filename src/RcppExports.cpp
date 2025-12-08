@@ -11,6 +11,56 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// multiply_lr_cpp
+arma::sp_mat multiply_lr_cpp(const arma::sp_mat& impL, const arma::sp_mat& Lmap, const arma::sp_mat& impR, const arma::sp_mat& Rmap);
+RcppExport SEXP _cytosignal_multiply_lr_cpp(SEXP impLSEXP, SEXP LmapSEXP, SEXP impRSEXP, SEXP RmapSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type impL(impLSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type Lmap(LmapSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type impR(impRSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type Rmap(RmapSEXP);
+    rcpp_result_gen = Rcpp::wrap(multiply_lr_cpp(impL, Lmap, impR, Rmap));
+    return rcpp_result_gen;
+END_RCPP
+}
+// findInterval_leftOpen_cpp
+arma::uword findInterval_leftOpen_cpp(double x, const arma::vec& breaks);
+RcppExport SEXP _cytosignal_findInterval_leftOpen_cpp(SEXP xSEXP, SEXP breaksSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type breaks(breaksSEXP);
+    rcpp_result_gen = Rcpp::wrap(findInterval_leftOpen_cpp(x, breaks));
+    return rcpp_result_gen;
+END_RCPP
+}
+// perm_test_Rcpp
+arma::sp_mat perm_test_Rcpp(const arma::sp_mat& raw, const arma::vec& libSize, const arma::uvec& intrType, Rcpp::List diff_lig_NGL, Rcpp::List diff_recep_NGL, Rcpp::List diff_dtAvg_NGL, Rcpp::List diff_smooth_NGL, Rcpp::List cont_lig_NGL, Rcpp::List cont_recep_NGL, Rcpp::List cont_dtAvg_NGL, Rcpp::List cont_smooth_NGL, const arma::sp_mat& Lmap, const arma::sp_mat& Rmap, const arma::sp_mat& lrscore);
+RcppExport SEXP _cytosignal_perm_test_Rcpp(SEXP rawSEXP, SEXP libSizeSEXP, SEXP intrTypeSEXP, SEXP diff_lig_NGLSEXP, SEXP diff_recep_NGLSEXP, SEXP diff_dtAvg_NGLSEXP, SEXP diff_smooth_NGLSEXP, SEXP cont_lig_NGLSEXP, SEXP cont_recep_NGLSEXP, SEXP cont_dtAvg_NGLSEXP, SEXP cont_smooth_NGLSEXP, SEXP LmapSEXP, SEXP RmapSEXP, SEXP lrscoreSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type raw(rawSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type libSize(libSizeSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type intrType(intrTypeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type diff_lig_NGL(diff_lig_NGLSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type diff_recep_NGL(diff_recep_NGLSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type diff_dtAvg_NGL(diff_dtAvg_NGLSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type diff_smooth_NGL(diff_smooth_NGLSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type cont_lig_NGL(cont_lig_NGLSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type cont_recep_NGL(cont_recep_NGLSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type cont_dtAvg_NGL(cont_dtAvg_NGLSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type cont_smooth_NGL(cont_smooth_NGLSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type Lmap(LmapSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type Rmap(RmapSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type lrscore(lrscoreSEXP);
+    rcpp_result_gen = Rcpp::wrap(perm_test_Rcpp(raw, libSize, intrType, diff_lig_NGL, diff_recep_NGL, diff_dtAvg_NGL, diff_smooth_NGL, cont_lig_NGL, cont_recep_NGL, cont_dtAvg_NGL, cont_smooth_NGL, Lmap, Rmap, lrscore));
+    return rcpp_result_gen;
+END_RCPP
+}
 // gauss_vec_cpp
 NumericVector gauss_vec_cpp(NumericVector x, double sigma);
 RcppExport SEXP _cytosignal_gauss_vec_cpp(SEXP xSEXP, SEXP sigmaSEXP) {
@@ -21,17 +71,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
     rcpp_result_gen = Rcpp::wrap(gauss_vec_cpp(x, sigma));
     return rcpp_result_gen;
-END_RCPP
-}
-// gauss_vec_inplace_cpp
-void gauss_vec_inplace_cpp(NumericVector& x, const double sigma);
-RcppExport SEXP _cytosignal_gauss_vec_inplace_cpp(SEXP xSEXP, SEXP sigmaSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector& >::type x(xSEXP);
-    Rcpp::traits::input_parameter< const double >::type sigma(sigmaSEXP);
-    gauss_vec_inplace_cpp(x, sigma);
-    return R_NilValue;
 END_RCPP
 }
 // rep_each_cpp
@@ -104,18 +143,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// euclidean_elementwise_cpp
-NumericVector euclidean_elementwise_cpp(const arma::mat& x, const arma::mat& y);
-RcppExport SEXP _cytosignal_euclidean_elementwise_cpp(SEXP xSEXP, SEXP ySEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
-    rcpp_result_gen = Rcpp::wrap(euclidean_elementwise_cpp(x, y));
-    return rcpp_result_gen;
-END_RCPP
-}
 // cleanLRscore_sparse_cpp
 arma::sp_mat cleanLRscore_sparse_cpp(arma::uvec i, arma::uvec p, arma::colvec x, const int nrow, const int ncol);
 RcppExport SEXP _cytosignal_cleanLRscore_sparse_cpp(SEXP iSEXP, SEXP pSEXP, SEXP xSEXP, SEXP nrowSEXP, SEXP ncolSEXP) {
@@ -140,6 +167,40 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::mat& >::type loc(locSEXP);
     Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
     rcpp_result_gen = Rcpp::wrap(select_EB_rcpp2(loc, eps));
+    return rcpp_result_gen;
+END_RCPP
+}
+// gauss_vec_inplace_cpp
+void gauss_vec_inplace_cpp(NumericVector& x, const double sigma);
+RcppExport SEXP _cytosignal_gauss_vec_inplace_cpp(SEXP xSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const double >::type sigma(sigmaSEXP);
+    gauss_vec_inplace_cpp(x, sigma);
+    return R_NilValue;
+END_RCPP
+}
+// normalizeSparse_cpp
+arma::sp_mat normalizeSparse_cpp(const arma::sp_mat& x);
+RcppExport SEXP _cytosignal_normalizeSparse_cpp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(normalizeSparse_cpp(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// euclidean_elementwise_cpp
+NumericVector euclidean_elementwise_cpp(const arma::mat& x, const arma::mat& y);
+RcppExport SEXP _cytosignal_euclidean_elementwise_cpp(SEXP xSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type y(ySEXP);
+    rcpp_result_gen = Rcpp::wrap(euclidean_elementwise_cpp(x, y));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -282,17 +343,21 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_cytosignal_multiply_lr_cpp", (DL_FUNC) &_cytosignal_multiply_lr_cpp, 4},
+    {"_cytosignal_findInterval_leftOpen_cpp", (DL_FUNC) &_cytosignal_findInterval_leftOpen_cpp, 2},
+    {"_cytosignal_perm_test_Rcpp", (DL_FUNC) &_cytosignal_perm_test_Rcpp, 14},
     {"_cytosignal_gauss_vec_cpp", (DL_FUNC) &_cytosignal_gauss_vec_cpp, 2},
-    {"_cytosignal_gauss_vec_inplace_cpp", (DL_FUNC) &_cytosignal_gauss_vec_inplace_cpp, 2},
     {"_cytosignal_rep_each_cpp", (DL_FUNC) &_cytosignal_rep_each_cpp, 2},
     {"_cytosignal_meanMat_cpp", (DL_FUNC) &_cytosignal_meanMat_cpp, 3},
     {"_cytosignal_stdMat_cpp", (DL_FUNC) &_cytosignal_stdMat_cpp, 1},
     {"_cytosignal_pearson_col_cpp", (DL_FUNC) &_cytosignal_pearson_col_cpp, 2},
     {"_cytosignal_cbind_list", (DL_FUNC) &_cytosignal_cbind_list, 1},
     {"_cytosignal_rbind_list", (DL_FUNC) &_cytosignal_rbind_list, 1},
-    {"_cytosignal_euclidean_elementwise_cpp", (DL_FUNC) &_cytosignal_euclidean_elementwise_cpp, 2},
     {"_cytosignal_cleanLRscore_sparse_cpp", (DL_FUNC) &_cytosignal_cleanLRscore_sparse_cpp, 5},
     {"_cytosignal_select_EB_rcpp2", (DL_FUNC) &_cytosignal_select_EB_rcpp2, 2},
+    {"_cytosignal_gauss_vec_inplace_cpp", (DL_FUNC) &_cytosignal_gauss_vec_inplace_cpp, 2},
+    {"_cytosignal_normalizeSparse_cpp", (DL_FUNC) &_cytosignal_normalizeSparse_cpp, 1},
+    {"_cytosignal_euclidean_elementwise_cpp", (DL_FUNC) &_cytosignal_euclidean_elementwise_cpp, 2},
     {"_cytosignal_inferScoreLR_cpp", (DL_FUNC) &_cytosignal_inferScoreLR_cpp, 6},
     {"_cytosignal_inferVeloLR_cpp", (DL_FUNC) &_cytosignal_inferVeloLR_cpp, 8},
     {"_cytosignal_graphNicheLR_cpp", (DL_FUNC) &_cytosignal_graphNicheLR_cpp, 8},

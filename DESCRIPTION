@@ -11,13 +11,14 @@ Authors@R:
            email = "wayichen@umich.edu")
   )
 Description: What the package does (one paragraph).
-LinkingTo: Rcpp, RcppArmadillo, RcppProgress
+LinkingTo: Rcpp, RcppArmadillo, RcppProgress, cli
 Depends:
     methods,
     R (>= 4.0),
     stats,
     utils
 Imports:
+  cli,
   dbscan,
   RANN,
   RTriangle,
