@@ -11,7 +11,7 @@ Authors@R:
            email = "wayichen@umich.edu")
   )
 Description: Infer spatial ligand-receptor signaling in single-cell resolution,
-with modeling the diffusion- and contact dependent interactions differently. 
+    with modeling the diffusion- and contact dependent interactions differently. 
 Maintainer: Yichen Wang <wayichen@umich.edu>
 BugReports: https://github.com/welch-lab/cytosignal/issues
 URL: https://github.com/welch-lab/cytosignal
