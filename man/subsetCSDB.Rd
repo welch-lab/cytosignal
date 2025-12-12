@@ -5,7 +5,7 @@
 \title{Subset cytosignal database object by genes}
 \usage{
 subsetCSDB(
-  object,
+  csdb,
   ligandGenes = NULL,
   receptorGenes = NULL,
   type = NULL,
@@ -13,8 +13,7 @@ subsetCSDB(
 )
 }
 \arguments{
-\item{object}{A \code{\linkS4class{cytosignal2}} or \code{\link{csdb-class}}
-object.}
+\item{csdb}{A \code{\link{csdb-class}} object.}
 
 \item{ligandGenes}{A character vector of regular expression to match ligand
 genes to keep. Complexes are kept if any of their member genes match. Default
@@ -32,7 +31,7 @@ pattern or the receptor gene pattern. Default \code{FALSE} keeps interactions
 that match both patterns at the same time.}
 }
 \value{
-The input \code{object} with the interaction database subsetted.
+The subset \code{csdb}.
 }
 \description{
 This function allows user to limit the interaction database to only those

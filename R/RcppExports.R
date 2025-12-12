@@ -13,6 +13,14 @@ perm_test_Rcpp <- function(raw, libSize, intrType, diff_lig_NGL, diff_recep_NGL,
     .Call('_cytosignal_perm_test_Rcpp', PACKAGE = 'cytosignal', raw, libSize, intrType, diff_lig_NGL, diff_recep_NGL, diff_dtAvg_NGL, diff_smooth_NGL, cont_lig_NGL, cont_recep_NGL, cont_dtAvg_NGL, cont_smooth_NGL, Lmap, Rmap, lrscore)
 }
 
+spatialGraphFDR_cpp <- function(pval, intrType, contGraph) {
+    .Call('_cytosignal_spatialGraphFDR_cpp', PACKAGE = 'cytosignal', pval, intrType, contGraph)
+}
+
+clusterWiseLRscore_cpp <- function(raw, libSize, clusterInt, nCluster, intrType, diff_lig_graph, cont_lig_graph, recep_graph, dtAvg_graph, Lmap, Rmap) {
+    .Call('_cytosignal_clusterWiseLRscore_cpp', PACKAGE = 'cytosignal', raw, libSize, clusterInt, nCluster, intrType, diff_lig_graph, cont_lig_graph, recep_graph, dtAvg_graph, Lmap, Rmap)
+}
+
 gauss_vec_cpp <- function(x, sigma) {
     .Call('_cytosignal_gauss_vec_cpp', PACKAGE = 'cytosignal', x, sigma)
 }

@@ -3,7 +3,7 @@
 #' @importClassesFrom Matrix dgCMatrix
 #' @importClassesFrom Matrix ddiMatrix
 #' @importClassesFrom tibble tbl_df
-#' @importFrom ggplot2 %+replace%
+#' @import ggplot2
 NULL
 
 #' CytoSignal Color Palette

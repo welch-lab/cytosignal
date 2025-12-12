@@ -63,7 +63,7 @@ weightedLibSize <- function(
     return(libSizeImputed)
 }
 
-#' Infer the LR score
+#' Infer the LR score with significance tested
 #' @description
 #' This function imputes the niche expression of potential ligand and receptor
 #' genes using the neighbor graphs, and computes the final LR score. Optionally,
@@ -76,16 +76,19 @@ weightedLibSize <- function(
 #' constructed.
 #' @param smoothR Logical, whether to smooth the receptor expression using the
 #' contact-dependent neighbor graph. Default is \code{FALSE}.
+#' @param permSize Integer, sample size to reach in the permutation test.
+#' Default \code{1e5}.
 #' @return A \code{\linkS4class{cytosignal2}} object with LR scores inferred and
 #' stored in the \code{lrScore} slot.
 #' @export
 inferLRScore <- function(
         object,
-        smoothR = FALSE
+        smoothR = FALSE,
+        permSize = 1e5
 ) {
     geneUse <- validGenes(object)
     cli::cli_process_start(
-        "Calculating LR-score using {length(geneUse)} genes found in database."
+        "Calculating LRscore using {length(geneUse)} genes found in database"
     )
     # Start with diffusion-dependent interactions
     diffImpL <- imputeNiche2(object, 'diffusion')
@@ -143,6 +146,28 @@ inferLRScore <- function(
     rownames(lrscore) <- colnames(object@rawData)
     object@LRScore <- lrscore
     cli::cli_process_done()
+
+    cli::cli_alert_info(
+        'Permuting the whole dataset to test the significance of LRscores'
+    )
+    object <- permuteTest(object, permSize = permSize)
+
+    cli::cli_alert_info(
+        "Adjusting p-values spatially with neighbor weighting"
+    )
+    hasContNeighbor <- which(diff(object@neighborCont@p) > 0)
+    pval <- object@significance$pval[hasContNeighbor, , drop = FALSE]
+    contGraph <- object@neighborCont[hasContNeighbor, hasContNeighbor, drop = FALSE]
+
+    fdr <- matrix(NA, nrow = nrow(lrscore), ncol = ncol(lrscore))
+    dimnames(fdr) <- dimnames(lrscore)
+    fdrSub <- spatialGraphFDR_cpp(
+        pval = pval,
+        intrType = as.integer(intrDB(object)$type) - 1,
+        contGraph = contGraph
+    )
+    fdr[hasContNeighbor, ] <- fdrSub
+    object@significance$spatialFDR <- fdr
     return(object)
 }
 
@@ -162,9 +187,8 @@ inferLRScore <- function(
 #' @param permSize Integer, sample size to reach in the permutation test.
 #' Default \code{1e5}.
 #' @return The input object with slot \code{nullECDF}
-#' @export
-#' @seealso [inferLRScore()]
-inferECDF <- function(
+#' @noRd
+permuteTest <- function(
         object,
         permSize = 1e5
 ) {
@@ -193,9 +217,6 @@ inferECDF <- function(
     raw <- object@rawData[validGenes(object), , drop = FALSE]
     libSize <- object$total_counts
     times <- ceiling(permSize / n)
-    cli::cli_alert_info(
-        'Permuting whole dataset {times} times'
-    )
 
     eachSize <- ceiling(permSize / times)
 
@@ -280,7 +301,92 @@ inferECDF <- function(
         Rmap = Rmap,
         lrscore = lrscore
     )
-    dimnames(ecdf) <- dimnames(lrscore)
-    object@nullECDF <- ecdf
+    pval <- as.matrix(1 - ecdf)
+    dimnames(pval) <- dimnames(lrscore)
+    object@significance$pval <- pval
     return(object)
+}
+
+
+
+#' Computes LR score with sender-receiver directionality at cluster level
+#' @description
+#' While \code{\link{inferLRScore}} computes label-free LRscores at single-spot
+#' level, this function calculates LRscores for each pair of sender and receiver
+#' clusters. This is done by imputing ligand amount (\eqn{L}) only from the
+#' neighbor spots in a specific sender cluster. A cluster assignment variable
+#' must be preset with \code{\link{setCluster}}.
+#' @param object A \code{\linkS4class{cytosignal2}} object with neighbor graphs
+#' constructed.
+#' @param smoothR Logical, whether to smooth the receptor expression using the
+#' contact-dependent neighbor graph. Default is \code{FALSE}.
+#' @return A 3D array of dimension (nCluster, nCluster, nInteractors), \eqn{CLR}
+#' for cluster-wise LRscore. A value \code{CLR[s, r, i]} in the array means the
+#' LRscore for interaction \code{i} when the sender cluster is \code{s} and the
+#' receiver cluster is \code{r}.
+#' dimension is the sender cluster, the second dimension is the
+inferClusterLRScore <- function(
+        object,
+        smoothR = FALSE
+) {
+    useCluster <- object@parameters$cluster
+    if (is.null(useCluster)) {
+        cli::cli_abort("No cluster variable preset. Please set with {.fn setCluster}.")
+    }
+    clusterVar <-object@metadata[[useCluster]]
+    if (is.character(clusterVar) || is.logical(clusterVar)) {
+        clusterVar <- factor(clusterVar)
+    } else if (is.numeric(clusterVar)) {
+        nUniq <- length(unique(clusterVar))
+        if (nUniq > 100) {
+            cli::cli_abort("Numeric cluster variable has {nUniq} unique values, which does not look right.")
+        }
+        clusterVar <- factor(clusterVar)
+    } else if (is.factor(clusterVar)) {
+        # do nothing
+    } else {
+        cli::cli_abort("Cluster variable must be of atomic type.")
+    }
+    clusterLevels <- levels(clusterVar)
+    clusterInt <- as.integer(clusterVar)
+    Lmap <- intrGeneMap(object, component = 'lig')
+    Rmap <- intrGeneMap(object, component = 'recep')
+    raw <- object@rawData[validGenes(object), , drop = FALSE]
+    diffLigGraph <- object@neighborDiff
+    contLigGraph <- object@neighborCont
+    if (isTRUE(smoothR)) {
+        recepGraph <- contGraph
+    } else {
+        recepGraph <- methods::as(Matrix::Diagonal(ncol(raw)), 'CsparseMatrix')
+    }
+    dtAvgGraph <- to_mean(object@neighborCont)
+    clusterWiseLRscore <- clusterWiseLRscore_cpp(
+        raw = raw,
+        libSize = object$total_counts,
+        clusterInt = clusterInt - 1,
+        nCluster = length(clusterLevels),
+        intrType = as.integer(object@intrDB$type) - 1,
+        diff_lig_graph = diffLigGraph,
+        cont_lig_graph = contLigGraph,
+        recep_graph = recepGraph,
+        dtAvg_graph = dtAvgGraph,
+        Lmap = Lmap,
+        Rmap = Rmap
+    )
+    dimnames(clusterWiseLRscore) <- list(
+        clusterLevels,
+        clusterLevels,
+        object@intrDB$interactors
+    )
+    object@clusterLRScore <- clusterWiseLRscore
+    return(object)
+}
+
+
+plotClusterLRHeatmap <- function(
+        clr,
+        interaction,
+        ...
+) {
+    # TODO
 }

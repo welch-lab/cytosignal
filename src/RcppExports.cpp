@@ -61,6 +61,40 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// spatialGraphFDR_cpp
+arma::mat spatialGraphFDR_cpp(const arma::mat& pval, const arma::uvec& intrType, const arma::sp_mat& contGraph);
+RcppExport SEXP _cytosignal_spatialGraphFDR_cpp(SEXP pvalSEXP, SEXP intrTypeSEXP, SEXP contGraphSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type pval(pvalSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type intrType(intrTypeSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type contGraph(contGraphSEXP);
+    rcpp_result_gen = Rcpp::wrap(spatialGraphFDR_cpp(pval, intrType, contGraph));
+    return rcpp_result_gen;
+END_RCPP
+}
+// clusterWiseLRscore_cpp
+arma::cube clusterWiseLRscore_cpp(const arma::sp_mat& raw, const arma::uvec& libSize, const arma::uvec& clusterInt, const arma::uword& nCluster, const arma::uvec& intrType, const arma::sp_mat& diff_lig_graph, const arma::sp_mat& cont_lig_graph, const arma::sp_mat& recep_graph, const arma::sp_mat& dtAvg_graph, const arma::sp_mat& Lmap, const arma::sp_mat& Rmap);
+RcppExport SEXP _cytosignal_clusterWiseLRscore_cpp(SEXP rawSEXP, SEXP libSizeSEXP, SEXP clusterIntSEXP, SEXP nClusterSEXP, SEXP intrTypeSEXP, SEXP diff_lig_graphSEXP, SEXP cont_lig_graphSEXP, SEXP recep_graphSEXP, SEXP dtAvg_graphSEXP, SEXP LmapSEXP, SEXP RmapSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type raw(rawSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type libSize(libSizeSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type clusterInt(clusterIntSEXP);
+    Rcpp::traits::input_parameter< const arma::uword& >::type nCluster(nClusterSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type intrType(intrTypeSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type diff_lig_graph(diff_lig_graphSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type cont_lig_graph(cont_lig_graphSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type recep_graph(recep_graphSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type dtAvg_graph(dtAvg_graphSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type Lmap(LmapSEXP);
+    Rcpp::traits::input_parameter< const arma::sp_mat& >::type Rmap(RmapSEXP);
+    rcpp_result_gen = Rcpp::wrap(clusterWiseLRscore_cpp(raw, libSize, clusterInt, nCluster, intrType, diff_lig_graph, cont_lig_graph, recep_graph, dtAvg_graph, Lmap, Rmap));
+    return rcpp_result_gen;
+END_RCPP
+}
 // gauss_vec_cpp
 NumericVector gauss_vec_cpp(NumericVector x, double sigma);
 RcppExport SEXP _cytosignal_gauss_vec_cpp(SEXP xSEXP, SEXP sigmaSEXP) {
@@ -346,6 +380,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_multiply_lr_cpp", (DL_FUNC) &_cytosignal_multiply_lr_cpp, 4},
     {"_cytosignal_findInterval_leftOpen_cpp", (DL_FUNC) &_cytosignal_findInterval_leftOpen_cpp, 2},
     {"_cytosignal_perm_test_Rcpp", (DL_FUNC) &_cytosignal_perm_test_Rcpp, 14},
+    {"_cytosignal_spatialGraphFDR_cpp", (DL_FUNC) &_cytosignal_spatialGraphFDR_cpp, 3},
+    {"_cytosignal_clusterWiseLRscore_cpp", (DL_FUNC) &_cytosignal_clusterWiseLRscore_cpp, 11},
     {"_cytosignal_gauss_vec_cpp", (DL_FUNC) &_cytosignal_gauss_vec_cpp, 2},
     {"_cytosignal_rep_each_cpp", (DL_FUNC) &_cytosignal_rep_each_cpp, 2},
     {"_cytosignal_meanMat_cpp", (DL_FUNC) &_cytosignal_meanMat_cpp, 3},

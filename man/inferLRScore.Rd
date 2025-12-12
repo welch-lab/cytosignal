@@ -2,9 +2,9 @@
 % Please edit documentation in R/lrscore2.R
 \name{inferLRScore}
 \alias{inferLRScore}
-\title{Infer the LR score}
+\title{Infer the LR score with significance tested}
 \usage{
-inferLRScore(object, smoothR = FALSE)
+inferLRScore(object, smoothR = FALSE, permSize = 1e+05)
 }
 \arguments{
 \item{object}{A \code{\linkS4class{cytosignal2}} object, with neighbor graphs
@@ -12,6 +12,9 @@ constructed.}
 
 \item{smoothR}{Logical, whether to smooth the receptor expression using the
 contact-dependent neighbor graph. Default is \code{FALSE}.}
+
+\item{permSize}{Integer, sample size to reach in the permutation test.
+Default \code{1e5}.}
 }
 \value{
 A \code{\linkS4class{cytosignal2}} object with LR scores inferred and

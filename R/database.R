@@ -179,11 +179,25 @@ getCellPhoneDB <- function(
 }
 
 
-#' Set interaction database for CytoSignal2 object
+#' Acess interaction database of a CytoSignal2 object
+#' @rdname intrDB
+#' @description
+#' The setter method \code{intrDB<-} allows user to set the interaction
+#' database for a \code{\linkS4class{cytosignal2}} object. "Lowword" case
+#' conversion is allowed when using different species. The getter method
+#' \code{intrDB} retrieves the interaction database in a
+#' \code{\linkS4class{cytosignal2}} object, with optional subsetting by
+#' ligand/receptor genes or interaction type.
 #' @param object A \code{\linkS4class{cytosignal2}} object.
 #' @param toLowwords Logical, whether to convert uppercase gene names from
 #' database to "Lowword" format (e.g., "TP53" to "Tp53"). Default \code{FALSE}.
 #' @param value A `csdb` object.
+#' @return
+#' For \code{intrDB<-}, the updated \code{\linkS4class{cytosignal2}} object with
+#' the interaction database set.
+#'
+#' For \code{intrDB}, a \code{csdb} object, possibly subsetted by specified
+#' ligand/receptor genes or interaction type.
 #' @export
 `intrDB<-` <- function(object, toLowwords = FALSE, value) {
     if (!inherits(object, 'cytosignal2')) {
@@ -231,6 +245,33 @@ getCellPhoneDB <- function(
     return(object)
 }
 
+#' @rdname intrDB
+#' @export
+#' @inheritParams subsetCSDB
+intrDB <- function(
+        object,
+        ligandGenes = NULL,
+        receptorGenes = NULL,
+        type = NULL,
+        LorR = FALSE
+) {
+    if (!inherits(object, 'cytosignal2')) {
+        cli::cli_abort('{.field object} must be of class {.cls cytosignal2}.')
+    }
+    csdb <- methods::slot(object, 'intrDB')
+    if (is.null(csdb)) {
+        cli::cli_abort('Interaction database not set in the object. Please set one using {.fn intrDB<-}.')
+    }
+    csdb <- subsetCSDB(
+        csdb = csdb,
+        ligandGenes = ligandGenes,
+        receptorGenes = receptorGenes,
+        type = type,
+        LorR = LorR
+    )
+    return(csdb)
+}
+
 .uniqGeneInDB <- function(csdb) {
     if (!inherits(csdb, 'csdb')) {
         cli::cli_abort('Input csdb must be of class {.cls csdb}.')
@@ -248,8 +289,7 @@ getCellPhoneDB <- function(
 #' This function allows user to limit the interaction database to only those
 #' involving specified ligand and/or receptor genes, or type
 #' (diffusion-/contact-dependent).
-#' @param object A \code{\linkS4class{cytosignal2}} or \code{\link{csdb-class}}
-#' object.
+#' @param csdb A \code{\link{csdb-class}} object.
 #' @param ligandGenes A character vector of regular expression to match ligand
 #' genes to keep. Complexes are kept if any of their member genes match. Default
 #' \code{NULL} skip the filtering by ligand genes.
@@ -262,26 +302,20 @@ getCellPhoneDB <- function(
 #' pattern or the receptor gene pattern. Default \code{FALSE} keeps interactions
 #' that match both patterns at the same time.
 #' @return
-#' The input \code{object} with the interaction database subsetted.
+#' The subset \code{csdb}.
 #' @export
 subsetCSDB <- function(
-        object,
+        csdb,
         ligandGenes = NULL,
         receptorGenes = NULL,
         type = NULL,
         LorR = FALSE
 ) {
-    if (inherits(object, 'cytosignal2')) {
-        csdb <- object@intrDB
-    } else if (inherits(object, 'csdb')) {
-        csdb <- object
-    } else {
-        cli::cli_abort('Input object must be of class {.cls cytosignal2} or {.cls csdb}.')
+    if (!inherits(csdb, 'csdb')) {
+        cli::cli_abort('Input object must be of class {.cls csdb}.')
     }
     if (!is.null(type)) {
-        if (!type %in% c('diffusion', 'contact')) {
-            cli::cli_abort('{.field type} must be either {.val diffusion} or {.val contact}.')
-        }
+        type <- match.arg(arg = type, choices = c('diffusion', 'contact'))
         csdb <- csdb[csdb$type == type, ]
     }
     if (!is.null(ligandGenes)) {
@@ -318,12 +352,7 @@ subsetCSDB <- function(
     if (nrow(csdb) == 0) {
         cli::cli_warn('No interaction left after subsetting the database.')
     }
-    if (inherits(object, 'cytosignal2')) {
-        object@intrDB <- csdb
-        return(object)
-    } else {
-        return(csdb)
-    }
+    return(csdb)
 }
 
 intrGeneMap <- function(

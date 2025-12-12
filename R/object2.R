@@ -3,6 +3,10 @@ methods::setClassUnion(
     name = 'sparse_or_null',
     members = c('dgCMatrix', 'NULL')
 )
+methods::setClassUnion(
+    name = 'array_or_null',
+    members = c('array', 'NULL')
+)
 
 
 #' @name CytoSignal2-class
@@ -37,7 +41,7 @@ methods::setClass(
         neighborDiff = 'sparse_or_null',
         neighborCont = 'sparse_or_null',
         LRScore = 'sparse_or_null',
-        nullECDF = 'sparse_or_null',
+        clusterLRScore = 'array_or_null',
         significance = 'list',
         version = 'package_version'
     ),
@@ -46,7 +50,7 @@ methods::setClass(
         neighborDiff = NULL,
         neighborCont = NULL,
         LRScore = NULL,
-        nullECDF = NULL,
+        clusterLRScore = NULL,
         significance = list(),
         version = packageVersion('cytosignal')
     )
@@ -92,12 +96,9 @@ methods::setClass(
         }
     }
 
-    if (!is.null(object@nullECDF)) {
-        if (!identical(rownames(object@nullECDF), colnames(object@rawData)) ||
-            !identical(colnames(object@nullECDF), object@intrDB$interactors)) {
-            return('nullECDF matrix do not match to spots in rawData and/or interactions in intrDB.')
-        }
-    }
+    # TODO: whether or not to check clusterLRScore dimensions?
+    # User might be switching the default cluster variable after running one
+    # so things won't match naturally.
     return(TRUE)
 }
 
@@ -272,27 +273,41 @@ methods::setMethod(
     x
 }
 
-#' Set default colorBy parameter
+#' Set default cluster variable
 #' @description
-#' Set an existing metadata variable as the default coloring variable. This
-#' variable will be used by default in visualization functions.
+#' Set an existing metadata variable as the default cluster annotation, or add
+#' a new vector/factor as cluster annotation. This variable will be used by
+#' default in cluster-wise inference and visualization functions.
 #' @param object A \linkS4class{cytosignal2} object.
-#' @param colorBy A character string specifying the metadata variable to set as
-#' the default coloring variable.
+#' @param cluster A single string for selecting a metadata column, or a vector
+#' or factor for cluster assignment.
 #' @return The input \linkS4class{cytosignal2} object with updated parameters
-#' in \code{object@parameters}.
-#' \itemize{
-#'    \item{\code{defaultColorBy}: The metadata variable set as the default
-#'    coloring variable.}
-#' }
+#' at \code{object@parameters$cluster}.
 #' @export
-setDefaultColorBy <- function(object, colorBy) {
-    colorBy <- rlang::arg_match(
-        arg = colorBy,
-        values = colnames(object@metadata),
-        multiple = FALSE
-    )
-    object@parameters[['defaultColorBy']] <- colorBy
+setCluster <- function(object, cluster) {
+    if (length(cluster) == 1) {
+        cluster <- rlang::arg_match(
+            arg = cluster,
+            values = colnames(object@metadata),
+            multiple = FALSE
+        )
+        object@parameters[['cluster']] <- cluster
+    } else {
+        if (length(cluster) != nrow(object@metadata)) {
+            cli::cli_abort(
+                "Vector/factor cluster variable must have {nrow(object@metadata)} elements. Given has {length(cluster)}."
+            )
+        }
+        if (!is.null(names(cluster))) {
+            if (!identical(names(cluster), colnames(object@rawData))) {
+                cli::cli_warn(
+                    "Assigning named cluster variable while the names do not match to spot barcodes."
+                )
+            }
+        }
+        object@metadata[['cluster']] <- cluster
+        object@parameters[['cluster']] <- 'cluster'
+    }
     return(object)
 }
 

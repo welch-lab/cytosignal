@@ -132,60 +132,103 @@ findNeighborDT2 <- function(
 #' @export
 #' @seealso [findNeighbor()]
 #' @description
-#' This function makes a spatial coordinate plot colored by the weights of a
+#' These functions make spatial coordinate plots colored by the weights of a
 #' specified spot in the selected type of neighborhood graph. By default,
 #' the spot with the most neighbors is selected.
 #' @param object A `cytosignal2` object. With \code{\link{findNeighbor}} called.
-#' @param type Type of neighborhood graph to visualize. Either
-#' \code{'diffusion'} or \code{'contact'}.
 #' @param index Index of the spot to visualize. Default \code{NULL} selects
 #' the spot with the most neighbors. Can be an integer index, character ID, or
 #' logical selector vector.
+#' @inheritParams plotSpatialMetadata
 #' @return
 #' A ggplot2 object showing the spatial coordinates colored by the neighbor
 #' weights of the selected spot.
-plotNeighbor <- function(
+plotNeighborDiff <- function(
         object,
-        type = c('diffusion', 'contact'),
-        index = NULL
+        index = NULL,
+        dotSize = 0.5,
+        dotAlpha = 1,
+        paletteOption = 'D',
+        paletteDirection = -1,
+        zeroAsNA = TRUE,
+        naColor = 'grey70'
 ) {
-    type <- match.arg(arg = type, several.ok = FALSE)
-    graph <- switch(
-        type,
-        'diffusion' = object@neighborDiff,
-        'contact' = object@neighborCont
-    )
+    graph <-  object@neighborDiff
     if (is.null(graph)) {
         cli::cli_abort('Run {.fn findNeighbor} first.')
     }
     if (is.null(index)) {
         nNeighbors <- diff(graph@p)
         index <- which.max(nNeighbors)
-        spotText <- 'the spot with the most neighbors'
+        subtitle <- 'The spot with the most neighbors'
     } else {
         index <- .checkValid.Index(index, colnames(object@rawData), 1)
-        spotText <- colnames(object@rawData)[index]
+        subtitle <- colnames(object@rawData)[index]
     }
-    title <- sprintf('%s-dependent neighbor weights of\n%s', type, spotText)
-    weights <- graph[, index]
-    object$weights <- weights
-    plotSpatial(object, colorBy = 'weights', title = title, viridisOption = 'D')
-}
-
-#' @rdname plotNeighbor
-#' @export
-plotNeighborDiff <- function(
-        object,
-        index = NULL
-) {
-    plotNeighbor(object, type = 'diffusion', index = index)
+    spatial <- object@spatial
+    weight <- graph[, index]
+    if (isTRUE(zeroAsNA)) weight[weight == 0] <- NA
+    plotDF <- data.frame(
+        x = spatial[, 1],
+        y = spatial[, 2],
+        weight = weight
+    )
+    .plotSpatialFromDF(
+        plotDF = plotDF,
+        varNames = 'weight',
+        varTypes = 'continuous',
+        subtitles = subtitle,
+        dotSize = dotSize,
+        dotAlpha = dotAlpha,
+        paletteOption = paletteOption,
+        paletteDirection = paletteDirection,
+        naColor = naColor
+    ) +
+        ggtitle('Diffusion-dependent neighbor weights')
 }
 
 #' @rdname plotNeighbor
 #' @export
 plotNeighborCont <- function(
         object,
-        index = NULL
+        index = NULL,
+        dotSize = 0.5,
+        dotAlpha = 1,
+        paletteOption = 'D',
+        paletteDirection = -1,
+        zeroAsNA = TRUE,
+        naColor = 'grey70'
 ) {
-    plotNeighbor(object, type = 'contact', index = index)
+    graph <-  object@neighborCont
+    if (is.null(graph)) {
+        cli::cli_abort('Run {.fn findNeighbor} first.')
+    }
+    if (is.null(index)) {
+        nNeighbors <- diff(graph@p)
+        index <- which.max(nNeighbors)
+        subtitle <- 'The spot with the most neighbors'
+    } else {
+        index <- .checkValid.Index(index, colnames(object@rawData), 1)
+        subtitle <- colnames(object@rawData)[index]
+    }
+    spatial <- object@spatial
+    weight <- graph[, index]
+    if (isTRUE(zeroAsNA)) weight[weight == 0] <- NA
+    plotDF <- data.frame(
+        x = spatial[, 1],
+        y = spatial[, 2],
+        weight = weight
+    )
+    .plotSpatialFromDF(
+        plotDF = plotDF,
+        varNames = 'weight',
+        varTypes = 'continuous',
+        subtitles = subtitle,
+        dotSize = dotSize,
+        dotAlpha = dotAlpha,
+        paletteOption = paletteOption,
+        paletteDirection = paletteDirection,
+        naColor = naColor
+    ) +
+        ggtitle('Contact-dependent neighbor weights')
 }
