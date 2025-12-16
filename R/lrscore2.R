@@ -192,7 +192,6 @@ permuteTest <- function(
         object,
         permSize = 1e5
 ) {
-    set.seed(1)
     lrscore <- object@LRScore
     if (is.null(lrscore)) {
         cli::cli_abort("LR score not found. Please run {.fn inferLRScore} first.")
