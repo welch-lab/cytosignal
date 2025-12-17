@@ -35,6 +35,7 @@ Imports:
   RcppArmadillo,
   rlang
 Suggests:
+    circlize,
     cowplot,
     hdf5r,
     httr,

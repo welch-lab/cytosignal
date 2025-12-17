@@ -32,5 +32,20 @@ For usage examples and guided walkthroughs, check the vignettes directory of the
 * [Interoperate with Seurat/SingleCellExperiment/anndata](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/interoperate.html)
 * [Using user-customized ligand-receptor interactions](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/master/doc/customize_LR.html)
 
+## Reproducing Plots from Figures
+
+To reproduce the plots from the main figure panels, please see these notebooks from https://github.com/skpalan/cytosignal-figure:
+
+* [Figure 2, a-g](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_2a-2g.html)
+* [Figure 2, h-r](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_2h-2r.html)
+* [Figure 2, o&k](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_2o&2k.html)
+* [Figure 3](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_3.html)
+* [Figure 3c](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_3c.html)
+* [Figure 3h](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_3h.html)
+* [Figure 4](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_4.html)
+* [Figure 4c](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_4c.html)
+* [Figure 5, a-c](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_5a-5c.html)
+* [Figure 5, d-g](https://htmlpreview.github.io/?https://github.com/skpalan/cytosignal-figure/blob/main/notebooks/Figure_5d-g.html)
+
 ## License
 This project is covered under the **GNU General Public License 3.0**.
