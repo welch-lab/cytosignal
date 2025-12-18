@@ -1,10 +1,3 @@
-validGenes <- function(object) {
-    rawData <- object@rawData
-    dbGenes <- .uniqGeneInDB(object@intrDB)
-    geneUse <- intersect(rownames(rawData), dbGenes)
-    sort(geneUse)
-}
-
 imputeNiche2 <- function(
         object,
         type = c('diffusion', 'contact')
@@ -21,18 +14,10 @@ imputeNiche2 <- function(
         cli::cli_abort('{type}-dependent neighbor graph not built. Please run {.fn findNeighbor} first.')
     }
 
-    # if (is.null(object$total_counts)) {
-    #     object$total_counts <- Matrix::colSums(object@rawData)
-    # }
     geneUse <- validGenes(object)
     rawData <- object@rawData[geneUse, , drop = FALSE]
 
     imputed <- rawData %*% graph;
-
-    # weighted sum of scale factors as well
-    # libSize <- matrix(object$total_counts, nrow = 1)
-    # libSizeImputed <- libSize %*% graph
-    # libSizeImputed <- as.numeric(libSizeImputed)
 
     return(imputed)
 }
@@ -68,29 +53,40 @@ weightedLibSize <- function(
 #' This function imputes the niche expression of potential ligand and receptor
 #' genes using the neighbor graphs, and computes the final LR score. Optionally,
 #' with \code{smoothR = TRUE}, this function allows smoothing the receptor
-#' expression of a spot using the neighbor graph of contact-dependent
-#' neighborhood. This is useful when the data is of high spatial resolution
-#' and/or high sparsity. This function further performs a permutation test to
-#' infer the significance of each LR interaction in each spot.
+#' expression of a spot using the contact-dependent neighborhood. This is useful
+#' when the data is of high spatial resolution and/or high sparsity. This
+#' function further performs a nonparametric permutation test to infer the
+#' significance of each LR interaction in each spot. The p-values are adjusted
+#' with spatial neighbor weighting.
 #' @param object A \code{\linkS4class{cytosignal2}} object, with neighbor graphs
 #' constructed.
 #' @param smoothR Logical, whether to smooth the receptor expression using the
 #' contact-dependent neighbor graph. Default is \code{FALSE}.
 #' @param permSize Integer, sample size to reach in the permutation test.
 #' Default \code{1e5}.
-#' @return A \code{\linkS4class{cytosignal2}} object with LR scores inferred and
-#' stored in the \code{lrScore} slot.
+#' @return The input \code{\linkS4class{cytosignal2}} object with the following
+#' updates:
+#' \itemize{
+#' \item{\code{object@LRScore} - A matrix of dimension (nSpot, nInteractors),
+#' the inferred LR scores for each spot and each interaction.}
+#' \item{\code{object@significance$pval} - A matrix of dimension
+#' (nSpot, nInteractors), the permutation p-values for each LR score.}
+#' \item{\code{object@significance$spatialFDR} - A matrix of dimension
+#' (nSpot, nInteractors), the spatially adjusted FDR for each LR score.}
+#' }
 #' @export
 inferLRScore <- function(
         object,
         smoothR = FALSE,
         permSize = 1e5
 ) {
+    # Just for checking if the database is valid
+    intrDB(object)
     geneUse <- validGenes(object)
     cli::cli_process_start(
         "Calculating LRscore using {length(geneUse)} genes found in database"
     )
-    # Start with diffusion-dependent interactions
+    # First impute the ligand amount per spot
     diffImpL <- imputeNiche2(object, 'diffusion')
     diffLibSize <- weightedLibSize(object, 'diffusion')
     diffImpL@x <- diffImpL@x / rep.int(diffLibSize, diff(diffImpL@p))
@@ -103,6 +99,8 @@ inferLRScore <- function(
     rm(contLibSize)
     contImpL@x <- log1p(contImpL@x * 1e4)
 
+    # Now get the receptor amount, either take raw counts or impute from
+    # contact neighbors (smoothed)
     raw <- object@rawData[geneUse, , drop = FALSE]
     object@parameters$smoothR <- smoothR
     if (isTRUE(smoothR)) {
@@ -113,7 +111,7 @@ inferLRScore <- function(
         recepImp@x <- log1p(recepImp@x * 1e4)
     }
 
-    # Locally smooth the L and R imputation
+    # Further smooth the L and R imputation
     DTgraph <- object@neighborCont
     dtAvgGraph <- to_mean(DTgraph)
     diffImpL <- diffImpL %*% dtAvgGraph
@@ -122,6 +120,10 @@ inferLRScore <- function(
     rm(DTgraph, dtAvgGraph)
     colnames(diffImpL) <- colnames(object@rawData)
 
+    # intrGeneMap generates binary encoding for which genes are ligand or
+    # receptor members of each interaction. A matrix multiplication gives the
+    # final LR score faster than looping the interactions and matching the gene
+    # names.
     diffLigMap <- intrGeneMap(object, type = 'diffusion', component = 'ligands')
     diffRecMap <- intrGeneMap(object, type = 'diffusion', component = 'receptors')
     LRdiff <- multiply_lr_cpp(diffImpL, diffLigMap, recepImp, diffRecMap)
@@ -130,6 +132,7 @@ inferLRScore <- function(
         colnames(diffLigMap)
     )
     rm(diffImpL, diffLigMap, diffRecMap)
+
     contLigMap <- intrGeneMap(object, type = 'contact', component = 'ligands')
     contRecMap <- intrGeneMap(object, type = 'contact', component = 'receptors')
     LRcont <- multiply_lr_cpp(contImpL, contLigMap, recepImp, contRecMap)
@@ -139,6 +142,8 @@ inferLRScore <- function(
     )
     rm(contImpL, contLigMap, contRecMap, recepImp)
 
+    # Combine diffusion and contact LRscores and reorder as in database,
+    # for downstream convenience
     lrscore <- cbind(LRdiff, LRcont)
     lrscore <- lrscore[, object@intrDB$interactors]
     # Last round of smoothing
@@ -147,15 +152,18 @@ inferLRScore <- function(
     object@LRScore <- lrscore
     cli::cli_process_done()
 
+
     cli::cli_alert_info(
         'Permuting the whole dataset to test the significance of LRscores'
     )
     object <- permuteTest(object, permSize = permSize)
 
+
     cli::cli_alert_info(
         "Adjusting p-values spatially with neighbor weighting"
     )
     hasContNeighbor <- which(diff(object@neighborCont@p) > 0)
+    # spots without neighbors must be excluded from adjustment
     pval <- object@significance$pval[hasContNeighbor, , drop = FALSE]
     contGraph <- object@neighborCont[hasContNeighbor, hasContNeighbor, drop = FALSE]
 
@@ -221,6 +229,8 @@ permuteTest <- function(
 
     # For reproducing old implementation, we keep the random number generation
     # in the same order as normally it would happen in inferIntrScore().
+
+    # The shuffling initialization might be simplified in the future.
     diffGraph <- object@neighborDiff
     contGraph <- object@neighborCont
     dtAvgGraph <- to_mean(contGraph)
@@ -283,7 +293,10 @@ permuteTest <- function(
     Lmap <- intrGeneMap(object, type = c('diff', 'cont'), component = 'lig')
     Rmap <- intrGeneMap(object, type = c('diff', 'cont'), component = 'rec')
 
-
+    # This function calculates ECDF of the permutation test for the sake of
+    # efficiency, as the ECDF result matrix is supposed to have identical
+    # sparsity structure as the original LRscore matrix. (i.e. 0 scores always
+    # have 0 ECDF)
     ecdf <- perm_test_Rcpp(
         raw = t(raw),
         libSize = libSize,
@@ -305,6 +318,162 @@ permuteTest <- function(
     object@significance$pval <- pval
     return(object)
 }
+
+#' Infer spatial variability of LRscore with SPARK-X
+#' @description
+#' SPARK-X builds on the covariance kernel test framework, identifying feature
+#' quantity with spatial pattern in large scale spatial transcriptomic studies.
+#' Here we apply SPARK-X to identify if the LRscore of each interaction shows
+#' significant spatial variability.
+#'
+#' Package 'SPARK' must be pre-installed with
+#' \code{devtools::install_github(\href{https://github.com/xzhoulab/SPARK}{'xzhoulab/SPARK'})}.
+#' @param object A \code{\linkS4class{cytosignal2}} object with LRscore
+#' inferred with \code{\link{inferLRScore}}.
+#' @param nCores Integer, number of threads to use. Default is \code{1}.
+#' @param verbose Logical, whether to print detailed debugging messages from
+#' SPARK-X.
+#' @return The input \code{\linkS4class{cytosignal2}} object with the following
+#' update:
+#' \itemize{
+#' \item{\code{object@significance$sparkx} - A data frame containing SPARK-X
+#' test combined p-value and BY-adjusted p-values for each interaction.}
+#' }
+#' @references
+#' Zhu, J., Sun, S. & Zhou, X. SPARK-X: non-parametric modeling enables scalable
+#' and robust detection of spatial expression patterns for large spatial
+#' transcriptomic studies. Genome Biol 22, 184 (2021).
+#' <https://doi.org/10.1186/s13059-021-02404-0>
+#'
+#' Sun, S., Zhu, J. & Zhou, X. Statistical analysis of spatial expression
+#' patterns for spatially resolved transcriptomic studies. Nat Methods 17,
+#' 193–200 (2020). <https://doi.org/10.1038/s41592-019-0701-7>
+#' @export
+inferSpatialVarIntr <- function(
+        object,
+        nCores = 1,
+        verbose = FALSE
+) {
+    if (!requireNamespace("SPARK", quietly = TRUE)) {
+        cli::cli_abort(c(
+            x = "Package {.pkg SPARK} is required for calculating the spatial variability",
+            i = "Please install with {.code devtools::install_github('xzhoulab/SPARK')}"
+        ))
+    }
+
+    lrscore <- object@LRScore
+    if (is.null(lrscore)) {
+        cli::cli_abort("LRscore not found. Please run {.fn inferLRScore} first.")
+    }
+
+    spx <- SPARK::sparkx(
+        count_in = t(lrscore),
+        locus_in = object@spatial,
+        numCores = nCores,
+        option = "mixture",
+        verbose = verbose
+    )
+    spxPval <- spx$res_mtest
+    object@significance$sparkx <- spxPval
+    return(object)
+}
+
+
+
+#' Get interaction table ranked by significance
+#' @description
+#' This function counts the number of spots with significant LRscores for each
+#' interaction and rank the interactions by the counts. It also filters out
+#' low quality interactions based on member gene expression.
+#' @param object A \code{\linkS4class{cytosignal2}} object with LRscore
+#' inference done with \code{\link{inferLRScore}}.
+#' @param alpha Numeric, significance level to call an LRscore significant in
+#' a spot. Default is \code{0.05}.
+#' @param minExp Integer, minimum number of spots with non-zero expression for
+#' each member gene of an interaction. Interactions with any member gene having
+#' less than \code{minExp} spots with non-zero expression will be filtered out.
+#' Default is \code{100}.
+#' @param minSpot Integer, minimum number of spots with significant LRscore
+#' for an interaction to be kept. Default is \code{100}.
+#' @param type Character vector, interaction types to keep. Options are
+#' \code{"diffusion"} and \code{"contact"}. Default \code{NULL} ranks both types
+#' together.
+#' @param topN Integer, number of top interactions to return. Default
+#' \code{NULL} keeps all high-quality interactions.
+#' @param balanceType Logical, effective when \code{type = NULL}. Whether to
+#' take \code{topN} interactions from each type. Default is \code{TRUE}.
+#' @return A data frame of class \code{csdb}, the filtered and ranked
+#' interaction table with an additional column \code{n_signif_spots} indicating
+#' the number of spots with significant LRscore for each interaction.
+#' @export
+getTopIntr <- function(
+        object,
+        alpha = 0.05,
+        minExp = 100,
+        minSpot = 100,
+        type = NULL,
+        topN = NULL,
+        balanceType = TRUE
+) {
+    signifAvail <- names(object@significance)
+    if (is.null(signifAvail)) {
+        cli::cli_abort("No significance inference available. Please run {.fn inferLRScore} first.")
+    }
+    if ('spatialFDR' %in% signifAvail) {
+        nSigBy <- 'spatialFDR'
+    } else if ('pval' %in% signifAvail) {
+        nSigBy <- 'pval'
+        cli::cli_warn("Spatial FDR not found. Using raw p-values for counting significant spots.")
+    } else {
+        cli::cli_abort("No p-value or spatial FDR found. Please run {.fn inferLRScore} first.")
+    }
+
+    pmat <- object@significance[[nSigBy]]
+    intrDB <- intrDB(object)
+
+    if (is.null(type)) typeUse <- c('diffusion', 'contact')
+    else typeUse <- match.arg(type, c('diffusion', 'contact'), FALSE)
+
+    intrDB$n_signif_spots <- colSums(pmat < alpha, na.rm = TRUE)
+
+    geneLow <- rownames(object@rawData)[rowSums(object@rawData > 0) < minExp]
+    ligKeep <- strsplit(intrDB$ligands, split = ';') %>%
+        sapply(function(x) all(!x %in% geneLow))
+    recepKeep <- strsplit(intrDB$receptors, split = ';') %>%
+        sapply(function(x) all(!x %in% geneLow))
+    intrDB <- intrDB[ligKeep & recepKeep, , drop = FALSE]
+
+    intrDB <- intrDB %>%
+        dplyr::filter(
+            .data[['type']] %in% typeUse,
+            .data[['n_signif_spots']] >= minSpot,
+        )
+    if ('sparkx' %in% signifAvail) {
+        spx <- object@significance$sparkx
+        intrDB$sparkx_padj <- spx$adjustedPval[match(intrDB$interactors, rownames(spx))]
+        intrDB <- intrDB %>%
+            dplyr::filter(.data[['sparkx_padj']] < alpha) %>%
+            dplyr::arrange(.data[['sparkx_padj']], -.data[['n_signif_spots']])
+    } else {
+        intrDB <- intrDB %>%
+            dplyr::arrange(-.data[['n_signif_spots']])
+    }
+    if (!is.null(topN)) {
+        if (isTRUE(balanceType)) intrDB <- dplyr::group_by(intrDB, .data[['type']])
+        intrDB <- intrDB %>%
+            dplyr::slice_head(n = topN)
+    }
+    class(intrDB) <- c('csdb', setdiff(class(intrDB), 'csdb'))
+    return(intrDB)
+}
+
+
+
+
+
+
+
+
 
 
 

@@ -108,8 +108,12 @@ methods::setValidity(
 )
 
 #' @rdname CytoSignal2-class
-#' @param rawData A sparse matrix of gene expression data with genes as rows and spots as columns.
-#' @param spatial A matrix of spatial coordinates with rows as spots and two columns (x and y).
+#' @param rawData A sparse matrix of gene expression data with genes as rows and
+#' spots as columns.
+#' @param spatial The spatial coordinates coercible to a matrix, with rows as
+#' spots and two columns for x and y.
+#' @param cluster A vector/factor of cluster assignments for each spot. The
+#' length must equal to the number of spots (columns) in \code{rawData}.
 #' @param ... Additional arguments directly passed to object slots.
 #' @export
 #' @examples
@@ -130,6 +134,7 @@ methods::setValidity(
 createCytoSignal2 <- function(
         rawData,
         spatial,
+        cluster = NULL,
         ...
 ) {
     if (!inherits(rawData, 'dgCMatrix')) {
@@ -138,9 +143,7 @@ createCytoSignal2 <- function(
     barcodes <- colnames(rawData)
     genes <- rownames(rawData)
 
-    if (!inherits(spatial, 'matrix')) {
-        spatial <- as.matrix(spatial)
-    }
+    spatial <- as.matrix(spatial)
     if (nrow(spatial) != length(barcodes)) {
         cli::cli_abort(
             'Number of rows of {.code spatial} must equal to number of spots ({length(barcodes)}), while {nrow(spatial)} was provided'
@@ -172,13 +175,17 @@ createCytoSignal2 <- function(
         gene_detected = Matrix::colSums(rawData > 0)
     )
 
-    methods::new(
+    object <- methods::new(
         Class = 'cytosignal2',
         rawData = rawData,
         spatial = spatial,
         metadata = metadata,
         ...
     )
+    if (!is.null(cluster)) {
+        object <- setCluster(object, cluster)
+    }
+    return(object)
 }
 
 #' @rdname CytoSignal2-class

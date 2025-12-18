@@ -13,6 +13,9 @@
 #'   \item{\code{alt_name}: Alternative name for the interaction, using complex names
 #'   if applicable.}
 #' }
+#' Additional columns might be seen as this class is also used to deliver top
+#' interaction ranking result from downstream analyses.
+#' @seealso [subsetCSDB()]
 NULL
 
 
@@ -102,10 +105,10 @@ getCellPhoneDB <- function(
         ) %>%
         mutate(
             a_tm_or_sec = case_when(
-                .data[['a_is_complex']] & complexInput[match(.data[['partner_a']], complexInput[,1]), 'transmembrane'] ~ 'Transmembrane',
                 .data[['a_is_complex']] & complexInput[match(.data[['partner_a']], complexInput[,1]), 'secreted'] ~ 'Secreted',
-                !.data[['a_is_complex']] & proteinInput[match(.data[['partner_a']], proteinInput[,1]), 'transmembrane'] ~ 'Transmembrane',
+                .data[['a_is_complex']] & complexInput[match(.data[['partner_a']], complexInput[,1]), 'transmembrane'] ~ 'Transmembrane',
                 !.data[['a_is_complex']] & proteinInput[match(.data[['partner_a']], proteinInput[,1]), 'secreted'] ~ 'Secreted',
+                !.data[['a_is_complex']] & proteinInput[match(.data[['partner_a']], proteinInput[,1]), 'transmembrane'] ~ 'Transmembrane',
                 TRUE ~ 'Other'
             ),
             b_tm = case_when(
@@ -378,4 +381,27 @@ intrGeneMap <- function(
         dims = c(length(allGenes), nrow(db)),
         dimnames = list(allGenes, db$interactors)
     )
+}
+
+
+#' Print method for csdb class
+#' @export
+#' @rdname csdb-class
+#' @param x A \code{csdb} object.
+#' @param ... See \code{tibble::\link[tibble]{formatting}}.
+#' @return None.
+#' @method print csdb
+print.csdb <- function(x, ...) {
+    summary <- as.data.frame(table(x$type))
+    if (nrow(x) == 0) {
+        cat('# A CytoSignal Database containing no interactions.\n')
+    } else {
+        cat("# A CytoSignal Database containing:\n")
+        for (i in seq_len(nrow(summary))) {
+            if (summary[i,2] > 0) {
+                cat(cli::format_inline("# - {summary[i,2]} {.field {summary[i,1]}}-dependent interactions\n"))
+            }
+        }
+    }
+    NextMethod()
 }

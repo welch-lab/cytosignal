@@ -1,8 +1,7 @@
 #' @importFrom magrittr %>%
 #' @importFrom dplyr mutate filter select case_when pull
-#' @importClassesFrom Matrix dgCMatrix
-#' @importClassesFrom Matrix ddiMatrix
 #' @importClassesFrom tibble tbl_df
+#' @import Matrix
 #' @import ggplot2
 NULL
 

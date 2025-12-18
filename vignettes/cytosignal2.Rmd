@@ -1,0 +1,203 @@
+---
+title: "Infer spatially resolved cell-cell communication signaling at cellular resolution"
+author: "Jialin Liu, Yichen Wang"
+date: "2025-12-18"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      toc_collapsed: false
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{Infer spatially resolved cell-cell communication signaling at cellular resolution}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, results = "hide")
+```
+
+## Introduction
+
+CytoSignal detects cell-cell signaling from spatial transcriptomics data at single-cell resolution. CytoSignal performs a nonparametric statistical test to identify which cells within a tissue have significant activity for a particular signaling interaction. CytoSignal considers multi-component interactions and separately models interactions mediated by diffusion vs. contact-dependent molecules.
+
+CytoSignal is tested to support the following spatial transcriptomics technologies at single-cell resolution. Corresponding functions for loading data are also listed below. Besides, data already loaded in other forms, such as an in-memory R container object (e.g. Seurat) and AnnData/MuData object stored on disk, can also be used as input for CytoSignal.
+
+| Tech/object/file  | Data loading function      |
+|-------------------|----------------------------|
+| Slide-tags        | `readSlideTags()`          |
+| Slide-seqV2       | `readSlideSeqV2()`         |
+| MERFISH           | `load_MERFISH()`           |
+| 10x Visium        | `readVisium()`             |
+| 10x Visium HD     | `readVisiumHD()`           |
+| Xenium            | `readXenium()`             |
+| Seurat object     | `SeuratToCS()`             |
+| AnnData/MuData    | `readH5AD()`               |
+| Text/CSV files    | `readRaw()`                |
+
+Here we load the necessary and recommended packages first for walking through this tutorial.
+
+```{r library}
+library(cytosignal)
+library(dplyr)      # Data table manipulation tool
+library(patchwork)  # plot combination tool
+```
+
+## Example data
+
+In this tutorial, we demonstrate how to preform CytoSignal on a mouse embryonic E14 brain data captured by Slide-tags, a spatial transcriptomic protocol at single-cell resolution. This data was originally produced in the work of [Andrew J. C. Russell et al., 2023](https://doi.org/10.1101/2023.04.01.535228), and is now publicly available on Single-Cell Portal via [SCP2170](https://singlecell.broadinstitute.org/single_cell/study/SCP2170/slide-tags-snrna-seq-on-mouse-embryonic-e14-brain). For convenience, we have pre-processed the data so it can be easily loaded into user R environment, which is available at [figshare](https://figshare.com/articles/dataset/CytoSignal_example_dataset/24938868). 
+
+- Raw gene expression count matrix: [SCP2170_annotated_dgCMatrix.rds](https://figshare.com/ndownloader/files/43898937), 26,944 genes by 4623 nuclei)
+- Corresponding cluster annotation: [SCP2170_cluster.csv](https://figshare.com/ndownloader/files/43898934)
+- Spatial location: [SCP2170_spatial.csv](https://figshare.com/ndownloader/files/43898931)
+
+Download the files listed above from the provided link into a desired local directory.
+
+```{r download, include=FALSE}
+if (!file.exists("SCP2170_annotated_dgCMatrix.rds")) {
+    download.file("https://figshare.com/ndownloader/files/43898937",
+                  "SCP2170_annotated_dgCMatrix.rds")
+}
+if (!file.exists("SCP2170_cluster.csv")) {
+    download.file("https://figshare.com/ndownloader/files/43898934",
+                  "SCP2170_cluster.csv")
+}
+if (!file.exists("SCP2170_spatial.csv")) {
+    download.file("https://figshare.com/ndownloader/files/43898931",
+                  "SCP2170_spatial.csv")
+}
+```
+
+## Create CytoSignal object
+
+### Loading data from output of different technologies
+
+TODO
+
+### Loading example data
+
+The downloaded data can be easily loaded into the R environment using the following codes. We assume that users have the files placed at the current working directory (as can be shown by `getwd()`). Alternatively, users can also specify the path to the files. Please see comments in the code chunk for more details.
+
+```{r load}
+## The RDS file will be loaded into a ready-to-use object
+dge <- readRDS("SCP2170_annotated_dgCMatrix.rds")
+
+## The cluster annotation is loaded as a data frame, with one column of 
+## annotation and row names as barcodes
+cluster <- read.csv("SCP2170_cluster.csv", row.names = 1)
+
+## The spatial coordinates is loaded as a data frame, with two columns of "X" 
+## and "Y" and row names as barcodes
+spatial <- read.csv("SCP2170_spatial.csv", row.names = 1)
+```
+
+Then a CytoSignal object can be created with the following command. 
+
+- `rawData` - A sparse matrix of barcode x gene dimensionality, storing the raw gene expression counts.
+- `spatial` - The spatial coordinates of barcode x 2. Can be in any class coercible to a matrix.
+- `cluster` is optional for the basic label-free CytoSignal analysis. It should be a vector/factor of length equal to the number of barcodes. The annotation can be later inserted into metadata with `cs$cluster <- factor` if desired for visualization or cluster-wise inference. 
+
+```{r createObj}
+cs <- createCytoSignal2(
+    rawData = dge, 
+    spatial = spatial, 
+    cluster = cluster$cell_type
+)
+```
+
+### Attaching a database
+
+Starting from 2.0.0, CytoSignal adpots the latest CellPhoneDB (v5.0) database as the default ligand-receptor interaction database. This can be downloaded and formatted with `getCellPhoneDB()`. CytoSignal now presents the database in a more intuitive structure. Please see `?csdb` for detailed specification of a valid CytoSignal compatible database object so that users can customize their own database if desired. 
+
+```{r db, results='markup'}
+db <- getCellPhoneDB()
+db
+```
+
+`intrDB<-` operation is exposed for inserting the constructed database object into a CytoSignal object. Users can also use `intrDB()` to access the database currently in use from a CytoSignal object. 
+
+- `toLowwords` - Whether to convert gene names from database from "GENE" to "Gene" symbol case. CellPhoneDB is based on human source study. This is crucial for matching gene names between database and the example mouse data.
+
+```{r insertDB}
+intrDB(cs, toLowwords = TRUE) <- db
+cs
+```
+
+## Inferring spatilly resolved significant Ligand-receptor interation activities
+
+The spatially resolved interaction scores of each interaction in each location (LRscore) is defined as the co-expression of ligand and receptor genes within close spatial proximity. The computation can be divided into four main steps: 
+
+1. Defining spatial neighbors for each location;
+2. Calculating the amount of ligand ($L$) each location can receive from their spatial neighbors, and the amount of receptor ($R$) each location holds; 
+3. Calculating ligand-receptor co-expression within each spatial neighborhood; 
+4. performing spatial permutation test to infer significant interactions.
+
+### Defining spatial neighborhoods
+
+CytoSignal defines spatial neighborhoods for diffusion-dependent and contact-dependent interactions differently. We use the Epsilon ball approach for diffusible interactions and Delaunay Triangulation for contact-dependent interactions.
+
+For diffusion-dependent interactions, for each location $i$, we define its spatial neighbors as all locations $j$ within a circle centered on location $i$ with a predefined radius $r$ (200 µm by default). We next weight the amount of $L$ that $i$ receives based on the physical distance between $i$ and $j$ transformed by a Gaussian kernel. For determining the parameters of this kernel, we will need a scaling factor between the arbitrary units of the spatial coordinates and real unit (such as µm), which is based on prior knowledge of user dataset. For the specific example Slide-tags data, the conversion ratio is 0.73. 
+
+We separate the setting of conversion ratio and radius cutoff from actual neighborhood computation. `setParams()` automatically shows a plot showing the scale of the radius on the spatial coordinates. This is to allow users to visually check if the parameters are appropriate before entering the time-consuming calculation. 
+- `micronPerUnit` - A conversion ratio meaning how many microns each unit in the spatial coordinates represents.
+- `ballRadiusMicron` - The radius cutoff (in micron) for defining spatial neighbors for diffusion-dependent interactions.
+- `plot` - Whether to show the scale plot automatically. Users can set `FALSE` to turn this off for a cleaning pipeline. Users can also separately use `plotScale()` to show the plot after setting the parameters.
+
+```{r setParam, fig.height=3.5}
+cs <- setParams(
+  object = cs, 
+  micronPerUnit = 0.73, 
+  ballRadiusMicron = 200
+)
+```
+
+After confirming the parameters, users can proceed to compute the spatial neighborhoods with `findNeighbor()`.
+
+```{r findNeighbor}
+cs <- findNeighbor(cs)
+```
+
+Users can optionally visualize the computed spatial neighborhood for a selected spot. These plots highlight the spots being considered as the neighbors of the selected spot and colors them based on the weight assigned. These functions by default show the spot with the most number of neighboring spots, though, users can to try more different spots with specifying `index`.
+
+```{r plotNeighbor, fig.height=3.5, fig.width=7.5}
+plotNeighborDiff(cs) + plotNeighborCont(cs)
+```
+
+
+### Calculate ligand-receptor co-expression and identifying spatially significant interactions
+
+Starting from 2.0.0, CytoSignal exports function `inferLRScore()` to do everything at once. We first impute the received ligand amount $L$ and possessed receptor amount $R$ for each spot by aggregating the gene expression within its spatial neighborhood, weighted by distance. Corresponding neighbor graph is used for different types of interactions as annotated in the database. We take the sum of normalized gene expression for complex components. Then LRscore of each interaction within each spatial neighborhood is calculated by multiplying $L$ and $R$. Each LRscore is further smoothed within its local neighborhood. We apply a permutation test that shuffles the spatial locations to generate a null distribution of LRscore. A one-sided p-value can be then calculated by comparing the observed LRscore with the null distribution. We further perform spatial false discovery rate (FDR) correction to control for multiple hypothesis testing and potential biases caused by cellular density differences. LRscore is stored at `cs@LRScore`, and the spatially corrected FDR is stored at `cs@significance$spatialFDR` as a matrix of spot by interaction size.
+
+- `smoothR` - Optional, whether to impute receptor amount $R$ from contact-dependent neighborhood. This is useful when then spatial resolution is high (e.g. multiple spots per cell) and the data is sparse. Default `FALSE` considers receptor to be intrinsic to each spot.
+
+```{r inferLRScore}
+# Optional, permutation test includes random sampling.
+# set the random seed for reproducibility
+set.seed(1)
+cs <- inferLRScore(cs)
+```
+
+Additionally, we integrate SPARK-X (Sun et al., 2020, Zhu et al., 2021) to further test the spatial variability of the LRscore. Function `inferSpatialVarIntr()` wraps the SPARK-X procedure and stores the test p-values at `cs@significance$sparkx`. External package need to be installed via `devtools::install_github('xzhoulab/SPARK')`.
+
+```{r inferSpatialVar}
+cs <- inferSpatialVarIntr(cs)
+```
+
+The Function `getTopIntr()` is provided to filter interactions by component gene expression and rank interactions by spatial variability (SPARK-X p-value) if available, and the number of significant spatial locations. Here we access the top interactions, by default filtered by limiting them to being significant in at least 100 spatial locations (FDR < 0.05), and having all component genes expressed in at least 100 spots. 
+
+```{r getTopIntr, results='markup'}
+topIntrs <- getTopIntr(cs)
+# dplyr operation, show top 5 interactions for each type
+topIntrs %>% 
+  group_by(type) %>%
+  slice_head(n = 5)
+```
+
+## Visualization
+
+`plotSpatial*()` functions are generally exposed for free visualization of any value in a CytoSignal object. Here we show some examples of visualizing the inferred interaction activities.
+
+```{r plotSpatial, fig.height=3.5, fig.width=10}
+plotSpatial(cs, interaction = 'CHL1-L1CAM', gene = c('Chl1', 'L1cam'))
+```

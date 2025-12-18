@@ -41,3 +41,10 @@
     }
     round(s, digits = digits)
 }
+
+validGenes <- function(object) {
+    rawData <- object@rawData
+    dbGenes <- .uniqGeneInDB(object@intrDB)
+    geneUse <- intersect(rownames(rawData), dbGenes)
+    sort(geneUse)
+}

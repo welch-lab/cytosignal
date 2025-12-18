@@ -10,7 +10,7 @@
 \alias{$<-.cytosignal2}
 \title{CytoSignal2-class}
 \usage{
-createCytoSignal2(rawData, spatial, ...)
+createCytoSignal2(rawData, spatial, cluster = NULL, ...)
 
 \S4method{show}{cytosignal2}(object)
 
@@ -21,9 +21,14 @@ createCytoSignal2(rawData, spatial, ...)
 \method{$}{cytosignal2}(x, name) <- value
 }
 \arguments{
-\item{rawData}{A sparse matrix of gene expression data with genes as rows and spots as columns.}
+\item{rawData}{A sparse matrix of gene expression data with genes as rows and
+spots as columns.}
 
-\item{spatial}{A matrix of spatial coordinates with rows as spots and two columns (x and y).}
+\item{spatial}{The spatial coordinates coercible to a matrix, with rows as
+spots and two columns for x and y.}
+
+\item{cluster}{A vector/factor of cluster assignments for each spot. The
+length must equal to the number of spots (columns) in \code{rawData}.}
 
 \item{...}{Additional arguments directly passed to object slots.}
 

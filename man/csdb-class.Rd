@@ -2,7 +2,19 @@
 % Please edit documentation in R/database.R
 \name{csdb}
 \alias{csdb}
+\alias{print.csdb}
 \title{CytoSignal Database class}
+\usage{
+\method{print}{csdb}(x, ...)
+}
+\arguments{
+\item{x}{A \code{csdb} object.}
+
+\item{...}{See \code{tibble::\link[tibble]{formatting}}.}
+}
+\value{
+None.
+}
 \description{
 A tibble data frame with the following columns:
 \itemize{
@@ -15,4 +27,9 @@ respectively. For complexes, gene names are joined by "+".}
 \item{\code{alt_name}: Alternative name for the interaction, using complex names
 if applicable.}
 }
+Additional columns might be seen as this class is also used to deliver top
+interaction ranking result from downstream analyses.
+}
+\seealso{
+\code{\link[=subsetCSDB]{subsetCSDB()}}
 }

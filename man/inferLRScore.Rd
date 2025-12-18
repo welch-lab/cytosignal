@@ -17,15 +17,24 @@ contact-dependent neighbor graph. Default is \code{FALSE}.}
 Default \code{1e5}.}
 }
 \value{
-A \code{\linkS4class{cytosignal2}} object with LR scores inferred and
-stored in the \code{lrScore} slot.
+The input \code{\linkS4class{cytosignal2}} object with the following
+updates:
+\itemize{
+\item{\code{object@LRScore} - A matrix of dimension (nSpot, nInteractors),
+the inferred LR scores for each spot and each interaction.}
+\item{\code{object@significance$pval} - A matrix of dimension
+(nSpot, nInteractors), the permutation p-values for each LR score.}
+\item{\code{object@significance$spatialFDR} - A matrix of dimension
+(nSpot, nInteractors), the spatially adjusted FDR for each LR score.}
+}
 }
 \description{
 This function imputes the niche expression of potential ligand and receptor
 genes using the neighbor graphs, and computes the final LR score. Optionally,
 with \code{smoothR = TRUE}, this function allows smoothing the receptor
-expression of a spot using the neighbor graph of contact-dependent
-neighborhood. This is useful when the data is of high spatial resolution
-and/or high sparsity. This function further performs a permutation test to
-infer the significance of each LR interaction in each spot.
+expression of a spot using the contact-dependent neighborhood. This is useful
+when the data is of high spatial resolution and/or high sparsity. This
+function further performs a nonparametric permutation test to infer the
+significance of each LR interaction in each spot. The p-values are adjusted
+with spatial neighbor weighting.
 }
