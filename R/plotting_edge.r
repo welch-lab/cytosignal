@@ -41,8 +41,9 @@ plotEdge <- function(
         return.plot = TRUE, plot_dir = "csEdgePlot/", filename = NULL,
         plot.fmt = c("png", "pdf", "svg"),
         title = NULL, edge.size = 500, use.shape = 16,
-        line.width = 0.01, use.phi = 30, use.theta = -17, z.scaler = 0.03,
+        line.width = 0.1, line.col = 'grey', use.phi = 30, use.theta = -17, z.scaler = 0.03,
         box = TRUE, z.pt.interval = 1, pt.size = 0.1, pt.sig.size = NULL, pt.stroke = 0.2,
+        transpAlpha = 0.2, 
         width = 5, height = 5, set.res = 300, verbose = TRUE
 ){
     type <- match.arg(type)
@@ -87,9 +88,10 @@ plotEdge <- function(
             col.fac = col.fac, res.list = res.list, intr = intr,
             title = titleIntr, pt.sig.size = pt.sig.size, 
             pt.size = pt.size, use.shape = use.shape, line.width = line.width,
+            line.col = line.col,
             use.phi = use.phi, use.theta = use.theta, box = box,
             z.scaler = z.scaler, z.pt.interval = z.pt.interval,
-            pt.stroke = pt.stroke
+            pt.stroke = pt.stroke, transpAlpha = transpAlpha
         )
 
         if (isTRUE(return.plot)) {
@@ -131,9 +133,9 @@ plotEdge <- function(
 .plotEdgeMatrix <- function(
         cells.loc, nn.graph.sig, receiver.idx, col.fac, res.list, intr,
         type = c("sender", "receiver"), edge.size = 500, pt.sig.size = NULL,
-        title = NULL, pt.size = 0.1, use.shape = 16, line.width = 0.01,
+        title = NULL, pt.size = 0.1, use.shape = 16, line.width = 0.1, line.col = 'grey',
         use.phi = 30, use.theta = -17, z.scaler = 0.03, z.pt.interval = 1,
-        pt.stroke = 0.2, box = TRUE
+        pt.stroke = 0.2, box = TRUE, transpAlpha = 0.2
 ){
     type <- match.arg(type)
     pt.df <- as.data.frame(cells.loc)
@@ -239,7 +241,7 @@ plotEdge <- function(
     if (nrow(down.df.transp) > 0) {
         plot3D::points3D(
             down.df.transp$x, down.df.transp$y, down.df.transp$z,
-            colvar = NULL, col = down.df.transp$col, alpha = 0.2,
+            colvar = NULL, col = down.df.transp$col, alpha = transpAlpha,
             colkey = FALSE, pch = use.shape, cex = pt.size,
             plot = FALSE, add = TRUE
         )
@@ -250,7 +252,7 @@ plotEdge <- function(
         z0 = seg.down.z[sample.idx],
         x1 = seg.up.x[sample.idx], y1 = seg.up.y[sample.idx],
         z1 = seg.up.z[sample.idx],
-        col = "grey", lwd = 0.1, lty = 1,
+        col = line.col, lwd = line.width, lty = 1,
         plot = FALSE, add = TRUE
     )
 
@@ -264,7 +266,7 @@ plotEdge <- function(
     if (nrow(up.df.transp) > 0) {
         plot3D::points3D(x = up.df.transp$x, y = up.df.transp$y,
                          z = up.df.transp$z,
-                         colvar = NULL, col = up.df.transp$col, alpha = 0.2,
+                         colvar = NULL, col = up.df.transp$col, alpha = transpAlpha,
                          colkey = FALSE, pch = use.shape, cex = pt.size,
                          plot = FALSE, add = TRUE)
     }
