@@ -1,3 +1,5 @@
+#' @useDynLib cytosignal, .registration = TRUE
+#' @importFrom Rcpp sourceCpp
 #' @importFrom magrittr %>%
 #' @importFrom dplyr mutate filter select case_when pull arrange slice_head
 #' @importClassesFrom tibble tbl_df
@@ -5,6 +7,12 @@
 #' @import ggplot2
 #' @import patchwork
 NULL
+
+.onLoad <- function(libname, pkgname) {
+    # Check if OpenMP is supported
+    checkString <- check_omp_threads()
+    packageStartupMessage(checkString)
+}
 
 #' CytoSignal Color Palette
 #' @description

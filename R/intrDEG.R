@@ -270,7 +270,6 @@ refineIntrDEG <- function(
 #'   A list of character vectors, each containing the clusters that are selected
 #'   by the elastic net regression model per interaction.}
 #' }
-#' @export
 #' @seealso \code{\link{findIntrDEG}}, \code{\link{refineIntrDEG}}, \code{\link{plotIntrDEGHeatmap}}
 NULL
 

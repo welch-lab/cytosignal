@@ -6,14 +6,19 @@
 \alias{findNeighborDT2}
 \title{Build weighted neighborhood graph that models ligand received by spots}
 \usage{
-findNeighbor(object)
+findNeighbor(object, ncores = 1L)
 
-findNeighborGauEB2(object)
+findNeighborGauEB2(object, ncores = 1L)
 
 findNeighborDT2(object)
 }
 \arguments{
 \item{object}{A \code{cytosignal2} object. With \code{\link{setParams}} called.}
+
+\item{ncores}{A positive Integer specifying the number of threads to use.
+This is only effective for finding neighbors with the Gaussian Epsilon ball
+method, and when OpenMP is supported in the system when compiling the
+package. Default \code{1L} does not use parallel computing.}
 }
 \value{
 A \code{cytosignal2} object with \code{neighborDiff} and/or \code{neighborCont}

@@ -1,17 +1,20 @@
-## CytoSignal 0.99.9003 - 12/18/2025
+## CytoSignal 0.99.9004 - 03/03/2026
 
 - Simplified user-side workflow
     - Merged unnecessary operations into single functions
     - Reduced number of parameters to set
     - Renamed functions for intuitive understanding of their purposes
     - See [new vignettes for basic CytoSignal analysis](https://htmlpreview.github.io/?https://github.com/welch-lab/cytosignal/blob/refactor/doc/cytosignal2.html)
+- Improved efficiency
+    - Refactored many computation-intensive analyses fully in Rcpp
+    - OpenMP multi-threading supported in places where it is feasible
+    - Faster speed
+    - Largely reduced memory usage
 - Refactored object class
     - Reduced slots for storing unnecessary yet large-sized information, which was kept mainly for debugging purpose in the past.
     - Simplified structure to allow intuitive user navigation
     - Added useful S3/S4 methods for R-style object manipulation
-- Refactored and reproducible permutation test fully in Rcpp
-    - Improved speed
-    - Largely reduced memory usage
+- Refactored permutation test
     - Allowed direct access of spatialFDR values instead of storing only binary filtering results
 - Allowed flexible result access with `getTopIntr()`
     - Returning database with significance metrics attached, that can be freely manipulated

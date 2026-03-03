@@ -215,6 +215,29 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// dist_mat_within_r
+arma::sp_mat dist_mat_within_r(const arma::mat& X, const double radius, const int ncores);
+RcppExport SEXP _cytosignal_dist_mat_within_r(SEXP XSEXP, SEXP radiusSEXP, SEXP ncoresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const double >::type radius(radiusSEXP);
+    Rcpp::traits::input_parameter< const int >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(dist_mat_within_r(X, radius, ncores));
+    return rcpp_result_gen;
+END_RCPP
+}
+// check_omp_threads
+std::string check_omp_threads();
+RcppExport SEXP _cytosignal_check_omp_threads() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(check_omp_threads());
+    return rcpp_result_gen;
+END_RCPP
+}
 // normalizeSparse_cpp
 arma::sp_mat normalizeSparse_cpp(const arma::sp_mat& x);
 RcppExport SEXP _cytosignal_normalizeSparse_cpp(SEXP xSEXP) {
@@ -392,6 +415,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_cleanLRscore_sparse_cpp", (DL_FUNC) &_cytosignal_cleanLRscore_sparse_cpp, 5},
     {"_cytosignal_select_EB_rcpp2", (DL_FUNC) &_cytosignal_select_EB_rcpp2, 2},
     {"_cytosignal_gauss_vec_inplace_cpp", (DL_FUNC) &_cytosignal_gauss_vec_inplace_cpp, 2},
+    {"_cytosignal_dist_mat_within_r", (DL_FUNC) &_cytosignal_dist_mat_within_r, 3},
+    {"_cytosignal_check_omp_threads", (DL_FUNC) &_cytosignal_check_omp_threads, 0},
     {"_cytosignal_normalizeSparse_cpp", (DL_FUNC) &_cytosignal_normalizeSparse_cpp, 1},
     {"_cytosignal_euclidean_elementwise_cpp", (DL_FUNC) &_cytosignal_euclidean_elementwise_cpp, 2},
     {"_cytosignal_inferScoreLR_cpp", (DL_FUNC) &_cytosignal_inferScoreLR_cpp, 6},

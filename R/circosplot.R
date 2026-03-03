@@ -40,19 +40,19 @@ countEdges <- function(
         }
 
         # Now building one-hot matrix noting which receiver cell has which intr
-        all_counts <- lapply(seq_along(res.list), function(i) {
-            intr.name <- names(res.list)[i]
-            res.df <- data.frame(receiver = res.list[[i]], intr = intr.name, count = 1)
+        all_counts <- lapply(seq_along(intrs), function(i) {
+            intr.name <- intrs[i]
+            res.df <- data.frame(receiver = res.list[[intr.name]], intr = intr.name, count = 1)
         })
         all_counts <- Reduce(rbind, all_counts)
         all_counts$receiver <- match(all_counts$receiver, barcodes)
-        all_counts$intr <- match(all_counts$intr, intr.list)
+        all_counts$intr <- match(all_counts$intr, intrs)
         receiver.intr.mtx <- sparseMatrix(
             i = all_counts$receiver,
             j = all_counts$intr,
             x = all_counts$count,
-            dims = c(length(barcodes), length(intr.list)),
-            dimnames = list(barcodes, intr.list)
+            dims = c(length(barcodes), length(intrs)),
+            dimnames = list(barcodes, intrs)
         )
 
         nIntrPerReceiver <- rowSums(receiver.intr.mtx)
@@ -75,7 +75,7 @@ countEdges <- function(
             t(cluster.cell.mtx)
         # Now compute total number of edges between clusters if all interactions
         # are valid.
-        cluster.cluster.totalIntr <- colSums(sender.receiver.mtx %*% t(cluster.cell.mtx))*length(intr.list)
+        cluster.cluster.totalIntr <- colSums(sender.receiver.mtx %*% t(cluster.cell.mtx))*length(intrs)
         # Finally, get the fraction of actual edges drawn over total possible edges
         mtxList[[scorename]] <- sweep(cluster.cluster.NIntr, 2, cluster.cluster.totalIntr, '/')
     }
@@ -144,6 +144,7 @@ plotCircosNIntr <- function(
         lrscore.use = NULL,
         intr.use = NULL,
         colors.list = NULL,
+        titles = NULL,
         title.size = 12,
         label.size = 8,
         circle.margin = c(0.01, 0.01, 0.01, 0.2)
@@ -180,6 +181,10 @@ plotCircosNIntr <- function(
         cex = 1,
         cex.main = title.size/12
     )
+    titles <- titles %||% names(mtxList)
+    if (length(titles) != length(mtxList)) {
+        stop('Given number of titles does not match to number of subplots.')
+    }
     # Only reset what we changed. Otherwise it'll trigger a reset of layout
     # setting which is not desired.
     on.exit(graphics::par(
@@ -224,7 +229,7 @@ plotCircosNIntr <- function(
             },
             bg.border = NA
         )
-        graphics::title(main = scorename, line = -1)
+        graphics::title(main = titles[i], line = -1)
         circlize::circos.clear()
     }
     return(invisible(NULL))

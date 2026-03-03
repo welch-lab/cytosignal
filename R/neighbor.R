@@ -65,11 +65,15 @@ setParams <- function(
 #' equal weights. This models the contact-dependent ligand-receptor
 #' interactions.
 #' @param object A `cytosignal2` object. With \code{\link{setParams}} called.
+#' @param ncores A positive Integer specifying the number of threads to use.
+#' This is only effective for finding neighbors with the Gaussian Epsilon ball
+#' method, and when OpenMP is supported in the system when compiling the
+#' package. Default \code{1L} does not use parallel computing.
 #' @return
 #' A `cytosignal2` object with \code{neighborDiff} and/or \code{neighborCont}
 #' slots filled with a sparse square matrix representing the neighborhood graph.
-findNeighbor <- function(object) {
-    object <- findNeighborGauEB2(object)
+findNeighbor <- function(object, ncores = 1L) {
+    object <- findNeighborGauEB2(object, ncores = ncores)
     object <- findNeighborDT2(object)
     return(object)
 }
@@ -77,15 +81,23 @@ findNeighbor <- function(object) {
 #' @rdname findNeighbor
 #' @export
 findNeighborGauEB2 <- function(
-        object
+        object,
+        ncores = 1L
 ) {
+    if (!is.numeric(ncores) ||
+        length(ncores) != 1L ||
+        ncores < 1L ||
+        ncores != as.integer(ncores)) {
+        cli::cli_abort('{.field ncores} must be a positive integer.')
+    }
+    ncores <- as.integer(ncores)
     spatial <- object@spatial
     eps <- object@parameters$ballRadiusCoord
     sigma <- object@parameters$sigma
     if (is.null(eps) || is.null(sigma)) {
         cli::cli_abort('Set parameters first with {.fn setParams}.')
     }
-    distance <- select_EB_rcpp2(spatial, eps = eps)
+    distance <- dist_mat_within_r(spatial, radius = eps, ncores = ncores)
     nNeighbor <- diff(distance@p)
     hasNeighborIdx <- nNeighbor > 0
     gauss_vec_inplace_cpp(distance@x, sigma)
