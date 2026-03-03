@@ -17,7 +17,7 @@ plotSpatialLRScore(
   paletteOption = "C",
   paletteDirection = -1,
   zeroAsNA = TRUE,
-  naColor = "grey70",
+  naColor = "grey80",
   titleTextSize = 12,
   subtitleTextSize = 10,
   legendTextSize = 8
@@ -31,7 +31,7 @@ plotSpatialGene(
   paletteOption = "C",
   paletteDirection = -1,
   zeroAsNA = TRUE,
-  naColor = "grey70",
+  naColor = "grey80",
   titleTextSize = 12,
   subtitleTextSize = 10,
   legendTextSize = 8
@@ -49,7 +49,7 @@ plotSpatialMetadata(
   paletteOption = "D",
   paletteDirection = -1,
   zeroAsNA = TRUE,
-  naColor = "grey70",
+  naColor = "grey80",
   titleTextSize = 12,
   subtitleTextSize = 10,
   legendTextSize = 8
@@ -88,7 +88,7 @@ variables. Works together with argument \code{naColor} to distinguish
 zero value from low positive values. Default \code{TRUE}.}
 
 \item{naColor}{Color to use for NA values, and NA values converted from
-zeros. Default \code{'grey70'}.}
+zeros. Default \code{'grey80'}.}
 
 \item{titleTextSize, subtitleTextSize, legendTextSize}{Font sizes for the plot
 title, subtitle, and legend text. Default \code{12}, \code{10}, and \code{8},

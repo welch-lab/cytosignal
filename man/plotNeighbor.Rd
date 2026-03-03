@@ -53,7 +53,7 @@ variables. Works together with argument \code{naColor} to distinguish
 zero value from low positive values. Default \code{TRUE}.}
 
 \item{naColor}{Color to use for NA values, and NA values converted from
-zeros. Default \code{'grey70'}.}
+zeros. Default \code{'grey80'}.}
 }
 \value{
 A ggplot2 object showing the spatial coordinates colored by the neighbor

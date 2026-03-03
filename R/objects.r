@@ -837,7 +837,8 @@ addVelo <- function(
 
 
 
-setOldClass("plist")
+methods::setOldClass("plist")
+
 #' @export
 setMethod("show", "plist", function(object) {
   print(object)
@@ -847,9 +848,20 @@ setMethod("show", "plist", function(object) {
 #' @method print plist
 #' @export
 print.plist <- function(x, ...) {
-  oldpar <- graphics::par(no.readonly = TRUE) # code line i
+  oldpar <- graphics::par(no.readonly = TRUE)
   on.exit(graphics::par(oldpar))
-  graphics::par(mar = c(2, 2, 4, 2), oma = c(0, 0, 0, 0),
-                mgp = c(0, 0, 0), xpd = TRUE)
+  hasLegend <- 'legend' %in% names(x)
+  graphics::par(mar = c(0, 0, 0, 0), mai = c(0, 0, 1, 0),
+                oma = c(0, 0, 0, 0), omi = c(0, 0, 0, 0),
+                mgp = c(0, 0, 0), xpd = FALSE, cex = 1)
   plot(x, ...)
+  if (hasLegend) {
+    legendPar <- x$legend
+    graphics::legend(
+      x = 'right', xpd = TRUE,
+      legend = legendPar$text, col = legendPar$col, pch = 16, bty = 'n',
+      cex = legendPar$cex, title.cex = legendPar$title.cex,
+      ncol = legendPar$ncol,
+      pt.cex = 1, title = legendPar$title, title.font = 2, title.adj = 0.1)
+  }
 }

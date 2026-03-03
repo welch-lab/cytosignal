@@ -139,7 +139,7 @@ plotGeneDetectedQC <- function(object, base_size = 11, statsTextSize = base_size
 #' variables. Works together with argument \code{naColor} to distinguish
 #' zero value from low positive values. Default \code{TRUE}.
 #' @param naColor Color to use for NA values, and NA values converted from
-#' zeros. Default \code{'grey70'}.
+#' zeros. Default \code{'grey80'}.
 #' @param colors Color vector to use for categorical or logical variables.
 #' Default \code{NULL} adopts: when categorical, built-in colors \code{csColors}
 #' that allows maximum 51 categories; when logical, red TRUE and grey FALSE.
@@ -231,7 +231,7 @@ plotSpatialLRScore <- function(
         paletteOption = 'C',
         paletteDirection = -1,
         zeroAsNA = TRUE,
-        naColor = 'grey70',
+        naColor = 'grey80',
         titleTextSize = 12,
         subtitleTextSize = 10,
         legendTextSize = 8
@@ -257,11 +257,11 @@ plotSpatialLRScore <- function(
     if (is.null(lrscore)) {
         cli::cli_abort('LRScore not yet inferred. Run {.fn inferLRScore} first.')
     }
-    interaction <- rlang::arg_match(
-        arg = interaction,
-        values = colnames(lrscore),
-        multiple = TRUE
-    )
+    interaction <- .checkIntrSelection(
+        object = object,
+        interaction = interaction,
+        error = FALSE
+    )$interactors
     values <- as.data.frame(as.matrix(lrscore[, interaction, drop = FALSE]))
     if (isTRUE(zeroAsNA)) values[values == 0] <- NA
     plotDF <- cbind(plotDF, values)
@@ -309,7 +309,7 @@ plotSpatialGene <- function(
         paletteOption = 'C',
         paletteDirection = -1,
         zeroAsNA = TRUE,
-        naColor = 'grey70',
+        naColor = 'grey80',
         titleTextSize = 12,
         subtitleTextSize = 10,
         legendTextSize = 8
@@ -375,7 +375,7 @@ plotSpatialMetadata <- function(
         paletteOption = 'D',
         paletteDirection = -1,
         zeroAsNA = TRUE,
-        naColor = 'grey70',
+        naColor = 'grey80',
         # Text settings
         titleTextSize = 12,
         subtitleTextSize = 10,
@@ -456,7 +456,7 @@ plotSpatialMetadata <- function(
         # Continuous settings
         paletteOption = 'C',
         paletteDirection = -1,
-        naColor = 'grey70',
+        naColor = 'grey80',
         # Text settings
         titleTextSize = 12,
         subtitleTextSize = 10,

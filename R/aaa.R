@@ -1,8 +1,9 @@
 #' @importFrom magrittr %>%
-#' @importFrom dplyr mutate filter select case_when pull
+#' @importFrom dplyr mutate filter select case_when pull arrange slice_head
 #' @importClassesFrom tibble tbl_df
 #' @import Matrix
 #' @import ggplot2
+#' @import patchwork
 NULL
 
 #' CytoSignal Color Palette
@@ -21,3 +22,23 @@ csColors <- c(
     '#008099', '#003399', '#1A0099', '#660099', '#990080', '#D60047',
     '#FF1463', '#00D68F', '#14FFB1'
 )
+
+
+
+#' @title Basic arguments for convenience documentation
+#' @description
+#' This documentation is not for users.
+#' @param object A \code{\linkS4class{cytosignal2}} object.
+#' @param interaction Which interactions to use. Users can provide a vector of
+#' interaction selection (name or indices applicable to rows of \code{intrDB(object)}).
+#' Or a subset of the database itself (e.g. \code{getTopIntr(object, topN = 2, type = 'cont')})
+#' @param fdrThresh FDR threshold to claim that an interaction is significantly
+#' observed in a spot. Default \code{0.05}.
+#' @return Invisible NULL value.
+generalParam <- function(
+        object,
+        interaction,
+        fdrThresh = 0.05
+) {
+    return(invisible(NULL))
+}

@@ -6,7 +6,7 @@
 \usage{
 getTopIntr(
   object,
-  alpha = 0.05,
+  fdrThresh = 0.05,
   minExp = 100,
   minSpot = 100,
   type = NULL,
@@ -18,8 +18,8 @@ getTopIntr(
 \item{object}{A \code{\linkS4class{cytosignal2}} object with LRscore
 inference done with \code{\link{inferLRScore}}.}
 
-\item{alpha}{Numeric, significance level to call an LRscore significant in
-a spot. Default is \code{0.05}.}
+\item{fdrThresh}{Numeric, significance level to call an LRscore significant
+in a spot. Default is \code{0.05}.}
 
 \item{minExp}{Integer, minimum number of spots with non-zero expression for
 each member gene of an interaction. Interactions with any member gene having

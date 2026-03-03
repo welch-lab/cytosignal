@@ -115,11 +115,11 @@ db <- getCellPhoneDB()
 db
 ```
 
-`intrDB<-` operation is exposed for inserting the constructed database object into a CytoSignal object. Users can also use `intrDB()` to access the database currently in use from a CytoSignal object. 
+`intrDB<-` operation is exposed for inserting the constructed database object into a CytoSignal object. During the process, the database will be automatically subset to the interactions where each of all the component genes are expressed by at least one spot. Users can also use `intrDB()` to access the database currently in use from a CytoSignal object. 
 
-- `toLowwords` - Whether to convert gene names from database from "GENE" to "Gene" symbol case. CellPhoneDB is based on human source study. This is crucial for matching gene names between database and the example mouse data.
+- `toLowwords` - Whether to convert gene names from database from "GENE" to "Gene" symbol case. CellPhoneDB is based on human source study, so for the most common cases, use **`toLowwords = TRUE`** for **mouse** data, and default **`toLowwords = FALSE`** for **human** data. This is crucial for matching gene names between database and the example mouse data.
 
-```{r insertDB}
+```{r insertDB, results='markup'}
 intrDB(cs, toLowwords = TRUE) <- db
 cs
 ```
@@ -140,6 +140,7 @@ CytoSignal defines spatial neighborhoods for diffusion-dependent and contact-dep
 For diffusion-dependent interactions, for each location $i$, we define its spatial neighbors as all locations $j$ within a circle centered on location $i$ with a predefined radius $r$ (200 µm by default). We next weight the amount of $L$ that $i$ receives based on the physical distance between $i$ and $j$ transformed by a Gaussian kernel. For determining the parameters of this kernel, we will need a scaling factor between the arbitrary units of the spatial coordinates and real unit (such as µm), which is based on prior knowledge of user dataset. For the specific example Slide-tags data, the conversion ratio is 0.73. 
 
 We separate the setting of conversion ratio and radius cutoff from actual neighborhood computation. `setParams()` automatically shows a plot showing the scale of the radius on the spatial coordinates. This is to allow users to visually check if the parameters are appropriate before entering the time-consuming calculation. 
+
 - `micronPerUnit` - A conversion ratio meaning how many microns each unit in the spatial coordinates represents.
 - `ballRadiusMicron` - The radius cutoff (in micron) for defining spatial neighbors for diffusion-dependent interactions.
 - `plot` - Whether to show the scale plot automatically. Users can set `FALSE` to turn this off for a cleaning pipeline. Users can also separately use `plotScale()` to show the plot after setting the parameters.
@@ -161,6 +162,7 @@ cs <- findNeighbor(cs)
 Users can optionally visualize the computed spatial neighborhood for a selected spot. These plots highlight the spots being considered as the neighbors of the selected spot and colors them based on the weight assigned. These functions by default show the spot with the most number of neighboring spots, though, users can to try more different spots with specifying `index`.
 
 ```{r plotNeighbor, fig.height=3.5, fig.width=7.5}
+# Must load package "patchwork" for combining plots with `+` operator
 plotNeighborDiff(cs) + plotNeighborCont(cs)
 ```
 
@@ -178,7 +180,7 @@ set.seed(1)
 cs <- inferLRScore(cs)
 ```
 
-Additionally, we integrate SPARK-X (Sun et al., 2020, Zhu et al., 2021) to further test the spatial variability of the LRscore. Function `inferSpatialVarIntr()` wraps the SPARK-X procedure and stores the test p-values at `cs@significance$sparkx`. External package need to be installed via `devtools::install_github('xzhoulab/SPARK')`.
+Additionally but optionally, we integrate SPARK-X (Sun et al., 2020, Zhu et al., 2021) to further test the spatial variability of the LRscore. Function `inferSpatialVarIntr()` wraps the SPARK-X procedure and stores the test p-values at `cs@significance$sparkx`. External package need to be installed via `devtools::install_github('xzhoulab/SPARK')`.
 
 ```{r inferSpatialVar}
 cs <- inferSpatialVarIntr(cs)
@@ -196,8 +198,59 @@ topIntrs %>%
 
 ## Visualization
 
-`plotSpatial*()` functions are generally exposed for free visualization of any value in a CytoSignal object. Here we show some examples of visualizing the inferred interaction activities.
+### General spatial plots of LRscore, metadata, and gene expression
 
-```{r plotSpatial, fig.height=3.5, fig.width=10}
-plotSpatial(cs, interaction = 'CHL1-L1CAM', gene = c('Chl1', 'L1cam'))
+Function `plotIntrSummary()` is provided to visualize the information that is most interesting to users at a glance, including the LRscore, ligand and receptor gene expression, and cluster labels.
+
+```{r plotIntrSummary, fig.height=6, fig.width=7.5}
+plotIntrSummary(cs, topIntrs[1,])
 ```
+
+The individual panels above can be separately generated via `plotSpatialLRScore()`, `plotSpatialMetadata()`, and `plotSpatialGene()`. Another wrapper function `plotSpatial()` is also built to flexibly generate patchwork figures that combines any information of these categories, but in a less fine-tuned layout. 
+
+**NOTE** - Metadata is located at `cs@metadata`, and a single metadata variable can be conveniently retrieved via a `$` operator (e.g. `cs$total_counts`), like many other container objects in R. 
+
+**NOTE** - Default cluster labels must be set via either providing them at object creation (see above), or anytime later via `setCluster()`. The plot can be simply generated with `plotSpatial(cs)`, or `plotSpatialMetadata(cs)`.
+
+### 3D Edge plot
+
+Here we present an edge plot that visualizes the interaction connection in 3D view. We show the spatial coordinates copied into two layers at the top and bottom. In the top layer, we use solid colors to highlight the spots that are tested to receive significant interaction signal. In the bottom, we use solid colors to highlight the sender spots that are in the receivers' neighborhood and express the ligand genes. Transparent colors are used for spots that do not contribute to the specified interaction. We use lines to connect sender and receiver spot pairs, which indicate interaction event. Given the total number of possible connections can be huge, we only show downsampled connections for clarity.
+
+```{r plot3DEdge, fig.height=3.5, fig.width=6}
+plotEdge2(cs, topIntrs[1,])
+```
+
+### Circos plot
+
+A incorporated a circos plot that summarizes the overall cluster-wise interaction frequency. This can be done for a single interaction, a user-defined subset of interactions (e.g. the top ones, the ones sharing the same ligand/receptor, or an annotated ones belonging to the same pathway), or simply all interactions for a overview of the hotspots. 
+
+```{r plotCircos, fig.height=5, fig.width=10}
+# This type of plot can be organized via R base graphics layout syntax
+# Here we preset it to one row and two columns grids
+par(mfrow = c(1, 2))
+# First show the overview of all interactions
+plotCircosNIntr2(cs)
+# Next show a specific interaction
+plotCircosNIntr2(cs, interaction = topIntrs[1,])
+```
+
+## Infering genes associated with interaction activities
+
+Downstream to identifying spatially significant and variable interactions, we provide function `findIntrDEG()` to further identify genes that are associated with the interaction activities. For each interaction, we perform a one-sided Wilcoxon's rank-sum test on each gene, between the spots that receive significant interaction signal and the spots that do not. The test is done per interaction and per cluster (if available, see NOTE above). For each interaction, the function collects the genes that show significant up-regulation when spots receive significant interaction signal.
+
+```{r findIntrDEG, results='markup'}
+intrDEGs <- findIntrDEG(cs, interaction = topIntrs[1,])
+intrDEGs$degList
+```
+
+The gene set can be further interpreted via GO (gene ontology) term enrichment analysis with external tools. This analysis can be done with any GO tools of preference. We recommend using [GORILLA](https://cbl-gorilla.cs.technion.ac.il/) which we also utilized in our manuscript. Here, we showcase another alternative [g:Profiler](https://biit.cs.ut.ee/gprofiler/gost) that offers an R package [gprofiler2](https://CRAN.R-project.org/package=gprofiler2) to interactively query the result.
+
+```{r gprofiler, eval=FALSE}
+library(gprofiler2)
+goRes <- gost(query = intrDEGs, organism = "mmusculus", sources = c("GO:BP", "GO:MF", "GO:CC"))
+goRes$result %>%
+  dplyr::select(term_name, p_value, source) %>%
+  group_by(source) %>%
+  slice_head(n = 3)
+```
+

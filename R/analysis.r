@@ -48,8 +48,8 @@ findNNGauEB <- function(
   # imp.name <- imp.name %||% "diffusion"
   # eps <- eps %||% object@parameters$r.diffuse.scale
   # sigma <- sigma %||% object@parameters$sigma.scale
-  
-  # replace %||% with if else to avoid dependency 
+
+  # replace %||% with if else to avoid dependency
   imp.name <- if (!is.null(imp.name)) imp.name else "diffusion"
   eps <- if (!is.null(eps)) eps else object@parameters$r.diffuse.scale
   sigma <- if (!is.null(sigma)) sigma else object@parameters$sigma.scale

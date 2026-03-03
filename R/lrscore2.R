@@ -176,6 +176,7 @@ inferLRScore <- function(
     )
     fdr[hasContNeighbor, ] <- fdrSub
     object@significance$spatialFDR <- fdr
+
     return(object)
 }
 
@@ -379,6 +380,7 @@ inferSpatialVarIntr <- function(
 }
 
 
+nSignifSpots <- function(pmat, fdrThresh = 0.05) colSums(pmat < fdrThresh, na.rm = TRUE)
 
 #' Get interaction table ranked by significance
 #' @description
@@ -387,8 +389,8 @@ inferSpatialVarIntr <- function(
 #' low quality interactions based on member gene expression.
 #' @param object A \code{\linkS4class{cytosignal2}} object with LRscore
 #' inference done with \code{\link{inferLRScore}}.
-#' @param alpha Numeric, significance level to call an LRscore significant in
-#' a spot. Default is \code{0.05}.
+#' @param fdrThresh Numeric, significance level to call an LRscore significant
+#' in a spot. Default is \code{0.05}.
 #' @param minExp Integer, minimum number of spots with non-zero expression for
 #' each member gene of an interaction. Interactions with any member gene having
 #' less than \code{minExp} spots with non-zero expression will be filtered out.
@@ -408,7 +410,7 @@ inferSpatialVarIntr <- function(
 #' @export
 getTopIntr <- function(
         object,
-        alpha = 0.05,
+        fdrThresh = 0.05,
         minExp = 100,
         minSpot = 100,
         type = NULL,
@@ -434,7 +436,7 @@ getTopIntr <- function(
     if (is.null(type)) typeUse <- c('diffusion', 'contact')
     else typeUse <- match.arg(type, c('diffusion', 'contact'), FALSE)
 
-    intrDB$n_signif_spots <- colSums(pmat < alpha, na.rm = TRUE)
+    intrDB$n_signif_spots <- nSignifSpots(pmat, fdrThresh)
 
     geneLow <- rownames(object@rawData)[rowSums(object@rawData > 0) < minExp]
     ligKeep <- strsplit(intrDB$ligands, split = ';') %>%
@@ -452,7 +454,7 @@ getTopIntr <- function(
         spx <- object@significance$sparkx
         intrDB$sparkx_padj <- spx$adjustedPval[match(intrDB$interactors, rownames(spx))]
         intrDB <- intrDB %>%
-            dplyr::filter(.data[['sparkx_padj']] < alpha) %>%
+            dplyr::filter(.data[['sparkx_padj']] < fdrThresh) %>%
             dplyr::arrange(.data[['sparkx_padj']], -.data[['n_signif_spots']])
     } else {
         intrDB <- intrDB %>%

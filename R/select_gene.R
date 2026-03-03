@@ -114,13 +114,34 @@ wilcoxauc <- function(
   pvals <- computePval(ustat, ties, ncol(x), n1n2, alternative = alternative)
   fdr <- apply(pvals, 2, function(p) stats::p.adjust(p, 'BH'))
 
+  groupSums <- colAggregateSum_sparse(x, as.integer(clusterVar) - 1, length(unique(clusterVar)))
+  # group_nnz <- colNNZAggr_sparse(x, as.integer(clusterVar) - 1, length(unique(clusterVar)))
+  # group_pct <- t(sweep(group_nnz, 1, as.numeric(table(clusterVar)), "/"))
+  #
+  # group_pct_out <- sweep(-group_nnz, 2, colSums(group_nnz), "+")
+  # group_pct_out <- sweep(group_pct_out, 1,
+  #                        as.numeric(length(clusterVar) - table(clusterVar)),
+  #                        "/")
+  # group_pct_out <- t(group_pct_out)
+
+  groupMeans <- t(sweep(groupSums, 1, as.numeric(table(clusterVar)), "/"))
+
+  cs <- colSums(groupSums)
+  gs <- as.numeric(table(clusterVar))
+  lfc <- Reduce(cbind, lapply(seq_along(levels(clusterVar)), function(g) {
+    groupMeans[, g] - (cs - groupSums[g, ])/(length(clusterVar) - gs[g])
+  }))
   data.frame(
     feature = rep(row.names(x), times = length(levels(clusterVar))),
     group = factor(rep(levels(clusterVar), each = nrow(x)),
                    levels = levels(clusterVar)),
     # statistics = as.numeric(t(ustat)),
     # pval = as.numeric(pvals),
+    logFC = as.numeric(lfc),
     padj = as.numeric(fdr)
+    # pct_in = 100 * group_pct,
+    # pct_out = 100 * group_pct_out,
+    # avgExpr = group_means,
   )
 }
 
@@ -156,8 +177,6 @@ computePval <- function(ustat, ties, N, n1n2, alternative) {
 
   return(pvals)
 }
-
-
 
 refine_score <- function(
     object,
@@ -446,10 +465,10 @@ print.CytosignalIntrDEG <- function(x, ...) {
   cat(format(x), "\n")
 }
 
-               
-               
-               
-               
+
+
+
+
 
 
 
