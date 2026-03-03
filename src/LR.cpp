@@ -43,34 +43,32 @@ arma::uword findInterval_leftOpen_cpp(double x, const arma::vec& breaks) {
     return static_cast<int>(it - breaks.begin());
 }
 
-// Inplace update the sampled averaged null L/R score per permutation per interaction
+// Calculates the sampled averaged null L/R score per permutation per interaction
 // raw - Transposed raw count matrix, [spot x valid-gene]
 // map - Binary ligand/receptor gene mapping per interaction, [valid-gene x interaction]
 // nullgraph - Transposed null neighbor graph, [spot x spot]
 // nullLibSize - Library size per spot under null graph [spot]
 // dtAvgNullGraph - Transposed from to_mean(contGraph)[, permIdx], [sampled-spot x spot]
-// nullSub - Pre-allocated spot x 1 matrix to hold the collapsed null ligand
+// nullSub - spot x 1 matrix to hold the collapsed null ligand
 //            or receptor value per permutation per interaction
-// nullSampled - Pre-allocated sampled-averaged sampleSize x 1 matrix to hold the final null
+// nullSampled - sampled-averaged sampleSize x 1 matrix to hold the final null
 //                ligand or receptor value per permutation per interaction
 // i - Interaction index
-void collapse_null_value_perm_intr(
-    const arma::sp_mat& raw,
-    const arma::sp_mat& map,
-    const arma::sp_mat& nullgraph,
-    const arma::vec& nullLibSize,
-    const arma::sp_mat& dtAvgNullGraph,
-    arma::vec& nullSub,
-    arma::vec& nullSampled,
-    arma::uword i
+arma::vec collapse_null_value_perm_intr(
+        const arma::sp_mat& raw,
+        const arma::sp_mat& map,
+        const arma::sp_mat& nullgraph,
+        const arma::vec& nullLibSize,
+        const arma::sp_mat& dtAvgNullGraph,
+        arma::uword i
 ) {
-    nullSub.zeros();
+    // nullSub holds collapsed normalized null-imputed L/R value per 
+    // permutation per interaction
+    arma::vec nullSub(raw.n_rows, arma::fill::zeros);
     for (arma::sp_mat::const_col_iterator it = map.begin_col(i);
          it != map.end_col(i); ++it) {
         arma::uword gene_idx = it.row();
         arma::sp_mat gene_expr = raw.col(gene_idx);
-        // Rcpp::Rcout << "nullgraph density: " << double(nullgraph.n_nonzero)/double(nullgraph.n_rows*nullgraph.n_cols) << "\n";
-        // Rcpp::Rcout << "gene_expr density: " << double(gene_expr.n_nonzero)/double(gene_expr.n_rows*gene_expr.n_cols) << "\n";
         gene_expr = nullgraph * gene_expr;
         for (arma::sp_mat::iterator gene_it = gene_expr.begin();
              gene_it != gene_expr.end(); ++gene_it) {
@@ -80,7 +78,8 @@ void collapse_null_value_perm_intr(
         }
         nullSub += gene_expr;
     }
-    nullSampled = dtAvgNullGraph * nullSub;
+    arma::vec nullSampled = dtAvgNullGraph * nullSub;
+    return nullSampled;
 }
 
 // Permutation test for LR score significance
@@ -159,36 +158,23 @@ arma::sp_mat permute_test_cpp(
     // holding the null score (assuming 100,000 sample size) of all interactions
     // will be memory intensive.
 
-    // *nullSub is pre-allocated for holding collapsed normalized null-imputed
-    // L/R value per permutation per interaction
-    // *nullSampled is pre-allocated for holding sampled-dt-averaged *nullSub
-    // values per permutation per interaction
     arma::vec LnullSub(nSpot);
-    arma::vec LnullSampled(sampleSize);
-
     arma::vec RnullSub(nSpot);
-    arma::vec RnullSampled(sampleSize);
 
-    // nullSub is the final null LR score per permutation per interaction
-    arma::vec nullSub(sampleSize);
     // nullScore holds all null LR scores for all permutations per interaction
     arma::vec nullScore(sampleSize*nPerm);
 
-    ETAProgressBar pb;
-    Progress p(nIntr, true, pb);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(ncores) schedule(static)
+#endif
     for (arma::uword i = 0; i < nIntr; i++) {
-        if (Progress::check_abort()) {
-            return ecdf;
-        }
         const std::vector<arma::sp_mat>* lig_NGV = (intrType[i] == 0) ? &cont_lig_NGV : &diff_lig_NGV;
         const std::vector<arma::mat>* lig_NLSV = (intrType[i] == 0) ? &cont_lig_NLSV : &diff_lig_NLSV;
         const std::vector<arma::sp_mat>* recep_NGV = (intrType[i] == 0) ? &cont_recep_NGV : &diff_recep_NGV;
         const std::vector<arma::mat>* recep_NLSV = (intrType[i] == 0) ? &cont_recep_NLSV : &diff_recep_NLSV;
         const std::vector<arma::sp_mat>* dtAvg_NGV = (intrType[i] == 0) ? &cont_dtAvg_NGV : &diff_dtAvg_NGV;
         const std::vector<arma::sp_mat>* smooth_NGV = (intrType[i] == 0) ? &cont_smooth_NGV : &diff_smooth_NGV;
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(ncores) schedule(dynamic)
-#endif
+
         for (arma::uword j = 0; j < nPerm; j++) {
             const arma::sp_mat& lig_NG = (*lig_NGV)[j];
             const arma::mat& lig_NLS = (*lig_NLSV)[j];
@@ -197,11 +183,16 @@ arma::sp_mat permute_test_cpp(
             const arma::sp_mat& dtAvg_NG = (*dtAvg_NGV)[j];
             const arma::sp_mat& smooth_NG = (*smooth_NGV)[j];
 
-            collapse_null_value_perm_intr(raw, Lmap, lig_NG, lig_NLS, dtAvg_NG,
-                                          LnullSub, LnullSampled, i);
-            collapse_null_value_perm_intr(raw, Rmap, recep_NG, recep_NLS, dtAvg_NG,
-                                          RnullSub, RnullSampled, i);
-            nullSub = LnullSampled % RnullSampled;
+            // *nulSampled holds sampled-dt-averaged *nullSub
+            // values per permutation per interaction
+            arma::vec LnullSampled = collapse_null_value_perm_intr(
+                raw, Lmap, lig_NG, lig_NLS, dtAvg_NG, i
+            );
+            arma::vec RnullSampled = collapse_null_value_perm_intr(
+                raw, Rmap, recep_NG, recep_NLS, dtAvg_NG, i
+            );
+            // nullSub is the final null LR score per permutation per interaction
+            arma::vec nullSub = LnullSampled % RnullSampled;
             nullSub =  smooth_NG * nullSub;
             nullScore.subvec(j*sampleSize, (j+1)*sampleSize-1) = nullSub;
         }
@@ -212,8 +203,6 @@ arma::sp_mat permute_test_cpp(
             arma::uword ecdf = findInterval_leftOpen_cpp(*it, nullScoreSorted);
             *it = double(ecdf)/double(nPerm*sampleSize);
         }
-
-        p.increment();
     }
     return ecdf;
 }
@@ -298,7 +287,8 @@ arma::sp_mat perm_test_Rcpp(
 arma::mat spatialGraphFDR_cpp(
         const arma::mat& pval,
         const arma::uvec& intrType,
-        const arma::sp_mat& contGraph
+        const arma::sp_mat& contGraph,
+        const arma::uword ncores = 1
 ) {
     arma::uword nIntr = pval.n_cols;
     arma::uword nSpot = pval.n_rows;
@@ -321,18 +311,20 @@ arma::mat spatialGraphFDR_cpp(
     }
     double weight_sum = arma::sum(weights);
 
-    arma::vec pval_vec(nSpot);
-    arma::vec psorted(nSpot);
-    arma::vec wsub(nSpot);
-
+    // arma::vec pval_vec(nSpot);
+    // arma::vec psorted(nSpot);
+    // arma::vec wsub(nSpot);
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(ncores) schedule(static)
+#endif
     for (arma::uword i = 0; i < nIntr; i++) {
-        Rcpp::checkUserInterrupt();
-        pval_vec = pval.col(i);
+        // Rcpp::checkUserInterrupt();
+        arma::vec pval_vec = pval.col(i);
 
         arma::uvec naIdx = arma::find_nonfinite(pval_vec);
         arma::uvec o = arma::sort_index(pval_vec, "ascend");
-        psorted = pval_vec(o);
-        wsub = weights(o);
+        arma::vec psorted = pval_vec(o);
+        arma::vec wsub = weights(o);
         arma::vec padj(nSpot);
         padj.fill(-1.0);
         arma::vec weight_cumsum = arma::cumsum(wsub);

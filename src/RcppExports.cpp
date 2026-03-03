@@ -63,15 +63,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // spatialGraphFDR_cpp
-arma::mat spatialGraphFDR_cpp(const arma::mat& pval, const arma::uvec& intrType, const arma::sp_mat& contGraph);
-RcppExport SEXP _cytosignal_spatialGraphFDR_cpp(SEXP pvalSEXP, SEXP intrTypeSEXP, SEXP contGraphSEXP) {
+arma::mat spatialGraphFDR_cpp(const arma::mat& pval, const arma::uvec& intrType, const arma::sp_mat& contGraph, const arma::uword ncores);
+RcppExport SEXP _cytosignal_spatialGraphFDR_cpp(SEXP pvalSEXP, SEXP intrTypeSEXP, SEXP contGraphSEXP, SEXP ncoresSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::mat& >::type pval(pvalSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type intrType(intrTypeSEXP);
     Rcpp::traits::input_parameter< const arma::sp_mat& >::type contGraph(contGraphSEXP);
-    rcpp_result_gen = Rcpp::wrap(spatialGraphFDR_cpp(pval, intrType, contGraph));
+    Rcpp::traits::input_parameter< const arma::uword >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(spatialGraphFDR_cpp(pval, intrType, contGraph, ncores));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -404,7 +405,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_multiply_lr_cpp", (DL_FUNC) &_cytosignal_multiply_lr_cpp, 4},
     {"_cytosignal_findInterval_leftOpen_cpp", (DL_FUNC) &_cytosignal_findInterval_leftOpen_cpp, 2},
     {"_cytosignal_perm_test_Rcpp", (DL_FUNC) &_cytosignal_perm_test_Rcpp, 15},
-    {"_cytosignal_spatialGraphFDR_cpp", (DL_FUNC) &_cytosignal_spatialGraphFDR_cpp, 3},
+    {"_cytosignal_spatialGraphFDR_cpp", (DL_FUNC) &_cytosignal_spatialGraphFDR_cpp, 4},
     {"_cytosignal_clusterWiseLRscore_cpp", (DL_FUNC) &_cytosignal_clusterWiseLRscore_cpp, 11},
     {"_cytosignal_gauss_vec_cpp", (DL_FUNC) &_cytosignal_gauss_vec_cpp, 2},
     {"_cytosignal_rep_each_cpp", (DL_FUNC) &_cytosignal_rep_each_cpp, 2},

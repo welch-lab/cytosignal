@@ -176,7 +176,8 @@ inferLRScore <- function(
     fdrSub <- spatialGraphFDR_cpp(
         pval = pval,
         intrType = as.integer(intrDB(object)$type) - 1,
-        contGraph = contGraph
+        contGraph = contGraph,
+        ncores = ncores
     )
     fdr[hasContNeighbor, ] <- fdrSub
     object@significance$spatialFDR <- fdr
