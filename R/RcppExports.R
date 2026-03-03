@@ -2,106 +2,114 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 multiply_lr_cpp <- function(impL, Lmap, impR, Rmap) {
-    .Call('_cytosignal_multiply_lr_cpp', PACKAGE = 'cytosignal', impL, Lmap, impR, Rmap)
+    .Call(`_cytosignal_multiply_lr_cpp`, impL, Lmap, impR, Rmap)
 }
 
 findInterval_leftOpen_cpp <- function(x, breaks) {
-    .Call('_cytosignal_findInterval_leftOpen_cpp', PACKAGE = 'cytosignal', x, breaks)
+    .Call(`_cytosignal_findInterval_leftOpen_cpp`, x, breaks)
 }
 
 perm_test_Rcpp <- function(raw, libSize, intrType, diff_lig_NGL, diff_recep_NGL, diff_dtAvg_NGL, diff_smooth_NGL, cont_lig_NGL, cont_recep_NGL, cont_dtAvg_NGL, cont_smooth_NGL, Lmap, Rmap, lrscore) {
-    .Call('_cytosignal_perm_test_Rcpp', PACKAGE = 'cytosignal', raw, libSize, intrType, diff_lig_NGL, diff_recep_NGL, diff_dtAvg_NGL, diff_smooth_NGL, cont_lig_NGL, cont_recep_NGL, cont_dtAvg_NGL, cont_smooth_NGL, Lmap, Rmap, lrscore)
+    .Call(`_cytosignal_perm_test_Rcpp`, raw, libSize, intrType, diff_lig_NGL, diff_recep_NGL, diff_dtAvg_NGL, diff_smooth_NGL, cont_lig_NGL, cont_recep_NGL, cont_dtAvg_NGL, cont_smooth_NGL, Lmap, Rmap, lrscore)
 }
 
 spatialGraphFDR_cpp <- function(pval, intrType, contGraph) {
-    .Call('_cytosignal_spatialGraphFDR_cpp', PACKAGE = 'cytosignal', pval, intrType, contGraph)
+    .Call(`_cytosignal_spatialGraphFDR_cpp`, pval, intrType, contGraph)
 }
 
 clusterWiseLRscore_cpp <- function(raw, libSize, clusterInt, nCluster, intrType, diff_lig_graph, cont_lig_graph, recep_graph, dtAvg_graph, Lmap, Rmap) {
-    .Call('_cytosignal_clusterWiseLRscore_cpp', PACKAGE = 'cytosignal', raw, libSize, clusterInt, nCluster, intrType, diff_lig_graph, cont_lig_graph, recep_graph, dtAvg_graph, Lmap, Rmap)
+    .Call(`_cytosignal_clusterWiseLRscore_cpp`, raw, libSize, clusterInt, nCluster, intrType, diff_lig_graph, cont_lig_graph, recep_graph, dtAvg_graph, Lmap, Rmap)
 }
 
 gauss_vec_cpp <- function(x, sigma) {
-    .Call('_cytosignal_gauss_vec_cpp', PACKAGE = 'cytosignal', x, sigma)
+    .Call(`_cytosignal_gauss_vec_cpp`, x, sigma)
 }
 
 rep_each_cpp <- function(l, n) {
-    .Call('_cytosignal_rep_each_cpp', PACKAGE = 'cytosignal', l, n)
+    .Call(`_cytosignal_rep_each_cpp`, l, n)
 }
 
 meanMat_cpp <- function(l, nrow, ncol) {
-    .Call('_cytosignal_meanMat_cpp', PACKAGE = 'cytosignal', l, nrow, ncol)
+    .Call(`_cytosignal_meanMat_cpp`, l, nrow, ncol)
 }
 
 stdMat_cpp <- function(x) {
-    .Call('_cytosignal_stdMat_cpp', PACKAGE = 'cytosignal', x)
+    .Call(`_cytosignal_stdMat_cpp`, x)
 }
 
 pearson_col_cpp <- function(x, y) {
-    .Call('_cytosignal_pearson_col_cpp', PACKAGE = 'cytosignal', x, y)
+    .Call(`_cytosignal_pearson_col_cpp`, x, y)
 }
 
 cbind_list <- function(sparse_matrix_list) {
-    .Call('_cytosignal_cbind_list', PACKAGE = 'cytosignal', sparse_matrix_list)
+    .Call(`_cytosignal_cbind_list`, sparse_matrix_list)
 }
 
 rbind_list <- function(sparse_matrix_list) {
-    .Call('_cytosignal_rbind_list', PACKAGE = 'cytosignal', sparse_matrix_list)
+    .Call(`_cytosignal_rbind_list`, sparse_matrix_list)
 }
 
 cleanLRscore_sparse_cpp <- function(i, p, x, nrow, ncol) {
-    .Call('_cytosignal_cleanLRscore_sparse_cpp', PACKAGE = 'cytosignal', i, p, x, nrow, ncol)
+    .Call(`_cytosignal_cleanLRscore_sparse_cpp`, i, p, x, nrow, ncol)
 }
 
 select_EB_rcpp2 <- function(loc, eps) {
-    .Call('_cytosignal_select_EB_rcpp2', PACKAGE = 'cytosignal', loc, eps)
+    .Call(`_cytosignal_select_EB_rcpp2`, loc, eps)
 }
 
 gauss_vec_inplace_cpp <- function(x, sigma) {
-    invisible(.Call('_cytosignal_gauss_vec_inplace_cpp', PACKAGE = 'cytosignal', x, sigma))
+    invisible(.Call(`_cytosignal_gauss_vec_inplace_cpp`, x, sigma))
+}
+
+dist_mat_within_r <- function(X, radius, ncores = 1L) {
+    .Call(`_cytosignal_dist_mat_within_r`, X, radius, ncores)
+}
+
+check_omp_threads <- function() {
+    .Call(`_cytosignal_check_omp_threads`)
 }
 
 normalizeSparse_cpp <- function(x) {
-    .Call('_cytosignal_normalizeSparse_cpp', PACKAGE = 'cytosignal', x)
+    .Call(`_cytosignal_normalizeSparse_cpp`, x)
 }
 
 euclidean_elementwise_cpp <- function(x, y) {
-    .Call('_cytosignal_euclidean_elementwise_cpp', PACKAGE = 'cytosignal', x, y)
+    .Call(`_cytosignal_euclidean_elementwise_cpp`, x, y)
 }
 
 inferScoreLR_cpp <- function(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list) {
-    .Call('_cytosignal_inferScoreLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list)
+    .Call(`_cytosignal_inferScoreLR_cpp`, dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list)
 }
 
 inferVeloLR_cpp <- function(dge_lig, dge_recep, dge_lig_velo, dge_recep_velo, lig_index, lig_list, recep_index, recep_list) {
-    .Call('_cytosignal_inferVeloLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, dge_lig_velo, dge_recep_velo, lig_index, lig_list, recep_index, recep_list)
+    .Call(`_cytosignal_inferVeloLR_cpp`, dge_lig, dge_recep, dge_lig_velo, dge_recep_velo, lig_index, lig_list, recep_index, recep_list)
 }
 
 graphNicheLR_cpp <- function(dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list) {
-    .Call('_cytosignal_graphNicheLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list)
+    .Call(`_cytosignal_graphNicheLR_cpp`, dge_lig, dge_recep, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list)
 }
 
 VelographNicheLR_cpp <- function(dge_lig, dge_recep, dge_velo, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list) {
-    .Call('_cytosignal_VelographNicheLR_cpp', PACKAGE = 'cytosignal', dge_lig, dge_recep, dge_velo, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list)
+    .Call(`_cytosignal_VelographNicheLR_cpp`, dge_lig, dge_recep, dge_velo, lig_index, lig_list, recep_index, recep_list, nb_index, nb_list)
 }
 
 cpp_rank_matrix_dgc <- function(x, p, nrow, ncol) {
-    .Call('_cytosignal_cpp_rank_matrix_dgc', PACKAGE = 'cytosignal', x, p, nrow, ncol)
+    .Call(`_cytosignal_cpp_rank_matrix_dgc`, x, p, nrow, ncol)
 }
 
 rowAggregateSum_sparse <- function(X, groups, ngroups) {
-    .Call('_cytosignal_rowAggregateSum_sparse', PACKAGE = 'cytosignal', X, groups, ngroups)
+    .Call(`_cytosignal_rowAggregateSum_sparse`, X, groups, ngroups)
 }
 
 colAggregateSum_sparse <- function(X, groups, ngroups) {
-    .Call('_cytosignal_colAggregateSum_sparse', PACKAGE = 'cytosignal', X, groups, ngroups)
+    .Call(`_cytosignal_colAggregateSum_sparse`, X, groups, ngroups)
 }
 
 colNNZAggr_sparse <- function(X, groups, ngroups) {
-    .Call('_cytosignal_colNNZAggr_sparse', PACKAGE = 'cytosignal', X, groups, ngroups)
+    .Call(`_cytosignal_colNNZAggr_sparse`, X, groups, ngroups)
 }
 
 rowNNZAggr_sparse <- function(X, groups, ngroups) {
-    .Call('_cytosignal_rowNNZAggr_sparse', PACKAGE = 'cytosignal', X, groups, ngroups)
+    .Call(`_cytosignal_rowNNZAggr_sparse`, X, groups, ngroups)
 }
 

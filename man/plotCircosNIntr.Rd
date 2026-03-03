@@ -9,6 +9,7 @@ plotCircosNIntr(
   lrscore.use = NULL,
   intr.use = NULL,
   colors.list = NULL,
+  titles = NULL,
   title.size = 12,
   label.size = 8,
   circle.margin = c(0.01, 0.01, 0.01, 0.2)

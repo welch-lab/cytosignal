@@ -1,8 +1,3 @@
-#' @importFrom Matrix colSums rowSums t
-#' @importFrom Rcpp evalCpp
-#' @useDynLib cytosignal
-NULL
-
 setOldClass("package_version")
 # set a new class union containing dgCMatrix and matrix
 setClassUnion(

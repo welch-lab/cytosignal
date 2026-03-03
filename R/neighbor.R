@@ -85,7 +85,7 @@ findNeighborGauEB2 <- function(
     if (is.null(eps) || is.null(sigma)) {
         cli::cli_abort('Set parameters first with {.fn setParams}.')
     }
-    distance <- select_EB_rcpp2(spatial, eps = eps)
+    distance <- dist_mat_within_r(spatial, eps = eps)
     nNeighbor <- diff(distance@p)
     hasNeighborIdx <- nNeighbor > 0
     gauss_vec_inplace_cpp(distance@x, sigma)
