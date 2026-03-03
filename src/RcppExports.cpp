@@ -38,8 +38,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // perm_test_Rcpp
-arma::sp_mat perm_test_Rcpp(const arma::sp_mat& raw, const arma::vec& libSize, const arma::uvec& intrType, Rcpp::List diff_lig_NGL, Rcpp::List diff_recep_NGL, Rcpp::List diff_dtAvg_NGL, Rcpp::List diff_smooth_NGL, Rcpp::List cont_lig_NGL, Rcpp::List cont_recep_NGL, Rcpp::List cont_dtAvg_NGL, Rcpp::List cont_smooth_NGL, const arma::sp_mat& Lmap, const arma::sp_mat& Rmap, const arma::sp_mat& lrscore);
-RcppExport SEXP _cytosignal_perm_test_Rcpp(SEXP rawSEXP, SEXP libSizeSEXP, SEXP intrTypeSEXP, SEXP diff_lig_NGLSEXP, SEXP diff_recep_NGLSEXP, SEXP diff_dtAvg_NGLSEXP, SEXP diff_smooth_NGLSEXP, SEXP cont_lig_NGLSEXP, SEXP cont_recep_NGLSEXP, SEXP cont_dtAvg_NGLSEXP, SEXP cont_smooth_NGLSEXP, SEXP LmapSEXP, SEXP RmapSEXP, SEXP lrscoreSEXP) {
+arma::sp_mat perm_test_Rcpp(const arma::sp_mat& raw, const arma::vec& libSize, const arma::uvec& intrType, Rcpp::List diff_lig_NGL, Rcpp::List diff_recep_NGL, Rcpp::List diff_dtAvg_NGL, Rcpp::List diff_smooth_NGL, Rcpp::List cont_lig_NGL, Rcpp::List cont_recep_NGL, Rcpp::List cont_dtAvg_NGL, Rcpp::List cont_smooth_NGL, const arma::sp_mat& Lmap, const arma::sp_mat& Rmap, const arma::sp_mat& lrscore, const arma::uword ncores);
+RcppExport SEXP _cytosignal_perm_test_Rcpp(SEXP rawSEXP, SEXP libSizeSEXP, SEXP intrTypeSEXP, SEXP diff_lig_NGLSEXP, SEXP diff_recep_NGLSEXP, SEXP diff_dtAvg_NGLSEXP, SEXP diff_smooth_NGLSEXP, SEXP cont_lig_NGLSEXP, SEXP cont_recep_NGLSEXP, SEXP cont_dtAvg_NGLSEXP, SEXP cont_smooth_NGLSEXP, SEXP LmapSEXP, SEXP RmapSEXP, SEXP lrscoreSEXP, SEXP ncoresSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -57,7 +57,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::sp_mat& >::type Lmap(LmapSEXP);
     Rcpp::traits::input_parameter< const arma::sp_mat& >::type Rmap(RmapSEXP);
     Rcpp::traits::input_parameter< const arma::sp_mat& >::type lrscore(lrscoreSEXP);
-    rcpp_result_gen = Rcpp::wrap(perm_test_Rcpp(raw, libSize, intrType, diff_lig_NGL, diff_recep_NGL, diff_dtAvg_NGL, diff_smooth_NGL, cont_lig_NGL, cont_recep_NGL, cont_dtAvg_NGL, cont_smooth_NGL, Lmap, Rmap, lrscore));
+    Rcpp::traits::input_parameter< const arma::uword >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(perm_test_Rcpp(raw, libSize, intrType, diff_lig_NGL, diff_recep_NGL, diff_dtAvg_NGL, diff_smooth_NGL, cont_lig_NGL, cont_recep_NGL, cont_dtAvg_NGL, cont_smooth_NGL, Lmap, Rmap, lrscore, ncores));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -402,7 +403,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_cytosignal_multiply_lr_cpp", (DL_FUNC) &_cytosignal_multiply_lr_cpp, 4},
     {"_cytosignal_findInterval_leftOpen_cpp", (DL_FUNC) &_cytosignal_findInterval_leftOpen_cpp, 2},
-    {"_cytosignal_perm_test_Rcpp", (DL_FUNC) &_cytosignal_perm_test_Rcpp, 14},
+    {"_cytosignal_perm_test_Rcpp", (DL_FUNC) &_cytosignal_perm_test_Rcpp, 15},
     {"_cytosignal_spatialGraphFDR_cpp", (DL_FUNC) &_cytosignal_spatialGraphFDR_cpp, 3},
     {"_cytosignal_clusterWiseLRscore_cpp", (DL_FUNC) &_cytosignal_clusterWiseLRscore_cpp, 11},
     {"_cytosignal_gauss_vec_cpp", (DL_FUNC) &_cytosignal_gauss_vec_cpp, 2},

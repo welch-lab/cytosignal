@@ -376,7 +376,7 @@ mergeCytoSignal <- function(
         if (!"Raw" %in% names(obj@imputation)){
             obj <- findNNRaw(obj)
         }
-        
+
         obj <- inferScoreLR(obj, lig.imp = "GauEps_sw1", recep.imp = "Raw",
                             norm.method = "none", intr.db.use = "diff_dep")
         diffscore <- obj@lrscore[["GauEps_sw1-Raw"]]@score
@@ -581,7 +581,7 @@ checkDependence <- function(X){
         } else {
             covariates[i]
         }
-    }) |>
+    }) %>%
     unlist(use.names = FALSE) -> all_from_covuse
     modelcnCheck <- colnames(model)
     modelcnCheck <- modelcnCheck[modelcnCheck != "(Intercept)"]
@@ -838,8 +838,8 @@ plotNebulaVolcano <- function(
     }
     minNonZeroFDR <- min(df$padj[df$padj > 0], na.rm = TRUE)
     maxNeglog10FDR <- -log10(minNonZeroFDR) + 1
-    df <- df |>
-        dplyr::rename(FDR = .data[["padj"]]) |>
+    df <- df %>%
+        dplyr::rename(FDR = .data[["padj"]]) %>%
         dplyr::mutate(
             Significance = factor(dplyr::case_when(
                 .data[['FDR']] < fdrThresh & abs(.data[['logFC']]) > logfcThresh ~ "FDR & LogFC",
@@ -860,7 +860,7 @@ plotNebulaVolcano <- function(
             labelDF <- df[highlight, ,drop = FALSE]
         } else if (is.logical(highlight)) {
             if (length(highlight) == 1) {
-                labelDF <- df |>
+                labelDF <- df %>%
                     dplyr::filter(.data[["Significance"]] == "FDR & LogFC")
             } else if (length(highlight) == nrow(df)) {
                 labelDF <- df[highlight, ,drop = FALSE]
@@ -871,16 +871,16 @@ plotNebulaVolcano <- function(
             if (any(!highlight %in% df$interaction)) {
                 stop("Some interactions in `highlight` are not available. See `showIntr(object, intr.type)` for available options.")
             }
-            labelDF <- df |>
+            labelDF <- df %>%
                 dplyr::filter(.data[['interaction']] %in% highlight)
         } else {
             stop("`highlight` must be a numeric vector, a logical vector or a character vector.")
         }
     } else {
         if (is.null(topN)) topN <- sum(df$Significance == "FDR & LogFC")
-        labelDF <- df |>
-            dplyr::filter(.data[['Significance']] == "FDR & LogFC") |>
-            dplyr::arrange(.data[["FDR"]], -dplyr::desc(.data[['logFC']])) |>
+        labelDF <- df %>%
+            dplyr::filter(.data[['Significance']] == "FDR & LogFC") %>%
+            dplyr::arrange(.data[["FDR"]], -dplyr::desc(.data[['logFC']])) %>%
             dplyr::slice_head(n = topN)
     }
 
@@ -955,7 +955,7 @@ plotNebulaVolcano <- function(
                 opacity = dotAlpha
             ),
             hovertemplate = "%{text}"
-        ) |>
+        ) %>%
             plotly::layout(
                 shapes = list(
                     list(type = "line",
@@ -1005,7 +1005,7 @@ plotNebulaVolcano <- function(
                     title = plotly::TeX("-log_{10}FDR"),  # Add y-axis title
                     titlefont = list(size = yTitleSize*1.4)  # Customize font size of the title
                 )
-            ) |>
+            ) %>%
             plotly::config(mathjax = "cdn")
     }
     return(p)

@@ -195,11 +195,15 @@ inferLRScore <- function(
 #' inferred with \code{\link{inferLRScore}}.
 #' @param permSize Integer, sample size to reach in the permutation test.
 #' Default \code{1e5}.
+#' @param ncores Integer, number of threads to use in the permutation test.
+#' Default is \code{1}. Only effective when OpenMP is supported in at package
+#' compilation.
 #' @return The input object with slot \code{nullECDF}
 #' @noRd
 permuteTest <- function(
         object,
-        permSize = 1e5
+        permSize = 1e5,
+        ncores = 1L
 ) {
     lrscore <- object@LRScore
     if (is.null(lrscore)) {
@@ -222,6 +226,13 @@ permuteTest <- function(
         permSize <- n
     }
 
+    if (!is.numeric(ncores) ||
+        ncores < 1 ||
+        ncores != as.integer(ncores)) {
+        cli::cli_abort("{.field ncores} must be a positive integer.")
+    }
+    ncores <- as.integer(ncores)
+
     raw <- object@rawData[validGenes(object), , drop = FALSE]
     libSize <- object$total_counts
     times <- ceiling(permSize / n)
@@ -240,6 +251,7 @@ permuteTest <- function(
         X = seq_len(times),
         FUN = function(i) sample(n)
     )
+    # "NGL": Null graph list
     diff_lig_NGL <- lapply(
         X = seq_len(times),
         FUN = function(i) t(diffGraph[diffPermIdxMat[,i], , drop = FALSE])
@@ -312,7 +324,8 @@ permuteTest <- function(
         cont_smooth_NGL = cont_smooth_NGL,
         Lmap = Lmap,
         Rmap = Rmap,
-        lrscore = lrscore
+        lrscore = lrscore,
+        ncores = ncores
     )
     pval <- as.matrix(1 - ecdf)
     dimnames(pval) <- dimnames(lrscore)

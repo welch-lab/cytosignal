@@ -5,6 +5,10 @@
 #include "progress.hpp"
 #include "eta_progress_bar.hpp"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 // [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace std;
@@ -107,7 +111,8 @@ arma::sp_mat permute_test_cpp(
     const std::vector<arma::sp_mat>& cont_smooth_NGV,
     const arma::sp_mat& Lmap,
     const arma::sp_mat& Rmap,
-    const arma::sp_mat& lrscore
+    const arma::sp_mat& lrscore,
+    const arma::uword ncores = 1
 ) {
     arma::uword nSpot = raw.n_rows;
     arma::uword nIntr = Lmap.n_cols;
@@ -181,7 +186,9 @@ arma::sp_mat permute_test_cpp(
         const std::vector<arma::mat>* recep_NLSV = (intrType[i] == 0) ? &cont_recep_NLSV : &diff_recep_NLSV;
         const std::vector<arma::sp_mat>* dtAvg_NGV = (intrType[i] == 0) ? &cont_dtAvg_NGV : &diff_dtAvg_NGV;
         const std::vector<arma::sp_mat>* smooth_NGV = (intrType[i] == 0) ? &cont_smooth_NGV : &diff_smooth_NGV;
-
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(ncores) schedule(dynamic)
+#endif
         for (arma::uword j = 0; j < nPerm; j++) {
             const arma::sp_mat& lig_NG = (*lig_NGV)[j];
             const arma::mat& lig_NLS = (*lig_NLSV)[j];
@@ -229,7 +236,8 @@ arma::sp_mat perm_test_Rcpp(
     Rcpp::List cont_smooth_NGL,
     const arma::sp_mat& Lmap,
     const arma::sp_mat& Rmap,
-    const arma::sp_mat& lrscore
+    const arma::sp_mat& lrscore,
+    const arma::uword ncores = 1
 ) {
     arma::uword nPerm = diff_lig_NGL.size();
     std::vector<arma::sp_mat> diff_lig_NGV;
@@ -274,7 +282,8 @@ arma::sp_mat perm_test_Rcpp(
         cont_smooth_NGV,
         Lmap,
         Rmap,
-        lrscore
+        lrscore,
+        ncores
     );
     return ecdf;
 }

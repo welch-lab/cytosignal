@@ -8,6 +8,7 @@ output:
     toc_float:
       toc_collapsed: false
     toc_depth: 3
+    self-contained: true
 vignette: >
   %\VignetteIndexEntry{Infer spatially resolved cell-cell communication signaling at cellular resolution}
   %\VignetteEngine{knitr::rmarkdown}
@@ -240,14 +241,21 @@ Downstream to identifying spatially significant and variable interactions, we pr
 
 ```{r findIntrDEG, results='markup'}
 intrDEGs <- findIntrDEG(cs, interaction = topIntrs[1,])
-intrDEGs$degList
+intrDEGs$geneSignif[[1]] %>%
+  slice_head(n = 5)
 ```
+
+The returned object `intrDEGs` has a documented structure that stores various information for the analysis. Please see `?csIntrDEG` for the detailed specification of the returned object. In the top genes shown above:
+
+- `nCluster` refers to the number of clusters where the gene is significantly up-regulated when the interaction is significant. 
+- `meanLFC` is the mean log fold-change of the gene across the clusters where it is significant.
+- `effectSize` is the effect size metric that combines the mean log fold-change and number of clusters, which is used for sorting the result here. 
 
 The gene set can be further interpreted via GO (gene ontology) term enrichment analysis with external tools. This analysis can be done with any GO tools of preference. We recommend using [GORILLA](https://cbl-gorilla.cs.technion.ac.il/) which we also utilized in our manuscript. Here, we showcase another alternative [g:Profiler](https://biit.cs.ut.ee/gprofiler/gost) that offers an R package [gprofiler2](https://CRAN.R-project.org/package=gprofiler2) to interactively query the result.
 
 ```{r gprofiler, eval=FALSE}
 library(gprofiler2)
-goRes <- gost(query = intrDEGs, organism = "mmusculus", sources = c("GO:BP", "GO:MF", "GO:CC"))
+goRes <- gost(query = intrDEGs$geneSignif$`LRRTM1-NRXN1`$gene, organism = "mmusculus", sources = c("GO:BP", "GO:MF", "GO:CC"))
 goRes$result %>%
   dplyr::select(term_name, p_value, source) %>%
   group_by(source) %>%

@@ -14,3 +14,4 @@ std::string check_omp_threads() {
     return "OpenMP is not available.";
 #endif
 }
+
