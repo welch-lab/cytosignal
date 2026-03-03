@@ -64,6 +64,9 @@ weightedLibSize <- function(
 #' contact-dependent neighbor graph. Default is \code{FALSE}.
 #' @param permSize Integer, sample size to reach in the permutation test.
 #' Default \code{1e5}.
+#' @param ncores Integer, number of threads to use in the permutation test.
+#' Default is \code{1}. Only effective when OpenMP is supported in at package
+#' compilation.
 #' @return The input \code{\linkS4class{cytosignal2}} object with the following
 #' updates:
 #' \itemize{
@@ -78,7 +81,8 @@ weightedLibSize <- function(
 inferLRScore <- function(
         object,
         smoothR = FALSE,
-        permSize = 1e5
+        permSize = 1e5,
+        ncores = 1L
 ) {
     # Just for checking if the database is valid
     intrDB(object)
@@ -156,7 +160,7 @@ inferLRScore <- function(
     cli::cli_alert_info(
         'Permuting the whole dataset to test the significance of LRscores'
     )
-    object <- permuteTest(object, permSize = permSize)
+    object <- permuteTest(object, permSize = permSize, ncores = ncores)
 
 
     cli::cli_alert_info(

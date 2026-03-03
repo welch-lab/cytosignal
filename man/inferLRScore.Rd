@@ -4,7 +4,7 @@
 \alias{inferLRScore}
 \title{Infer the LR score with significance tested}
 \usage{
-inferLRScore(object, smoothR = FALSE, permSize = 1e+05)
+inferLRScore(object, smoothR = FALSE, permSize = 1e+05, ncores = 1L)
 }
 \arguments{
 \item{object}{A \code{\linkS4class{cytosignal2}} object, with neighbor graphs
@@ -15,6 +15,10 @@ contact-dependent neighbor graph. Default is \code{FALSE}.}
 
 \item{permSize}{Integer, sample size to reach in the permutation test.
 Default \code{1e5}.}
+
+\item{ncores}{Integer, number of threads to use in the permutation test.
+Default is \code{1}. Only effective when OpenMP is supported in at package
+compilation.}
 }
 \value{
 The input \code{\linkS4class{cytosignal2}} object with the following
